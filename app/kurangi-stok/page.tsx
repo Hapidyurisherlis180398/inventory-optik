@@ -99,7 +99,7 @@ export default function KurangiStokPage() {
     <main className="min-h-screen bg-white text-black p-10">
 
       <h1 className="text-3xl font-bold mb-6">
-        KURANGI STOK VARIAN (POS)
+        KURANGI STOK VARIAN (POS SYSTEM - TeamMyHappyd)
       </h1>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -110,7 +110,7 @@ export default function KurangiStokPage() {
 
           <input
             className="border p-2 w-full mb-2"
-            placeholder="SKU"
+            placeholder="Kode Barang"
             value={sku}
             onChange={e => setSku(e.target.value)}
           />

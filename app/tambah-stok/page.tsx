@@ -109,7 +109,7 @@ export default function TambahStokPage() {
     <main className="min-h-screen bg-white text-black p-10">
 
       <h1 className="text-3xl font-bold mb-6">
-        TAMBAH STOK VARIAN (POS)
+        TAMBAH STOK VARIAN (POS SYSTEM - TeamMyHappyd)
       </h1>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -119,9 +119,9 @@ export default function TambahStokPage() {
           <h2 className="font-bold mb-4">Manual Input</h2>
 
           <input className="border p-2 w-full mb-2" placeholder="Nama Frame" value={name} onChange={e => setName(e.target.value)} />
-          <input className="border p-2 w-full mb-2" placeholder="SKU" value={sku} onChange={e => setSku(e.target.value)} />
+          <input className="border p-2 w-full mb-2" placeholder="Kode Barang" value={sku} onChange={e => setSku(e.target.value)} />
           <input className="border p-2 w-full mb-2" placeholder="Warna Frame" value={color} onChange={e => setColor(e.target.value)} />
-          <input className="border p-2 w-full mb-2" type="number" placeholder="Stok" value={stock} onChange={e => setStock(e.target.value)} />
+          <input className="border p-2 w-full mb-2" type="number" placeholder="Tambah Stok" value={stock} onChange={e => setStock(e.target.value)} />
 
           <button
             onClick={tambahManual}
@@ -137,7 +137,7 @@ export default function TambahStokPage() {
           <h2 className="font-bold mb-4">Import Excel</h2>
 
           <p className="text-sm text-gray-500 mb-3">
-            Kolom wajib: Kode Barang, Nama Frame, Warna Frame, Stok Total
+            Kolom wajib: Nama Frame, Kode Barang, Warna Frame, Tambah Stok
           </p>
 
           <input type="file" onChange={uploadExcel} />
