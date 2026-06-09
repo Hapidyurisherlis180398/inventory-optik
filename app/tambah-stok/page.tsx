@@ -153,7 +153,7 @@ export default function TambahStokPage() {
 
             <button
               onClick={tambahManual}
-              className="bg-black hover:bg-gray-800 transition text-white font-semibold p-3 rounded-lg"
+              className="bg-green-600 hover:bg-green-700 transition text-white font-semibold p-3 rounded-lg shadow-sm"
             >
               Simpan Stok
             </button>
