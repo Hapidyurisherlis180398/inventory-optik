@@ -7,24 +7,47 @@ import * as XLSX from 'xlsx'
 type SortKey = 'name' | 'sku' | 'color' | 'stock' | 'updated_at'
 type SortDir = 'asc' | 'desc'
 
-export default function Home() {
+export default function BelanjaPage() {
   const [products, setProducts] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('sku')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
+  // =====================
+  // FETCH PRODUCTS
+  // =====================
   async function getProducts() {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-
+    const { data } = await supabase.from('products').select('*')
     if (data) setProducts(data)
+  }
+
+  // =====================
+  // FETCH SUPPLIERS
+  // =====================
+  async function getSuppliers() {
+    const { data } = await supabase.from('suppliers').select('*')
+    if (data) setSuppliers(data)
   }
 
   useEffect(() => {
     getProducts()
+    getSuppliers()
   }, [])
 
+  // =====================
+  // FIND SUPPLIER WA
+  // =====================
+  function getWA(sku: string) {
+    const found = suppliers.find(
+      (s) => s.sku?.toLowerCase() === sku?.toLowerCase()
+    )
+    return found?.phone
+  }
+
+  // =====================
+  // FILTER + SORT
+  // =====================
   const filtered = useMemo(() => {
     let result = [...products]
 
@@ -68,20 +91,13 @@ export default function Home() {
 
   const warningItems = filtered.filter(p => (p.stock || 0) <= 2)
 
-  function exportExcel() {
-    const ws = XLSX.utils.json_to_sheet(filtered)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'STOK')
-    XLSX.writeFile(wb, 'stok.xlsx')
-  }
-
   return (
     <main className="min-h-screen bg-white text-black p-6">
 
       {/* HEADER */}
       <div className="sticky top-0 z-20 bg-white border-b pb-3">
         <h1 className="text-2xl font-bold">
-          STOK PER VARIAN (POS SYSTEM - TeamMyHappyd)
+          BELANJA SUPPLIER (POS SYSTEM)
         </h1>
 
         <div className="flex gap-3 mt-3">
@@ -91,13 +107,6 @@ export default function Home() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-
-          <button
-            onClick={exportExcel}
-            className="bg-black text-white px-4 py-2 rounded"
-          >
-            Export
-          </button>
         </div>
       </div>
 
@@ -119,12 +128,13 @@ export default function Home() {
 
         <table className="w-full text-sm">
 
+          {/* HEADER */}
           <thead className="bg-gray-100 sticky top-0 z-10">
             <tr>
 
               <th className="border p-2 text-center">No</th>
 
-              <th className="border p-2 text-left">Nama Frame</th>
+              <th className="border p-2 text-left">Nama</th>
 
               <th className="border p-2 text-left font-bold">SKU</th>
 
@@ -132,17 +142,16 @@ export default function Home() {
 
               <th className="border p-2 text-center">Stok</th>
 
-              {/* 🔥 NEW COLUMN */}
               <th className="border p-2 text-center">Belanja</th>
-
-              <th className="border p-2 text-center">Update</th>
 
             </tr>
           </thead>
 
+          {/* BODY */}
           <tbody>
             {filtered.map((item, i) => {
               const stock = item.stock || 0
+              const wa = getWA(item.sku)
 
               return (
                 <tr key={item.id} className="hover:bg-gray-50">
@@ -160,7 +169,7 @@ export default function Home() {
                   </td>
 
                   <td className="border p-2">
-                    <span className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 transition">
+                    <span className="px-2 py-1 bg-gray-100 rounded">
                       {item.color}
                     </span>
                   </td>
@@ -177,25 +186,21 @@ export default function Home() {
                     </span>
                   </td>
 
-                  {/* 🔥 SUPPLIER LINK */}
+                  {/* WA BUTTON */}
                   <td className="border p-2 text-center">
-                    {item.supplier_link ? (
+                    {wa ? (
                       <a
-                        href={item.supplier_link}
+                        href={`https://wa.me/${wa}`}
                         target="_blank"
-                        className="text-blue-600 font-semibold hover:underline"
+                        className="inline-block px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
                       >
-                        BELI
+                        WA BELI
                       </a>
                     ) : (
                       <span className="text-gray-400 text-xs">
                         -
                       </span>
                     )}
-                  </td>
-
-                  <td className="border p-2 text-center text-xs text-gray-600">
-                    {new Date(item.updated_at).toLocaleString('id-ID')}
                   </td>
 
                 </tr>
