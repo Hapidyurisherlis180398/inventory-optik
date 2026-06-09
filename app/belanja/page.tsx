@@ -11,20 +11,13 @@ export default function BelanjaPage() {
   const [products, setProducts] = useState<any[]>([])
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [search, setSearch] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('sku')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [file, setFile] = useState<File | null>(null)
 
-  // =====================
-  // FETCH PRODUCTS
-  // =====================
   async function getProducts() {
     const { data } = await supabase.from('products').select('*')
     if (data) setProducts(data)
   }
 
-  // =====================
-  // FETCH SUPPLIERS
-  // =====================
   async function getSuppliers() {
     const { data } = await supabase.from('suppliers').select('*')
     if (data) setSuppliers(data)
@@ -35,67 +28,82 @@ export default function BelanjaPage() {
     getSuppliers()
   }, [])
 
-  // =====================
-  // FIND SUPPLIER WA
-  // =====================
+  // =========================
+  // NORMALIZER
+  // =========================
+  const norm = (v: string) => (v || '').trim().toLowerCase()
+
+  const normalizePhone = (phone: string) => {
+    if (!phone) return ''
+    let p = phone.replace(/[^0-9]/g, '')
+    if (p.startsWith('0')) p = '62' + p.slice(1)
+    return p
+  }
+
+  // =========================
+  // GET SUPPLIER WA
+  // =========================
   function getWA(sku: string) {
     const found = suppliers.find(
-      (s) => s.sku?.toLowerCase() === sku?.toLowerCase()
+      (s) => norm(s.sku) === norm(sku)
     )
-    return found?.phone
+    return normalizePhone(found?.phone || '')
   }
 
-  // =====================
-  // FILTER + SORT
-  // =====================
-  const filtered = useMemo(() => {
-    let result = [...products]
+  // =========================
+  // UPLOAD SUPPLIER EXCEL
+  // =========================
+  async function uploadSupplier(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    if (search) {
-      result = result.filter(p =>
-        p.sku?.toLowerCase().includes(search.toLowerCase())
-      )
-    }
+    const data = await file.arrayBuffer()
+    const wb = XLSX.read(data)
+    const sheet = wb.Sheets[wb.SheetNames[0]]
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet)
 
-    result.sort((a, b) => {
-      const valA = a[sortKey] ?? ''
-      const valB = b[sortKey] ?? ''
+    for (const r of rows) {
+      const sku = norm(r['SKU'])
+      const phone = r['No WA']
 
-      if (sortKey === 'stock') {
-        return sortDir === 'asc'
-          ? valA - valB
-          : valB - valA
+      if (!sku || !phone) continue
+
+      const { data: existing } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('sku', sku)
+        .maybeSingle()
+
+      if (existing) {
+        await supabase
+          .from('suppliers')
+          .update({ phone })
+          .eq('id', existing.id)
+      } else {
+        await supabase.from('suppliers').insert([
+          { sku, phone }
+        ])
       }
-
-      return sortDir === 'asc'
-        ? String(valA).localeCompare(String(valB))
-        : String(valB).localeCompare(String(valA))
-    })
-
-    return result
-  }, [products, search, sortKey, sortDir])
-
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
     }
+
+    alert('Supplier berhasil diupload')
+    getSuppliers()
   }
 
-  const totalStock = filtered.reduce(
-    (sum, i) => sum + (i.stock || 0),
-    0
-  )
-
-  const warningItems = filtered.filter(p => (p.stock || 0) <= 2)
+  // =========================
+  // FILTER
+  // =========================
+  const filtered = useMemo(() => {
+    return products.filter(p =>
+      norm(p.sku).includes(norm(search))
+    )
+  }, [products, search])
 
   return (
     <main className="min-h-screen bg-white text-black p-6">
 
       {/* HEADER */}
-      <div className="sticky top-0 z-20 bg-white border-b pb-3">
+      <div className="sticky top-0 bg-white z-20 border-b pb-3">
         <h1 className="text-2xl font-bold">
           BELANJA SUPPLIER (POS SYSTEM)
         </h1>
@@ -107,47 +115,30 @@ export default function BelanjaPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
-      </div>
 
-      {/* SUMMARY */}
-      <div className="grid grid-cols-3 gap-3 my-4">
-        <div className="border p-3 rounded">
-          Total: {filtered.length}
-        </div>
-        <div className="border p-3 rounded">
-          Stok: {totalStock}
-        </div>
-        <div className="border p-3 rounded text-red-600">
-          Kritis: {warningItems.length}
+          <input
+            type="file"
+            onChange={uploadSupplier}
+            className="border p-2 rounded"
+          />
         </div>
       </div>
 
       {/* TABLE */}
-      <div className="overflow-auto border rounded">
+      <div className="overflow-auto border rounded mt-4">
 
         <table className="w-full text-sm">
-
-          {/* HEADER */}
           <thead className="bg-gray-100 sticky top-0 z-10">
             <tr>
-
               <th className="border p-2 text-center">No</th>
-
               <th className="border p-2 text-left">Nama</th>
-
               <th className="border p-2 text-left font-bold">SKU</th>
-
               <th className="border p-2 text-left">Warna</th>
-
               <th className="border p-2 text-center">Stok</th>
-
-              <th className="border p-2 text-center">Belanja</th>
-
+              <th className="border p-2 text-center">WA</th>
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
             {filtered.map((item, i) => {
               const stock = item.stock || 0
@@ -169,32 +160,21 @@ export default function BelanjaPage() {
                   </td>
 
                   <td className="border p-2">
-                    <span className="px-2 py-1 bg-gray-100 rounded">
-                      {item.color}
-                    </span>
+                    {item.color}
                   </td>
 
                   <td className="border p-2 text-center">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      stock <= 2
-                        ? 'bg-red-100 text-red-600'
-                        : stock <= 5
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-green-100 text-green-700'
-                    }`}>
-                      {stock}
-                    </span>
+                    {stock}
                   </td>
 
-                  {/* WA BUTTON */}
                   <td className="border p-2 text-center">
                     {wa ? (
                       <a
                         href={`https://wa.me/${wa}`}
                         target="_blank"
-                        className="inline-block px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                        className="bg-green-500 text-white px-3 py-1 rounded text-xs"
                       >
-                        WA BELI
+                        WA
                       </a>
                     ) : (
                       <span className="text-gray-400 text-xs">
