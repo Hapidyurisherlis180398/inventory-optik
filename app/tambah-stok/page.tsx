@@ -22,8 +22,7 @@ export default function TambahStokPage() {
       .single()
 
     if (existing) {
-      const newStock =
-        existing.stock + Number(stock)
+      const newStock = existing.stock + Number(stock)
 
       await supabase
         .from('products')
@@ -57,18 +56,12 @@ export default function TambahStokPage() {
     event: React.ChangeEvent<HTMLInputElement>
   ) {
     const file = event.target.files?.[0]
-
     if (!file) return
 
     const data = await file.arrayBuffer()
-
     const workbook = XLSX.read(data)
-
-    const sheet =
-      workbook.Sheets[workbook.SheetNames[0]]
-
-    const jsonData: any[] =
-      XLSX.utils.sheet_to_json(sheet)
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    const jsonData: any[] = XLSX.utils.sheet_to_json(sheet)
 
     for (const item of jsonData) {
       const sku = item['Kode Barang']
@@ -84,8 +77,7 @@ export default function TambahStokPage() {
         .single()
 
       if (existing) {
-        const newStock =
-          existing.stock + stock
+        const newStock = existing.stock + stock
 
         await supabase
           .from('products')
@@ -111,66 +103,84 @@ export default function TambahStokPage() {
   }
 
   return (
-    <main className="p-10">
-      <h1 className="text-3xl font-bold mb-6">
-        TAMBAH STOK
-      </h1>
+    <main className="min-h-screen bg-white text-black p-10">
 
-      <div className="border p-5 mb-8">
-        <h2 className="text-xl font-bold mb-4">
-          Tambah Manual
-        </h2>
-
-        <div className="flex flex-col gap-3 max-w-xl">
-          <input
-            type="text"
-            placeholder="Nama Frame"
-            value={name}
-            onChange={(e) =>
-              setName(e.target.value)
-            }
-            className="border p-3"
-          />
-
-          <input
-            type="text"
-            placeholder="Kode Barang"
-            value={sku}
-            onChange={(e) =>
-              setSku(e.target.value)
-            }
-            className="border p-3"
-          />
-
-          <input
-            type="number"
-            placeholder="Jumlah Stok"
-            value={stock}
-            onChange={(e) =>
-              setStock(e.target.value)
-            }
-            className="border p-3"
-          />
-
-          <button
-            onClick={tambahManual}
-            className="bg-black text-white p-3"
-          >
-            Simpan
-          </button>
-        </div>
+      {/* HEADER */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold">
+          TAMBAH STOK
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Tambah stok manual atau import data dari Excel
+        </p>
       </div>
 
-      <div className="border p-5">
-        <h2 className="text-xl font-bold mb-4">
-          Upload Excel
-        </h2>
+      {/* GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-        <input
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={uploadExcel}
-        />
+        {/* MANUAL CARD */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+
+          <h2 className="text-xl font-bold mb-6">
+            Tambah Stok Manual
+          </h2>
+
+          <div className="flex flex-col gap-4">
+
+            <input
+              type="text"
+              placeholder="Nama Frame"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+
+            <input
+              type="text"
+              placeholder="Kode Barang (SKU)"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+
+            <input
+              type="number"
+              placeholder="Jumlah Stok"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+
+            <button
+              onClick={tambahManual}
+              className="bg-black hover:bg-gray-800 transition text-white font-semibold p-3 rounded-lg"
+            >
+              Simpan Stok
+            </button>
+
+          </div>
+        </div>
+
+        {/* EXCEL CARD */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+
+          <h2 className="text-xl font-bold mb-6">
+            Import Excel
+          </h2>
+
+          <p className="text-gray-600 mb-4 text-sm">
+            Format file: <b>Kode Barang</b>, <b>Nama Frame</b>, <b>Stok Total</b>
+          </p>
+
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={uploadExcel}
+            className="block w-full text-sm border border-gray-300 rounded-lg p-3 file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-gray-100 file:rounded-lg"
+          />
+
+        </div>
+
       </div>
     </main>
   )
