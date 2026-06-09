@@ -165,7 +165,14 @@ export default function BelanjaPage() {
               const supplier = getSupplier(item)
               const phone = normalizePhone(supplier?.phone || '')
 
-              const message = `Halo kak, saya mau pesan lagi kacamata ${item.name}, ${item.sku} di toko ${supplier?.supplier_name || '-'}`
+              const message =
+`Halo kak 👋
+
+Saya mau pesan lagi kacamata *${supplier?.name || item.name}*
+
+Dengan kode frame *${item.sku}*
+
+Di toko *${supplier?.supplier_name || '-'}* 🙏`
               const waLink = phone
                 ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
                 : ''
