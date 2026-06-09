@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import * as XLSX from 'xlsx'
+import { normalizeSku, normalizeColor } from '../../lib/normalize'
 
 export default function TambahStokPage() {
   const [name, setName] = useState('')
@@ -82,8 +83,8 @@ export default function TambahStokPage() {
       const { data: existing } = await supabase
         .from('products')
         .select('*')
-        .eq('sku', sku)
-        .eq('color', color)
+        .eq('sku', normalizeSku(sku))
+        .eq('color', normalizeColor(color))
         .maybeSingle()
 
       if (existing) {
