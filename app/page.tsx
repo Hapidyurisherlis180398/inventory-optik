@@ -1,16 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([])
+  const [search, setSearch] = useState('')
 
   async function getProducts() {
     const { data } = await supabase
       .from('products')
       .select('*')
-      .order('updated_at', { ascending: false })
 
     if (data) setProducts(data)
   }
@@ -19,78 +19,142 @@ export default function Home() {
     getProducts()
   }, [])
 
+  // SORT BY SKU biar rapi
+  const sorted = useMemo(() => {
+    return [...products].sort((a, b) =>
+      (a.sku || '').localeCompare(b.sku || '')
+    )
+  }, [products])
+
+  // FILTER SEARCH
+  const filtered = sorted.filter((p) =>
+    p.sku?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  // TOTAL STOK
+  const totalStock = filtered.reduce(
+    (sum, item) => sum + (item.stock || 0),
+    0
+  )
+
+  // WARNING LIST
+  const warningItems = filtered.filter(
+    (p) => (p.stock || 0) <= 2
+  )
+
   return (
-    <main className="min-h-screen bg-white text-black p-8">
+    <main className="min-h-screen bg-white text-black p-6">
 
       {/* HEADER */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">
+      <div className="sticky top-0 bg-white z-10 pb-4 border-b">
+        <h1 className="text-2xl font-bold">
           STOK PER VARIAN (POS SYSTEM)
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Monitoring stok berdasarkan SKU dan warna frame
+
+        <p className="text-sm text-gray-500">
+          Monitoring SKU & Warna Frame
         </p>
+
+        {/* SEARCH */}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari SKU..."
+          className="mt-3 w-full md:w-80 border px-3 py-2 rounded"
+        />
       </div>
 
+      {/* SUMMARY */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-4">
+
+        <div className="border p-3 rounded">
+          <p className="text-xs text-gray-500">Total Item</p>
+          <p className="font-bold">{filtered.length}</p>
+        </div>
+
+        <div className="border p-3 rounded">
+          <p className="text-xs text-gray-500">Total Stok</p>
+          <p className="font-bold">{totalStock}</p>
+        </div>
+
+        <div className="border p-3 rounded">
+          <p className="text-xs text-gray-500">Stok Kritis</p>
+          <p className="font-bold text-red-600">
+            {warningItems.length}
+          </p>
+        </div>
+
+      </div>
+
+      {/* WARNING BOX */}
+      {warningItems.length > 0 && (
+        <div className="mb-4 p-3 border border-red-300 bg-red-50 rounded">
+          <p className="font-bold text-red-600">
+            ⚠ Stok Harus Dipesan Ulang (≤ 2)
+          </p>
+          <p className="text-sm text-red-500">
+            {warningItems.map((w) => w.sku).join(', ')}
+          </p>
+        </div>
+      )}
+
       {/* TABLE */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+      <div className="overflow-auto border rounded">
 
         <table className="w-full text-sm border-collapse">
 
-          {/* HEADER */}
-          <thead className="bg-gray-50 text-gray-700">
+          {/* STICKY HEADER TABLE */}
+          <thead className="bg-gray-100 sticky top-[120px] z-10">
             <tr>
-              {['No', 'Nama', 'SKU', 'Warna', 'Stok', 'Update'].map((head) => (
+              {['No', 'Nama', 'SKU', 'Warna', 'Stok', 'Update'].map((h) => (
                 <th
-                  key={head}
-                  className="px-4 py-3 text-left font-semibold border-b border-r border-gray-200 last:border-r-0"
+                  key={h}
+                  className="border p-2 text-left"
                 >
-                  {head}
+                  {h}
                 </th>
               ))}
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
-            {products.map((item, i) => (
-              <tr
-                key={item.id}
-                className="hover:bg-gray-50 transition border-b border-gray-100"
-              >
+            {filtered.map((item, i) => {
+              const stock = item.stock || 0
 
-                <td className="px-4 py-3 text-gray-500 border-r border-gray-200">
-                  {i + 1}
-                </td>
+              return (
+                <tr key={item.id} className="hover:bg-gray-50">
 
-                <td className="px-4 py-3 font-medium border-r border-gray-200">
-                  {item.name}
-                </td>
+                  <td className="border p-2">{i + 1}</td>
 
-                <td className="px-4 py-3 text-gray-700 border-r border-gray-200">
-                  {item.sku}
-                </td>
+                  <td className="border p-2">{item.name}</td>
 
-                <td className="px-4 py-3 border-r border-gray-200">
-                  <span className="inline-block px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-700">
-                    {item.color}
-                  </span>
-                </td>
+                  <td className="border p-2">{item.sku}</td>
 
-                <td className="px-4 py-3 font-bold text-black border-r border-gray-200">
-                  {item.stock}
-                </td>
+                  <td className="border p-2">{item.color}</td>
 
-                <td className="px-4 py-3 text-xs text-gray-500">
-                  {new Date(item.updated_at).toLocaleString('id-ID')}
-                </td>
+                  {/* STOCK COLOR SYSTEM */}
+                  <td
+                    className={`border p-2 font-bold ${
+                      stock <= 2
+                        ? 'bg-red-100 text-red-600'
+                        : stock <= 5
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : ''
+                    }`}
+                  >
+                    {stock}
+                  </td>
 
-              </tr>
-            ))}
+                  <td className="border p-2 text-xs text-gray-500">
+                    {new Date(item.updated_at).toLocaleString('id-ID')}
+                  </td>
+
+                </tr>
+              )
+            })}
           </tbody>
 
         </table>
-
       </div>
     </main>
   )
