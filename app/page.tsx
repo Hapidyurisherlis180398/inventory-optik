@@ -41,7 +41,8 @@ export default function Home() {
   const warningItems = filtered.filter(
     (p) => (p.stock || 0) <= 2
   )
-
+  
+  console.log("UPDATE TEST 123")
   return (
     <main className="min-h-screen bg-white text-black p-6">
 
