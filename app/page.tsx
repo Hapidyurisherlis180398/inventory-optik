@@ -4,9 +4,14 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 
+type SortKey = 'name' | 'sku' | 'color' | 'stock' | 'updated_at'
+type SortDir = 'asc' | 'desc'
+
 export default function Home() {
   const [products, setProducts] = useState<any[]>([])
   const [search, setSearch] = useState('')
+  const [sortKey, setSortKey] = useState<SortKey>('sku')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   async function getProducts() {
     const { data } = await supabase
@@ -20,120 +25,145 @@ export default function Home() {
     getProducts()
   }, [])
 
-  // SORT SKU
-  const sorted = useMemo(() => {
-    return [...products].sort((a, b) =>
-      (a.sku || '').localeCompare(b.sku || '')
-    )
-  }, [products])
+  // SORT + FILTER STABLE
+  const filtered = useMemo(() => {
+    let result = [...products]
 
-  // FILTER
-  const filtered = sorted.filter((p) =>
-    p.sku?.toLowerCase().includes(search.toLowerCase())
-  )
+    // SEARCH
+    if (search) {
+      result = result.filter(p =>
+        p.sku?.toLowerCase().includes(search.toLowerCase())
+      )
+    }
+
+    // SORT
+    result.sort((a, b) => {
+      const valA = a[sortKey] ?? ''
+      const valB = b[sortKey] ?? ''
+
+      if (sortKey === 'stock') {
+        return sortDir === 'asc'
+          ? valA - valB
+          : valB - valA
+      }
+
+      return sortDir === 'asc'
+        ? String(valA).localeCompare(String(valB))
+        : String(valB).localeCompare(String(valA))
+    })
+
+    return result
+  }, [products, search, sortKey, sortDir])
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   const totalStock = filtered.reduce(
-    (sum, item) => sum + (item.stock || 0),
+    (sum, i) => sum + (i.stock || 0),
     0
   )
 
-  const warningItems = filtered.filter(
-    (p) => (p.stock || 0) <= 2
-  )
+  const warningItems = filtered.filter(p => (p.stock || 0) <= 2)
 
-  // EXPORT EXCEL
   function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(filtered)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'STOK')
-    XLSX.writeFile(wb, 'stok-per-varian.xlsx')
+    XLSX.writeFile(wb, 'stok.xlsx')
   }
 
   return (
     <main className="min-h-screen bg-white text-black p-6">
 
       {/* HEADER */}
-      <div className="sticky top-0 bg-white z-20 border-b pb-4">
+      <div className="sticky top-0 z-20 bg-white border-b pb-3">
 
-        {/* TITLE */}
         <h1 className="text-2xl font-bold">
           STOK PER VARIAN (POS SYSTEM)
         </h1>
 
-        <p className="text-sm text-gray-500 mb-3">
-          Monitoring SKU, Warna Frame, dan Stok Real-time
-        </p>
-
-        {/* CONTROL BAR */}
-        <div className="flex flex-col md:flex-row gap-3 md:items-center">
-
+        <div className="flex gap-3 mt-3">
           <input
+            className="border px-3 py-2 rounded w-80"
+            placeholder="Cari SKU..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari SKU..."
-            className="border px-3 py-2 rounded w-full md:w-80"
           />
 
           <button
             onClick={exportExcel}
-            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+            className="bg-black text-white px-4 py-2 rounded"
           >
-            Export Excel
+            Export
           </button>
-
         </div>
       </div>
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-5">
-
+      <div className="grid grid-cols-3 gap-3 my-4">
         <div className="border p-3 rounded">
-          <p className="text-xs text-gray-500">Total Item</p>
-          <p className="font-bold">{filtered.length}</p>
+          Total: {filtered.length}
         </div>
-
         <div className="border p-3 rounded">
-          <p className="text-xs text-gray-500">Total Stok</p>
-          <p className="font-bold">{totalStock}</p>
+          Stok: {totalStock}
         </div>
-
-        <div className="border p-3 rounded">
-          <p className="text-xs text-gray-500">Stok Kritis</p>
-          <p className="font-bold text-red-600">
-            {warningItems.length}
-          </p>
+        <div className="border p-3 rounded text-red-600">
+          Kritis: {warningItems.length}
         </div>
-
       </div>
-
-      {/* WARNING */}
-      {warningItems.length > 0 && (
-        <div className="mb-4 p-3 border border-red-300 bg-red-50 rounded">
-          <p className="font-bold text-red-600">
-            ⚠ Stok Harus Restock (≤ 2)
-          </p>
-          <p className="text-sm text-red-500">
-            {warningItems.map((w) => w.sku).join(', ')}
-          </p>
-        </div>
-      )}
 
       {/* TABLE */}
       <div className="overflow-auto border rounded">
 
         <table className="w-full text-sm">
 
-          {/* HEADER (STICKY) */}
-          <thead className="bg-gray-100 sticky top-[160px] z-10">
+          {/* HEADER + SORT */}
+          <thead className="bg-gray-100 sticky top-0 z-10">
             <tr>
-              {['No', 'Nama', 'SKU', 'Warna', 'Stok', 'Update'].map((h) => (
-                <th
-                  key={h}
-                  className="border p-2 text-left font-semibold"
-                >
-                  {h}
-                </th>
-              ))}
+
+              <th className="border p-2">No</th>
+
+              <th
+                className="border p-2 cursor-pointer"
+                onClick={() => toggleSort('name')}
+              >
+                Nama ↕
+              </th>
+
+              <th
+                className="border p-2 cursor-pointer"
+                onClick={() => toggleSort('sku')}
+              >
+                SKU ↕
+              </th>
+
+              <th
+                className="border p-2 cursor-pointer"
+                onClick={() => toggleSort('color')}
+              >
+                Warna ↕
+              </th>
+
+              <th
+                className="border p-2 cursor-pointer"
+                onClick={() => toggleSort('stock')}
+              >
+                Stok ↕
+              </th>
+
+              <th
+                className="border p-2 cursor-pointer"
+                onClick={() => toggleSort('updated_at')}
+              >
+                Update ↕
+              </th>
+
             </tr>
           </thead>
 
@@ -150,16 +180,14 @@ export default function Home() {
                   <td className="border p-2">{item.color}</td>
 
                   <td className={`border p-2 font-bold ${
-                    stock <= 2
-                      ? 'bg-red-100 text-red-600'
-                      : stock <= 5
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : ''
+                    stock <= 2 ? 'bg-red-100 text-red-600'
+                    : stock <= 5 ? 'bg-yellow-100 text-yellow-700'
+                    : ''
                   }`}>
                     {stock}
                   </td>
 
-                  <td className="border p-2 text-xs text-gray-500">
+                  <td className="border p-2 text-xs">
                     {new Date(item.updated_at).toLocaleString('id-ID')}
                   </td>
 
