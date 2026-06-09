@@ -32,7 +32,7 @@ export default function Home() {
         </p>
       </div>
 
-      {/* TABLE WRAPPER */}
+      {/* TABLE */}
       <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
 
         <table className="w-full text-sm border-collapse">
@@ -43,7 +43,7 @@ export default function Home() {
               {['No', 'Nama', 'SKU', 'Warna', 'Stok', 'Update'].map((head) => (
                 <th
                   key={head}
-                  className="px-4 py-3 text-left font-semibold border-b border-gray-200"
+                  className="px-4 py-3 text-left font-semibold border-b border-r border-gray-200 last:border-r-0"
                 >
                   {head}
                 </th>
@@ -59,25 +59,25 @@ export default function Home() {
                 className="hover:bg-gray-50 transition border-b border-gray-100"
               >
 
-                <td className="px-4 py-3 text-gray-500">
+                <td className="px-4 py-3 text-gray-500 border-r border-gray-200">
                   {i + 1}
                 </td>
 
-                <td className="px-4 py-3 font-medium">
+                <td className="px-4 py-3 font-medium border-r border-gray-200">
                   {item.name}
                 </td>
 
-                <td className="px-4 py-3 text-gray-700">
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-200">
                   {item.sku}
                 </td>
 
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 border-r border-gray-200">
                   <span className="inline-block px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-700">
                     {item.color}
                   </span>
                 </td>
 
-                <td className="px-4 py-3 font-bold text-black">
+                <td className="px-4 py-3 font-bold text-black border-r border-gray-200">
                   {item.stock}
                 </td>
 
