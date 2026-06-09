@@ -81,7 +81,7 @@ export default function Home() {
       {/* HEADER */}
       <div className="sticky top-0 z-20 bg-white border-b pb-3">
         <h1 className="text-2xl font-bold">
-          STOK PER VARIAN (POS SYSTEM)
+          STOK PER VARIAN (POS SYSTEM - TeamMyHappyd)
         </h1>
 
         <div className="flex gap-3 mt-3">
@@ -129,21 +129,21 @@ export default function Home() {
                 className="border p-2 cursor-pointer text-left"
                 onClick={() => toggleSort('name')}
               >
-                Nama ↕
+                Nama Frame ↕
               </th>
 
               <th
                 className="border p-2 cursor-pointer text-left font-bold"
                 onClick={() => toggleSort('sku')}
               >
-                SKU ↕
+                Kode Barang ↕
               </th>
 
               <th
                 className="border p-2 cursor-pointer text-left"
                 onClick={() => toggleSort('color')}
               >
-                Warna ↕
+                Warna Frame ↕
               </th>
 
               <th
