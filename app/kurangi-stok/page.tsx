@@ -8,24 +8,41 @@ export default function KurangiStokPage() {
   const [sku, setSku] = useState('')
   const [color, setColor] = useState('')
   const [qty, setQty] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  async function kurangi() {
+  const normalize = (val: string) => val.trim().toLowerCase()
+
+  async function kurangiManual() {
+    if (!sku || !color || !qty) {
+      alert('Lengkapi data')
+      return
+    }
+
+    setLoading(true)
+
+    const cleanSku = normalize(sku)
+    const cleanColor = normalize(color)
+    const amount = Number(qty) || 0
+
     const { data: existing } = await supabase
       .from('products')
       .select('*')
-      .eq('sku', sku)
-      .eq('color', color)
-      .single()
+      .eq('sku', cleanSku)
+      .eq('color', cleanColor)
+      .maybeSingle()
 
     if (!existing) {
-      alert('Data tidak ditemukan')
+      alert('Varian tidak ditemukan')
+      setLoading(false)
       return
     }
+
+    const newStock = (existing.stock || 0) - amount
 
     await supabase
       .from('products')
       .update({
-        stock: Math.max(existing.stock - Number(qty), 0),
+        stock: newStock < 0 ? 0 : newStock,
         updated_at: new Date(),
       })
       .eq('id', existing.id)
@@ -34,6 +51,7 @@ export default function KurangiStokPage() {
     setColor('')
     setQty('')
 
+    setLoading(false)
     alert('Stok berhasil dikurangi')
   }
 
@@ -47,51 +65,87 @@ export default function KurangiStokPage() {
     const rows: any[] = XLSX.utils.sheet_to_json(sheet)
 
     for (const item of rows) {
-      const sku = item['Kode Barang']
-      const color = item['Warna Frame']
-      const qty = Number(item['Qty'])
+      const sku = normalize(item['Kode Barang'] || '')
+      const color = normalize(item['Warna Frame'] || '')
+      const qty = Number(item['Qty']) || 0
+
+      if (!sku || !color) continue
 
       const { data: existing } = await supabase
         .from('products')
         .select('*')
         .eq('sku', sku)
         .eq('color', color)
-        .single()
+        .maybeSingle()
 
       if (existing) {
+        const newStock = (existing.stock || 0) - qty
+
         await supabase
           .from('products')
           .update({
-            stock: Math.max(existing.stock - qty, 0),
+            stock: newStock < 0 ? 0 : newStock,
             updated_at: new Date(),
           })
           .eq('id', existing.id)
       }
     }
 
-    alert('Upload berhasil')
+    alert('Upload Excel berhasil')
   }
 
   return (
-    <main className="p-10 bg-white min-h-screen">
+    <main className="min-h-screen bg-white text-black p-10">
 
       <h1 className="text-3xl font-bold mb-6">
-        KURANGI STOK VARIAN
+        KURANGI STOK VARIAN (POS)
       </h1>
 
       <div className="grid md:grid-cols-2 gap-6">
 
-        <div className="border p-6 rounded">
-          <input placeholder="SKU" className="border p-2 w-full mb-2" value={sku} onChange={e => setSku(e.target.value)} />
-          <input placeholder="Warna" className="border p-2 w-full mb-2" value={color} onChange={e => setColor(e.target.value)} />
-          <input placeholder="Qty" type="number" className="border p-2 w-full mb-2" value={qty} onChange={e => setQty(e.target.value)} />
+        {/* MANUAL */}
+        <div className="border p-6 rounded-xl">
+          <h2 className="font-bold mb-4">Kurangi Manual</h2>
 
-          <button onClick={kurangi} className="bg-red-600 text-white p-2 w-full rounded">
-            Kurangi
+          <input
+            className="border p-2 w-full mb-2"
+            placeholder="SKU"
+            value={sku}
+            onChange={e => setSku(e.target.value)}
+          />
+
+          <input
+            className="border p-2 w-full mb-2"
+            placeholder="Warna Frame"
+            value={color}
+            onChange={e => setColor(e.target.value)}
+          />
+
+          <input
+            className="border p-2 w-full mb-2"
+            type="number"
+            placeholder="Jumlah keluar"
+            value={qty}
+            onChange={e => setQty(e.target.value)}
+          />
+
+          <button
+            onClick={kurangiManual}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-700 text-white p-2 w-full rounded"
+          >
+            {loading ? 'Proses...' : 'Kurangi Stok'}
           </button>
         </div>
 
-        <div className="border p-6 rounded">
+        {/* EXCEL */}
+        <div className="border p-6 rounded-xl">
+          <h2 className="font-bold mb-4">Import Excel</h2>
+
+          <p className="text-sm text-gray-500 mb-3">
+            Kolom wajib: Kode Barang, Warna Frame, Qty
+          </p>
+
           <input type="file" onChange={uploadExcel} />
         </div>
 
