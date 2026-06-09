@@ -23,75 +23,89 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white text-black p-10">
-      
+
       {/* HEADER */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-black">
+        <h1 className="text-3xl font-bold">
           STOK BARANG SAAT INI
         </h1>
         <p className="text-gray-600 mt-1">
-          Data stok terbaru dari sistem inventory
+          Data inventory optik terbaru
         </p>
       </div>
 
       {/* TABLE WRAPPER */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        
+      <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+
         <table className="w-full border-collapse">
-          
-          {/* TABLE HEADER */}
+
+          {/* HEADER */}
           <thead className="bg-gray-100">
             <tr>
-              <th className="border-b border-gray-200 p-3 text-left font-bold text-black">
-                NO
-              </th>
-              <th className="border-b border-gray-200 p-3 text-left font-bold text-black">
-                Nama Frame
-              </th>
-              <th className="border-b border-gray-200 p-3 text-left font-bold text-black">
-                Kode Barang
-              </th>
-              <th className="border-b border-gray-200 p-3 text-left font-bold text-black">
-                Tanggal Update
-              </th>
-              <th className="border-b border-gray-200 p-3 text-left font-bold text-black">
-                Stok Total
-              </th>
+              <th className="p-3 text-left font-bold">No</th>
+              <th className="p-3 text-left font-bold">Nama Frame</th>
+              <th className="p-3 text-left font-bold">Kode Barang</th>
+              <th className="p-3 text-left font-bold">Warna Frame</th>
+              <th className="p-3 text-left font-bold">Stok</th>
+              <th className="p-3 text-left font-bold">Terakhir Update</th>
             </tr>
           </thead>
 
-          {/* TABLE BODY */}
+          {/* BODY */}
           <tbody>
             {products.map((item, index) => (
               <tr
                 key={item.id}
                 className="hover:bg-gray-50 transition"
               >
-                <td className="border-b border-gray-100 p-3">
+
+                {/* NO */}
+                <td className="p-3 border-t">
                   {index + 1}
                 </td>
 
-                <td className="border-b border-gray-100 p-3 font-medium">
+                {/* NAME */}
+                <td className="p-3 border-t font-medium">
                   {item.name}
                 </td>
 
-                <td className="border-b border-gray-100 p-3 text-gray-700">
+                {/* SKU */}
+                <td className="p-3 border-t text-gray-700">
                   {item.sku}
                 </td>
 
-                <td className="border-b border-gray-100 p-3 text-gray-600">
-                  {new Date(item.updated_at).toLocaleString()}
+                {/* COLOR */}
+                <td className="p-3 border-t">
+                  {item.color ? (
+                    <span className="px-2 py-1 text-xs rounded-full bg-gray-200">
+                      {item.color}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-sm">
+                      -
+                    </span>
+                  )}
                 </td>
 
-                <td className="border-b border-gray-100 p-3 font-semibold">
+                {/* STOCK */}
+                <td className="p-3 border-t font-semibold">
                   {item.stock}
                 </td>
+
+                {/* UPDATED */}
+                <td className="p-3 border-t text-gray-600 text-sm">
+                  {item.updated_at
+                    ? new Date(item.updated_at).toLocaleString('id-ID')
+                    : '-'}
+                </td>
+
               </tr>
             ))}
           </tbody>
 
         </table>
       </div>
+
     </main>
   )
 }

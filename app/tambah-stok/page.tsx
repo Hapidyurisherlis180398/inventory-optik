@@ -8,9 +8,10 @@ export default function TambahStokPage() {
   const [name, setName] = useState('')
   const [sku, setSku] = useState('')
   const [stock, setStock] = useState('')
+  const [color, setColor] = useState('') // 👈 TAMBAHAN
 
   async function tambahManual() {
-    if (!name || !sku || !stock) {
+    if (!name || !sku || !stock || !color) {
       alert('Lengkapi data')
       return
     }
@@ -28,6 +29,7 @@ export default function TambahStokPage() {
         .from('products')
         .update({
           stock: newStock,
+          color, // 👈 UPDATE COLOR
           updated_at: new Date(),
         })
         .eq('id', existing.id)
@@ -41,6 +43,7 @@ export default function TambahStokPage() {
             name,
             sku,
             stock: Number(stock),
+            color, // 👈 INSERT COLOR
           },
         ])
 
@@ -50,6 +53,7 @@ export default function TambahStokPage() {
     setName('')
     setSku('')
     setStock('')
+    setColor('')
   }
 
   async function uploadExcel(
@@ -67,6 +71,7 @@ export default function TambahStokPage() {
       const sku = item['Kode Barang']
       const name = item['Nama Frame']
       const stock = Number(item['Stok Total'])
+      const color = item['Warna Frame'] // 👈 TAMBAHAN
 
       if (!sku) continue
 
@@ -83,6 +88,7 @@ export default function TambahStokPage() {
           .from('products')
           .update({
             stock: newStock,
+            color, // 👈 UPDATE COLOR
             updated_at: new Date(),
           })
           .eq('id', existing.id)
@@ -94,6 +100,7 @@ export default function TambahStokPage() {
               name,
               sku,
               stock,
+              color, // 👈 INSERT COLOR
             },
           ])
       }
@@ -105,20 +112,18 @@ export default function TambahStokPage() {
   return (
     <main className="min-h-screen bg-white text-black p-10">
 
-      {/* HEADER */}
       <div className="mb-10">
         <h1 className="text-3xl font-bold">
           TAMBAH STOK
         </h1>
         <p className="text-gray-600 mt-1">
-          Tambah stok manual atau import data dari Excel
+          Tambah stok + warna frame manual atau Excel
         </p>
       </div>
 
-      {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-        {/* MANUAL CARD */}
+        {/* MANUAL */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
 
           <h2 className="text-xl font-bold mb-6">
@@ -132,7 +137,7 @@ export default function TambahStokPage() {
               placeholder="Nama Frame"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="border p-3 rounded-lg"
             />
 
             <input
@@ -140,7 +145,16 @@ export default function TambahStokPage() {
               placeholder="Kode Barang (SKU)"
               value={sku}
               onChange={(e) => setSku(e.target.value)}
-              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="border p-3 rounded-lg"
+            />
+
+            {/* 👇 WARNA FRAME */}
+            <input
+              type="text"
+              placeholder="Warna Frame"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="border p-3 rounded-lg"
             />
 
             <input
@@ -148,12 +162,12 @@ export default function TambahStokPage() {
               placeholder="Jumlah Stok"
               value={stock}
               onChange={(e) => setStock(e.target.value)}
-              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="border p-3 rounded-lg"
             />
 
             <button
               onClick={tambahManual}
-              className="bg-green-600 hover:bg-green-700 transition text-white font-semibold p-3 rounded-lg shadow-sm"
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold p-3 rounded-lg"
             >
               Simpan Stok
             </button>
@@ -161,22 +175,22 @@ export default function TambahStokPage() {
           </div>
         </div>
 
-        {/* EXCEL CARD */}
+        {/* EXCEL */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
 
           <h2 className="text-xl font-bold mb-6">
             Import Excel
           </h2>
 
-          <p className="text-gray-600 mb-4 text-sm">
-            Format file: <b>Kode Barang</b>, <b>Nama Frame</b>, <b>Stok Total</b>
+          <p className="text-gray-600 text-sm mb-4">
+            Kolom: Kode Barang, Nama Frame, Stok Total, Warna Frame
           </p>
 
           <input
             type="file"
             accept=".xlsx,.xls"
             onChange={uploadExcel}
-            className="block w-full text-sm border border-gray-300 rounded-lg p-3 file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-gray-100 file:rounded-lg"
+            className="w-full border p-3 rounded-lg"
           />
 
         </div>

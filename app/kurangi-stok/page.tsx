@@ -83,72 +83,41 @@ export default function KurangiStokPage() {
   return (
     <main className="min-h-screen bg-white text-black p-10">
 
-      {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold">
-          KURANGI STOK
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Kurangi stok manual atau upload file Excel order
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold mb-10">
+        KURANGI STOK
+      </h1>
 
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 gap-8">
 
-        {/* MANUAL CARD */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-
-          <h2 className="text-xl font-bold mb-6">
-            Kurangi Stok Manual
-          </h2>
-
-          <div className="flex flex-col gap-4">
-
-            <input
-              type="text"
-              placeholder="Kode Barang (SKU)"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-300"
-            />
-
-            <input
-              type="number"
-              placeholder="Jumlah Pengurangan"
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-300"
-            />
-
-            <button
-              onClick={kurangiManual}
-              className="bg-red-600 hover:bg-red-700 transition text-white font-semibold p-3 rounded-lg"
-            >
-              Kurangi Stok
-            </button>
-
-          </div>
-        </div>
-
-        {/* EXCEL CARD */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-
-          <h2 className="text-xl font-bold mb-6">
-            Upload Excel Order
-          </h2>
-
-          <p className="text-gray-600 mb-4 text-sm">
-            Upload file .xlsx dengan kolom: <b>Kode Barang</b> dan <b>Qty</b>
-          </p>
+        <div className="border p-6 rounded-xl">
+          <h2 className="font-bold mb-4">Manual</h2>
 
           <input
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={uploadExcel}
-            className="block w-full text-sm border border-gray-300 rounded-lg p-3 file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-gray-100 file:rounded-lg"
+            className="border p-3 w-full mb-3"
+            placeholder="SKU"
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
           />
 
+          <input
+            className="border p-3 w-full mb-3"
+            placeholder="Qty"
+            type="number"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+          />
+
+          <button
+            onClick={kurangiManual}
+            className="bg-red-600 text-white p-3 rounded-lg w-full"
+          >
+            Kurangi
+          </button>
+        </div>
+
+        <div className="border p-6 rounded-xl">
+          <h2 className="font-bold mb-4">Excel</h2>
+          <input type="file" accept=".xlsx,.xls" onChange={uploadExcel} />
         </div>
 
       </div>
