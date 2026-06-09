@@ -2,17 +2,15 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
-import * as XLSX from 'xlsx'
-
-type SortKey = 'name' | 'sku' | 'color' | 'stock' | 'updated_at'
-type SortDir = 'asc' | 'desc'
 
 export default function BelanjaPage() {
   const [products, setProducts] = useState<any[]>([])
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [search, setSearch] = useState('')
-  const [file, setFile] = useState<File | null>(null)
 
+  // =====================
+  // LOAD DATA SUPABASE
+  // =====================
   async function getProducts() {
     const { data } = await supabase.from('products').select('*')
     if (data) setProducts(data)
@@ -28,73 +26,35 @@ export default function BelanjaPage() {
     getSuppliers()
   }, [])
 
-  // =========================
+  // =====================
   // NORMALIZER
-  // =========================
+  // =====================
   const norm = (v: string) => (v || '').trim().toLowerCase()
 
-  const normalizePhone = (phone: string) => {
+  // =====================
+  // FIND SUPPLIER
+  // MATCH: supplier + nama + sku
+  // =====================
+  function getSupplier(item: any) {
+    return suppliers.find(
+      (s) =>
+        norm(s.name) === norm(item.name) &&
+        norm(s.sku) === norm(item.sku)
+    )
+  }
+
+  function formatPhone(phone: string) {
     if (!phone) return ''
     let p = phone.replace(/[^0-9]/g, '')
     if (p.startsWith('0')) p = '62' + p.slice(1)
     return p
   }
 
-  // =========================
-  // GET SUPPLIER WA
-  // =========================
-  function getWA(sku: string) {
-    const found = suppliers.find(
-      (s) => norm(s.sku) === norm(sku)
-    )
-    return normalizePhone(found?.phone || '')
-  }
-
-  // =========================
-  // UPLOAD SUPPLIER EXCEL
-  // =========================
-  async function uploadSupplier(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const data = await file.arrayBuffer()
-    const wb = XLSX.read(data)
-    const sheet = wb.Sheets[wb.SheetNames[0]]
-    const rows: any[] = XLSX.utils.sheet_to_json(sheet)
-
-    for (const r of rows) {
-      const sku = norm(r['SKU'])
-      const phone = r['No WA']
-
-      if (!sku || !phone) continue
-
-      const { data: existing } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('sku', sku)
-        .maybeSingle()
-
-      if (existing) {
-        await supabase
-          .from('suppliers')
-          .update({ phone })
-          .eq('id', existing.id)
-      } else {
-        await supabase.from('suppliers').insert([
-          { sku, phone }
-        ])
-      }
-    }
-
-    alert('Supplier berhasil diupload')
-    getSuppliers()
-  }
-
-  // =========================
+  // =====================
   // FILTER
-  // =========================
+  // =====================
   const filtered = useMemo(() => {
-    return products.filter(p =>
+    return products.filter((p) =>
       norm(p.sku).includes(norm(search))
     )
   }, [products, search])
@@ -108,41 +68,39 @@ export default function BelanjaPage() {
           BELANJA SUPPLIER (POS SYSTEM)
         </h1>
 
-        <div className="flex gap-3 mt-3">
-          <input
-            className="border px-3 py-2 rounded w-80"
-            placeholder="Cari SKU..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          <input
-            type="file"
-            onChange={uploadSupplier}
-            className="border p-2 rounded"
-          />
-        </div>
+        <input
+          className="border px-3 py-2 rounded w-80 mt-3"
+          placeholder="Cari SKU..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {/* TABLE */}
       <div className="overflow-auto border rounded mt-4">
 
         <table className="w-full text-sm">
-          <thead className="bg-gray-100 sticky top-0 z-10">
+
+          <thead className="bg-gray-100 sticky top-0">
             <tr>
               <th className="border p-2 text-center">No</th>
-              <th className="border p-2 text-left">Nama</th>
-              <th className="border p-2 text-left font-bold">SKU</th>
-              <th className="border p-2 text-left">Warna</th>
-              <th className="border p-2 text-center">Stok</th>
+              <th className="border p-2 text-left">Nama Frame</th>
+              <th className="border p-2 text-left">Kode Frame</th>
+              <th className="border p-2 text-left">Supplier</th>
               <th className="border p-2 text-center">WA</th>
             </tr>
           </thead>
 
           <tbody>
             {filtered.map((item, i) => {
-              const stock = item.stock || 0
-              const wa = getWA(item.sku)
+              const supplier = getSupplier(item)
+              const wa = supplier?.phone
+                ? formatPhone(supplier.phone)
+                : ''
+
+              const message = encodeURIComponent(
+                `Kak, saya mau pesan lagi kacamata ${item.name}, ${item.sku}, di toko ${supplier?.supplier_name || '-'}`
+              )
 
               return (
                 <tr key={item.id} className="hover:bg-gray-50">
@@ -160,27 +118,25 @@ export default function BelanjaPage() {
                   </td>
 
                   <td className="border p-2">
-                    {item.color}
+                    {supplier?.supplier_name || '-'}
                   </td>
 
                   <td className="border p-2 text-center">
-                    {stock}
-                  </td>
 
-                  <td className="border p-2 text-center">
                     {wa ? (
                       <a
-                        href={`https://wa.me/${wa}`}
+                        href={`https://wa.me/${wa}?text=${message}`}
                         target="_blank"
-                        className="bg-green-500 text-white px-3 py-1 rounded text-xs"
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs"
                       >
-                        WA
+                        WA ORDER
                       </a>
                     ) : (
                       <span className="text-gray-400 text-xs">
                         -
                       </span>
                     )}
+
                   </td>
 
                 </tr>
