@@ -9,20 +9,24 @@ type SortDir = 'asc' | 'desc'
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([])
+  const [sales, setSales] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('sku')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
   async function getProducts() {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-
+    const { data } = await supabase.from('products').select('*')
     if (data) setProducts(data)
+  }
+
+  async function getSales() {
+    const { data } = await supabase.from('sales').select('*')
+    if (data) setSales(data)
   }
 
   useEffect(() => {
     getProducts()
+    getSales()
   }, [])
 
   const filtered = useMemo(() => {
@@ -39,9 +43,7 @@ export default function Home() {
       const valB = b[sortKey] ?? ''
 
       if (sortKey === 'stock') {
-        return sortDir === 'asc'
-          ? valA - valB
-          : valB - valA
+        return sortDir === 'asc' ? valA - valB : valB - valA
       }
 
       return sortDir === 'asc'
@@ -53,26 +55,39 @@ export default function Home() {
   }, [products, search, sortKey, sortDir])
 
   function toggleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
-    } else {
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
+    else {
       setSortKey(key)
       setSortDir('asc')
     }
   }
 
-  const totalStock = filtered.reduce(
-    (sum, i) => sum + (i.stock || 0),
-    0
-  )
+  // =======================
+  // 📊 SALES FILTER
+  // =======================
 
-  const warningItems = filtered.filter(p => (p.stock || 0) <= 2)
+  const now = new Date()
 
-  function exportExcel() {
-    const ws = XLSX.utils.json_to_sheet(filtered)
+  const salesToday = sales.filter(s => {
+    const d = new Date(s.created_at)
+    return d.toDateString() === now.toDateString()
+  })
+
+  const sales7Days = sales.filter(s => {
+    const d = new Date(s.created_at)
+    return now.getTime() - d.getTime() <= 7 * 24 * 60 * 60 * 1000
+  })
+
+  const sales30Days = sales.filter(s => {
+    const d = new Date(s.created_at)
+    return now.getTime() - d.getTime() <= 30 * 24 * 60 * 60 * 1000
+  })
+
+  function exportSales(data: any[], filename: string) {
+    const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'STOK')
-    XLSX.writeFile(wb, 'stok.xlsx')
+    XLSX.utils.book_append_sheet(wb, ws, 'REPORT')
+    XLSX.writeFile(wb, filename)
   }
 
   return (
@@ -81,125 +96,52 @@ export default function Home() {
       {/* HEADER */}
       <div className="sticky top-0 z-20 bg-white border-b pb-3">
         <h1 className="text-2xl font-bold">
-          STOK PER VARIAN (POS SYSTEM - TeamMyHappyd)
+          STOK POS SYSTEM
         </h1>
 
-        <div className="flex gap-3 mt-3">
-          <input
-            className="border px-3 py-2 rounded w-80"
-            placeholder="Cari SKU..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          <button
-            onClick={exportExcel}
-            className="bg-black text-white px-4 py-2 rounded"
-          >
-            Export
-          </button>
-        </div>
-      </div>
-
-      {/* SUMMARY */}
-      <div className="grid grid-cols-3 gap-3 my-4">
-        <div className="border p-3 rounded">
-          Total: {filtered.length}
-        </div>
-        <div className="border p-3 rounded">
-          Stok: {totalStock}
-        </div>
-        <div className="border p-3 rounded text-red-600">
-          Kritis: {warningItems.length}
-        </div>
+        <input
+          className="border px-3 py-2 rounded w-80 mt-3"
+          placeholder="Cari SKU..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {/* TABLE */}
-      <div className="overflow-auto border rounded">
-
+      <div className="overflow-auto border rounded mt-4">
         <table className="w-full text-sm">
 
-          {/* HEADER */}
-          <thead className="bg-gray-100 sticky top-0 z-10">
+          <thead className="bg-gray-100 sticky top-0">
             <tr>
-
               <th className="border p-2 text-center">No</th>
-
-              <th
-                className="border p-2 cursor-pointer text-left"
-                onClick={() => toggleSort('name')}
-              >
-                Nama Frame ↕
-              </th>
-
-              <th
-                className="border p-2 cursor-pointer text-left font-bold"
-                onClick={() => toggleSort('sku')}
-              >
-                Kode Barang ↕
-              </th>
-
-              <th
-                className="border p-2 cursor-pointer text-left"
-                onClick={() => toggleSort('color')}
-              >
-                Warna Frame ↕
-              </th>
-
-              <th
-                className="border p-2 cursor-pointer text-center"
-                onClick={() => toggleSort('stock')}
-              >
-                Stok ↕
-              </th>
-
-              <th
-                className="border p-2 cursor-pointer text-center"
-                onClick={() => toggleSort('updated_at')}
-              >
-                Update ↕
-              </th>
-
+              <th className="border p-2">Nama</th>
+              <th className="border p-2 font-bold">SKU</th>
+              <th className="border p-2">Warna</th>
+              <th className="border p-2 text-center">Stok</th>
+              <th className="border p-2 text-center">Update</th>
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
             {filtered.map((item, i) => {
               const stock = item.stock || 0
 
               return (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50 transition-all duration-200"
-                >
+                <tr key={item.id} className="hover:bg-gray-50">
 
-                  {/* NO CENTER */}
-                  <td className="border p-2 text-center">
-                    {i + 1}
-                  </td>
+                  <td className="border p-2 text-center">{i + 1}</td>
+                  <td className="border p-2">{item.name}</td>
+                  <td className="border p-2 font-bold">{item.sku}</td>
 
-                  {/* NAME */}
-                  <td className="border p-2 font-medium">
-                    {item.name}
-                  </td>
-
-                  {/* SKU BOLD */}
-                  <td className="border p-2 font-bold">
-                    {item.sku}
-                  </td>
-
-                  {/* COLOR (smooth badge style) */}
                   <td className="border p-2">
-                    <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition">
+                    <span className="px-2 py-1 bg-gray-100 rounded">
                       {item.color}
                     </span>
                   </td>
 
-                  {/* STOCK BADGE CENTER */}
                   <td className="border p-2 text-center">
                     <span
-                      className={`px-2 py-1 rounded-md text-xs font-bold ${
+                      className={`px-2 py-1 rounded text-xs font-bold ${
                         stock <= 2
                           ? 'bg-red-100 text-red-600'
                           : stock <= 5
@@ -211,8 +153,7 @@ export default function Home() {
                     </span>
                   </td>
 
-                  {/* UPDATE CENTER */}
-                  <td className="border p-2 text-center text-xs text-gray-600">
+                  <td className="border p-2 text-center text-xs">
                     {new Date(item.updated_at).toLocaleString('id-ID')}
                   </td>
 
@@ -223,6 +164,55 @@ export default function Home() {
 
         </table>
       </div>
+
+      {/* =======================
+          📊 SALES REPORT
+      ======================= */}
+      <div className="mt-10 border rounded p-4">
+
+        <h2 className="text-xl font-bold mb-4">
+          Laporan Terjual Barang
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-3">
+
+          <div className="border p-3 rounded">
+            <p className="font-bold">Hari Ini</p>
+            <p>{salesToday.length} transaksi</p>
+            <button
+              onClick={() => exportSales(salesToday, 'sales_today.xlsx')}
+              className="mt-2 text-sm bg-black text-white px-3 py-1 rounded"
+            >
+              Download
+            </button>
+          </div>
+
+          <div className="border p-3 rounded">
+            <p className="font-bold">7 Hari</p>
+            <p>{sales7Days.length} transaksi</p>
+            <button
+              onClick={() => exportSales(sales7Days, 'sales_7days.xlsx')}
+              className="mt-2 text-sm bg-black text-white px-3 py-1 rounded"
+            >
+              Download
+            </button>
+          </div>
+
+          <div className="border p-3 rounded">
+            <p className="font-bold">30 Hari</p>
+            <p>{sales30Days.length} transaksi</p>
+            <button
+              onClick={() => exportSales(sales30Days, 'sales_30days.xlsx')}
+              className="mt-2 text-sm bg-black text-white px-3 py-1 rounded"
+            >
+              Download
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
     </main>
   )
 }
