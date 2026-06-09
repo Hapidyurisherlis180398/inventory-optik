@@ -112,7 +112,7 @@ export default function LaporanPage() {
       {/* HEADER */}
       <div className="border-b pb-4 sticky top-0 bg-white z-10">
         <h1 className="text-2xl font-bold">
-          LAPORAN PENJUALAN (POS SYSTEM)
+          LAPORAN PENJUALAN (POS SYSTEM - TeamMyHappyd)
         </h1>
 
         {/* FILTER */}
