@@ -7,14 +7,12 @@ export default function Home() {
   const [products, setProducts] = useState<any[]>([])
 
   async function getProducts() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('products')
       .select('*')
       .order('updated_at', { ascending: false })
 
-    if (!error && data) {
-      setProducts(data)
-    }
+    if (data) setProducts(data)
   }
 
   useEffect(() => {
@@ -24,79 +22,43 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white text-black p-10">
 
-      {/* HEADER */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">
-          STOK BARANG SAAT INI
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Data inventory optik terbaru
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold mb-6">
+        STOK PER VARIAN (POS SYSTEM)
+      </h1>
 
-      {/* TABLE WRAPPER */}
-      <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+      <div className="overflow-x-auto border rounded-xl">
 
-        <table className="w-full border-collapse">
+        <table className="w-full">
 
-          {/* HEADER */}
           <thead className="bg-gray-100">
             <tr>
-              <th className="p-3 text-left font-bold">No</th>
-              <th className="p-3 text-left font-bold">Nama Frame</th>
-              <th className="p-3 text-left font-bold">Kode Barang</th>
-              <th className="p-3 text-left font-bold">Warna Frame</th>
-              <th className="p-3 text-left font-bold">Stok</th>
-              <th className="p-3 text-left font-bold">Terakhir Update</th>
+              <th className="p-3">No</th>
+              <th className="p-3">Nama</th>
+              <th className="p-3">SKU</th>
+              <th className="p-3">Warna</th>
+              <th className="p-3">Stok</th>
+              <th className="p-3">Update</th>
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
-            {products.map((item, index) => (
-              <tr
-                key={item.id}
-                className="hover:bg-gray-50 transition"
-              >
+            {products.map((item, i) => (
+              <tr key={item.id} className="border-t">
 
-                {/* NO */}
-                <td className="p-3 border-t">
-                  {index + 1}
+                <td className="p-3">{i + 1}</td>
+                <td className="p-3">{item.name}</td>
+                <td className="p-3">{item.sku}</td>
+
+                <td className="p-3">
+                  <span className="px-2 py-1 bg-gray-200 rounded text-sm">
+                    {item.color}
+                  </span>
                 </td>
 
-                {/* NAME */}
-                <td className="p-3 border-t font-medium">
-                  {item.name}
-                </td>
+                <td className="p-3 font-bold">{item.stock}</td>
 
-                {/* SKU */}
-                <td className="p-3 border-t text-gray-700">
-                  {item.sku}
-                </td>
-
-                {/* COLOR */}
-                <td className="p-3 border-t">
-                  {item.color ? (
-                    <span className="px-2 py-1 text-xs rounded-full bg-gray-200">
-                      {item.color}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 text-sm">
-                      -
-                    </span>
-                  )}
-                </td>
-
-                {/* STOCK */}
-                <td className="p-3 border-t font-semibold">
-                  {item.stock}
-                </td>
-
-                {/* UPDATED */}
-                <td className="p-3 border-t text-gray-600 text-sm">
-                  {item.updated_at
-                    ? new Date(item.updated_at).toLocaleString('id-ID')
-                    : '-'}
+                <td className="p-3 text-sm text-gray-500">
+                  {new Date(item.updated_at).toLocaleString('id-ID')}
                 </td>
 
               </tr>
@@ -105,7 +67,6 @@ export default function Home() {
 
         </table>
       </div>
-
     </main>
   )
 }

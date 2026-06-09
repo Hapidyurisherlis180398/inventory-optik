@@ -6,118 +6,93 @@ import * as XLSX from 'xlsx'
 
 export default function KurangiStokPage() {
   const [sku, setSku] = useState('')
+  const [color, setColor] = useState('')
   const [qty, setQty] = useState('')
 
-  async function kurangiManual() {
-    if (!sku || !qty) {
-      alert('Lengkapi data')
-      return
-    }
-
+  async function kurangi() {
     const { data: existing } = await supabase
       .from('products')
       .select('*')
       .eq('sku', sku)
+      .eq('color', color)
       .single()
 
     if (!existing) {
-      alert('Barang tidak ditemukan')
+      alert('Data tidak ditemukan')
       return
     }
-
-    const newStock = existing.stock - Number(qty)
 
     await supabase
       .from('products')
       .update({
-        stock: newStock < 0 ? 0 : newStock,
+        stock: Math.max(existing.stock - Number(qty), 0),
         updated_at: new Date(),
       })
       .eq('id', existing.id)
 
-    alert('Stok berhasil dikurangi')
-
     setSku('')
+    setColor('')
     setQty('')
+
+    alert('Stok berhasil dikurangi')
   }
 
-  async function uploadExcel(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    const file = event.target.files?.[0]
+  async function uploadExcel(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
     if (!file) return
 
     const data = await file.arrayBuffer()
-    const workbook = XLSX.read(data)
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const jsonData: any[] = XLSX.utils.sheet_to_json(sheet)
+    const wb = XLSX.read(data)
+    const sheet = wb.Sheets[wb.SheetNames[0]]
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet)
 
-    for (const item of jsonData) {
+    for (const item of rows) {
       const sku = item['Kode Barang']
+      const color = item['Warna Frame']
       const qty = Number(item['Qty'])
-
-      if (!sku) continue
 
       const { data: existing } = await supabase
         .from('products')
         .select('*')
         .eq('sku', sku)
+        .eq('color', color)
         .single()
 
       if (existing) {
-        const newStock = existing.stock - qty
-
         await supabase
           .from('products')
           .update({
-            stock: newStock < 0 ? 0 : newStock,
+            stock: Math.max(existing.stock - qty, 0),
             updated_at: new Date(),
           })
           .eq('id', existing.id)
       }
     }
 
-    alert('Upload Excel berhasil')
+    alert('Upload berhasil')
   }
 
   return (
-    <main className="min-h-screen bg-white text-black p-10">
+    <main className="p-10 bg-white min-h-screen">
 
-      <h1 className="text-3xl font-bold mb-10">
-        KURANGI STOK
+      <h1 className="text-3xl font-bold mb-6">
+        KURANGI STOK VARIAN
       </h1>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 gap-6">
 
-        <div className="border p-6 rounded-xl">
-          <h2 className="font-bold mb-4">Manual</h2>
+        <div className="border p-6 rounded">
+          <input placeholder="SKU" className="border p-2 w-full mb-2" value={sku} onChange={e => setSku(e.target.value)} />
+          <input placeholder="Warna" className="border p-2 w-full mb-2" value={color} onChange={e => setColor(e.target.value)} />
+          <input placeholder="Qty" type="number" className="border p-2 w-full mb-2" value={qty} onChange={e => setQty(e.target.value)} />
 
-          <input
-            className="border p-3 w-full mb-3"
-            placeholder="SKU"
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-          />
-
-          <input
-            className="border p-3 w-full mb-3"
-            placeholder="Qty"
-            type="number"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-          />
-
-          <button
-            onClick={kurangiManual}
-            className="bg-red-600 text-white p-3 rounded-lg w-full"
-          >
+          <button onClick={kurangi} className="bg-red-600 text-white p-2 w-full rounded">
             Kurangi
           </button>
         </div>
 
-        <div className="border p-6 rounded-xl">
-          <h2 className="font-bold mb-4">Excel</h2>
-          <input type="file" accept=".xlsx,.xls" onChange={uploadExcel} />
+        <div className="border p-6 rounded">
+          <input type="file" onChange={uploadExcel} />
         </div>
 
       </div>
