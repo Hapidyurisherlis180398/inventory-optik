@@ -13,6 +13,9 @@ export default function KurangiStokPage() {
 
   const normalize = (val: string) => val.trim().toLowerCase()
 
+  // =========================
+  // 🔥 KURANGI MANUAL
+  // =========================
   async function kurangiManual() {
     if (!sku || !color || !qty) {
       alert('Lengkapi data')
@@ -21,8 +24,6 @@ export default function KurangiStokPage() {
 
     setLoading(true)
 
-    const cleanSku = normalize(sku)
-    const cleanColor = normalize(color)
     const amount = Number(qty) || 0
 
     const { data: existing } = await supabase
@@ -40,6 +41,7 @@ export default function KurangiStokPage() {
 
     const newStock = (existing.stock || 0) - amount
 
+    // 1. UPDATE STOCK
     await supabase
       .from('products')
       .update({
@@ -48,14 +50,28 @@ export default function KurangiStokPage() {
       })
       .eq('id', existing.id)
 
+    // 2. INSERT SALES (🔥 INI YANG KAMU KURANG)
+    await supabase.from('sales').insert([
+      {
+        sku: existing.sku,
+        name: existing.name,
+        color: existing.color,
+        qty: amount,
+        created_at: new Date(),
+      },
+    ])
+
     setSku('')
     setColor('')
     setQty('')
-
     setLoading(false)
-    alert('Stok berhasil dikurangi')
+
+    alert('Stok berhasil dikurangi + tercatat di laporan')
   }
 
+  // =========================
+  // 🔥 KURANGI VIA EXCEL
+  // =========================
   async function uploadExcel(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -79,20 +95,32 @@ export default function KurangiStokPage() {
         .eq('color', color)
         .maybeSingle()
 
-      if (existing) {
-        const newStock = (existing.stock || 0) - qty
+      if (!existing) continue
 
-        await supabase
-          .from('products')
-          .update({
-            stock: newStock < 0 ? 0 : newStock,
-            updated_at: new Date(),
-          })
-          .eq('id', existing.id)
-      }
+      const newStock = (existing.stock || 0) - qty
+
+      // 1. UPDATE STOCK
+      await supabase
+        .from('products')
+        .update({
+          stock: newStock < 0 ? 0 : newStock,
+          updated_at: new Date(),
+        })
+        .eq('id', existing.id)
+
+      // 2. INSERT SALES LOG
+      await supabase.from('sales').insert([
+        {
+          sku: existing.sku,
+          name: existing.name,
+          color: existing.color,
+          qty,
+          created_at: new Date(),
+        },
+      ])
     }
 
-    alert('Upload Excel berhasil')
+    alert('Upload Excel berhasil + masuk laporan')
   }
 
   return (
