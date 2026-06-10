@@ -9,9 +9,9 @@ export default function AUsupPage() {
   const [loading, setLoading] = useState(false)
 
   const [
-    totalTerbayar,
-    setTotalTerbayar,
-  ] = useState(0)
+    laporanWaktu,
+    setLaporanWaktu,
+  ] = useState<any[]>([])
 
   async function getData() {
     setLoading(true)
@@ -24,31 +24,40 @@ export default function AUsupPage() {
     if (!error && data) {
       setData(data)
 
-      // HITUNG TOTAL TERBAYAR
-      const total = data.reduce(
-        (sum, item) => {
-          // hanya status TERBAYAR
-          if (
-            item.status &&
-            item.status.includes(
-              'TERBAYAR'
-            )
-          ) {
-            const angka = Number(
-              item.total_pendapatan
-                ?.toString()
-                .replace(/[^\d]/g, '')
-            )
+      // REKAP BERDASARKAN WAKTU
+      const group: any = {}
 
-            return sum + (angka || 0)
+      data.forEach((item) => {
+        if (
+          item.status &&
+          item.status.includes(
+            'TERBAYAR'
+          )
+        ) {
+          const waktu = item.status
+
+          const angka = Number(
+            item.total_pendapatan
+              ?.toString()
+              .replace(/[^\d]/g, '')
+          )
+
+          if (!group[waktu]) {
+            group[waktu] = 0
           }
 
-          return sum
-        },
-        0
-      )
+          group[waktu] += angka || 0
+        }
+      })
 
-      setTotalTerbayar(total)
+      const hasilGroup = Object.entries(
+        group
+      ).map(([waktu, total]) => ({
+        waktu,
+        total,
+      }))
+
+      setLaporanWaktu(hasilGroup)
     }
 
     setLoading(false)
@@ -169,10 +178,10 @@ export default function AUsupPage() {
         </label>
       </div>
 
-      {/* RINGKASAN */}
-      <div className="grid md:grid-cols-2 gap-4 mb-8">
+      {/* TOTAL DATA */}
+      <div className="mb-6">
         <div className="border rounded-xl p-5">
-          <p className="text-gray-500 text-sm mb-2">
+          <p className="text-sm text-gray-500 mb-2">
             Total Data
           </p>
 
@@ -180,19 +189,37 @@ export default function AUsupPage() {
             {data.length}
           </h2>
         </div>
+      </div>
 
-        <div className="border rounded-xl p-5 bg-green-50">
-          <p className="text-gray-500 text-sm mb-2">
-            Total Pendapatan
-            Terbayar
-          </p>
+      {/* LAPORAN BERDASARKAN WAKTU */}
+      <div className="grid gap-4 mb-8">
+        {laporanWaktu.length === 0 ? (
+          <div className="border rounded-xl p-5">
+            <p className="text-gray-500">
+              Belum ada laporan
+              terbayar
+            </p>
+          </div>
+        ) : (
+          laporanWaktu.map(
+            (item, index) => (
+              <div
+                key={index}
+                className="border rounded-xl p-5 bg-green-50"
+              >
+                <p className="text-sm text-gray-500 mb-2">
+                  {item.waktu}
+                </p>
 
-          <h2 className="text-2xl font-bold text-green-700">
-            {formatRupiah(
-              totalTerbayar
-            )}
-          </h2>
-        </div>
+                <h2 className="text-2xl font-bold text-green-700">
+                  {formatRupiah(
+                    Number(item.total)
+                  )}
+                </h2>
+              </div>
+            )
+          )
+        )}
       </div>
 
       {/* TABLE */}
