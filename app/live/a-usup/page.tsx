@@ -8,6 +8,11 @@ export default function AUsupPage() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
+  const [
+    totalTerbayar,
+    setTotalTerbayar,
+  ] = useState(0)
+
   async function getData() {
     setLoading(true)
 
@@ -18,6 +23,32 @@ export default function AUsupPage() {
 
     if (!error && data) {
       setData(data)
+
+      // HITUNG TOTAL TERBAYAR
+      const total = data.reduce(
+        (sum, item) => {
+          // hanya status TERBAYAR
+          if (
+            item.status &&
+            item.status.includes(
+              'TERBAYAR'
+            )
+          ) {
+            const angka = Number(
+              item.total_pendapatan
+                ?.toString()
+                .replace(/[^\d]/g, '')
+            )
+
+            return sum + (angka || 0)
+          }
+
+          return sum
+        },
+        0
+      )
+
+      setTotalTerbayar(total)
     }
 
     setLoading(false)
@@ -26,6 +57,18 @@ export default function AUsupPage() {
   useEffect(() => {
     getData()
   }, [])
+
+  function formatRupiah(
+    angka: number
+  ) {
+    return new Intl.NumberFormat(
+      'id-ID',
+      {
+        style: 'currency',
+        currency: 'IDR',
+      }
+    ).format(angka)
+  }
 
   async function uploadExcel(
     event: React.ChangeEvent<HTMLInputElement>
@@ -126,12 +169,33 @@ export default function AUsupPage() {
         </label>
       </div>
 
-      <div className="mb-4">
-        <p className="text-sm text-gray-500">
-          Total Data: {data.length}
-        </p>
+      {/* RINGKASAN */}
+      <div className="grid md:grid-cols-2 gap-4 mb-8">
+        <div className="border rounded-xl p-5">
+          <p className="text-gray-500 text-sm mb-2">
+            Total Data
+          </p>
+
+          <h2 className="text-2xl font-bold">
+            {data.length}
+          </h2>
+        </div>
+
+        <div className="border rounded-xl p-5 bg-green-50">
+          <p className="text-gray-500 text-sm mb-2">
+            Total Pendapatan
+            Terbayar
+          </p>
+
+          <h2 className="text-2xl font-bold text-green-700">
+            {formatRupiah(
+              totalTerbayar
+            )}
+          </h2>
+        </div>
       </div>
 
+      {/* TABLE */}
       <div className="overflow-auto border rounded-xl">
         <table className="w-full text-sm">
           <thead className="bg-black text-white">
