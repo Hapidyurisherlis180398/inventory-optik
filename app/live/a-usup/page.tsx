@@ -1,19 +1,30 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { supabase } from '../../../lib/supabase'
 import * as XLSX from 'xlsx'
 
-export default function LaporanAUsupPage() {
+export default function AUsupPage() {
   const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  async function getData() {
+    setLoading(true)
+
+    const { data } = await supabase
+      .from('live_reports_a_usup')
+      .select('*')
+      .order('id', { ascending: false })
+
+    if (data) {
+      setData(data)
+    }
+
+    setLoading(false)
+  }
 
   useEffect(() => {
-    const savedData = localStorage.getItem(
-      'laporan-a-usup'
-    )
-
-    if (savedData) {
-      setData(JSON.parse(savedData))
-    }
+    getData()
   }, [])
 
   async function uploadExcel(
@@ -22,6 +33,8 @@ export default function LaporanAUsupPage() {
     const file = event.target.files?.[0]
 
     if (!file) return
+
+    setLoading(true)
 
     const buffer = await file.arrayBuffer()
 
@@ -33,30 +46,73 @@ export default function LaporanAUsupPage() {
     const jsonData: any[] =
       XLSX.utils.sheet_to_json(sheet)
 
-    setData(jsonData)
+    for (const item of jsonData) {
+      await supabase
+        .from('live_reports_a_usup')
+        .insert([
+          {
+            nomor:
+              item['NO']?.toString() || '',
 
-    localStorage.setItem(
-      'laporan-a-usup',
-      JSON.stringify(jsonData)
+            order_id:
+              item[
+                'ID Pesanan/Penyesuaian'
+              ]?.toString() || '',
+
+            no_persamaan:
+              item['no persamaan']?.toString() ||
+              '',
+
+            toko:
+              item['TOKO']?.toString() || '',
+
+            total_pendapatan:
+              item[
+                'Total Pendapatan'
+              ]?.toString() || '',
+
+            status:
+              item['STATUS']?.toString() || '',
+          },
+        ])
+    }
+
+    alert('Upload berhasil')
+
+    getData()
+
+    setLoading(false)
+  }
+
+  async function hapusSemua() {
+    const konfirmasi = confirm(
+      'Hapus semua data?'
     )
 
-    alert('Data berhasil diperbarui')
+    if (!konfirmasi) return
+
+    await supabase
+      .from('live_reports_a_usup')
+      .delete()
+      .neq('id', 0)
+
+    getData()
   }
 
   return (
-    <main className="p-6 md:p-10">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+    <main className="p-6">
+      <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">
-            LAPORAN LIVE AGIL
+            HASIL LIVE A USUP
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Monitoring data realtime
+            Monitoring realtime
           </p>
         </div>
 
-        <div>
+        <div className="flex gap-3">
           <label className="bg-black text-white px-5 py-3 rounded cursor-pointer">
             Upload Excel
 
@@ -67,6 +123,13 @@ export default function LaporanAUsupPage() {
               className="hidden"
             />
           </label>
+
+          <button
+            onClick={hapusSemua}
+            className="bg-red-600 text-white px-5 py-3 rounded"
+          >
+            Hapus Semua
+          </button>
         </div>
       </div>
 
@@ -79,7 +142,7 @@ export default function LaporanAUsupPage() {
               </th>
 
               <th className="p-3 border">
-                ID Pesanan/Penyesuaian
+                ID Pesanan
               </th>
 
               <th className="p-3 border">
@@ -101,47 +164,40 @@ export default function LaporanAUsupPage() {
           </thead>
 
           <tbody>
-            {data.length === 0 ? (
+            {loading ? (
               <tr>
                 <td
                   colSpan={6}
                   className="text-center p-10"
                 >
-                  Belum ada data
+                  Loading...
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => (
-                <tr
-                  key={index}
-                  className="hover:bg-gray-100"
-                >
-                  <td className="border p-3 text-center">
-                    {item['NO']}
+              data.map((item) => (
+                <tr key={item.id}>
+                  <td className="border p-3">
+                    {item.nomor}
                   </td>
 
                   <td className="border p-3">
-                    {
-                      item[
-                        'ID Pesanan/Penyesuaian'
-                      ]
-                    }
-                  </td>
-
-                  <td className="border p-3 text-center">
-                    {item['no persamaan']}
+                    {item.order_id}
                   </td>
 
                   <td className="border p-3">
-                    {item['TOKO']}
+                    {item.no_persamaan}
                   </td>
 
                   <td className="border p-3">
-                    {item['Total Pendapatan']}
+                    {item.toko}
                   </td>
 
                   <td className="border p-3">
-                    {item['STATUS']}
+                    {item.total_pendapatan}
+                  </td>
+
+                  <td className="border p-3">
+                    {item.status}
                   </td>
                 </tr>
               ))
