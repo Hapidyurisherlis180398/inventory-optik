@@ -25,7 +25,7 @@ export default function IncomePage() {
     if (!error && data) {
       setData(data)
 
-      // HITUNG TOTAL PEMBAYARAN
+      // TOTAL PEMBAYARAN
       const totalBayar = data.reduce(
         (sum, item) => {
           const angka = Number(
@@ -39,7 +39,7 @@ export default function IncomePage() {
         0
       )
 
-      // HITUNG TOTAL PENDAPATAN
+      // TOTAL PENDAPATAN
       const totalIncome = data.reduce(
         (sum, item) => {
           const angka = Number(
@@ -85,13 +85,13 @@ export default function IncomePage() {
 
     setLoading(true)
 
-    // HAPUS SEMUA DATA LAMA
+    // HAPUS DATA LAMA
     await supabase
       .from('income')
       .delete()
       .neq('id', 0)
 
-    // BACA FILE EXCEL
+    // BACA EXCEL
     const buffer = await file.arrayBuffer()
 
     const workbook = XLSX.read(buffer)
@@ -139,6 +139,59 @@ export default function IncomePage() {
     setLoading(false)
   }
 
+  async function sinkronkanIncome() {
+    setLoading(true)
+
+    // AMBIL SEMUA DATA INCOME
+    const { data: incomes } =
+      await supabase
+        .from('income')
+        .select('*')
+
+    if (!incomes) {
+      alert('Data income kosong')
+
+      setLoading(false)
+
+      return
+    }
+
+    for (const income of incomes) {
+      const orderId = income.order_id
+
+      const updateData = {
+        total_pendapatan:
+          income.total_pendapatan,
+
+        status: 'TERBAYAR',
+      }
+
+      // UPDATE A USUP
+      await supabase
+        .from('live_reports_a_usup')
+        .update(updateData)
+        .eq('order_id', orderId)
+
+      // UPDATE A AGIL
+      await supabase
+        .from('live_reports_a_agil')
+        .update(updateData)
+        .eq('order_id', orderId)
+
+      // UPDATE A CAPE
+      await supabase
+        .from('live_reports_a_cape')
+        .update(updateData)
+        .eq('order_id', orderId)
+    }
+
+    alert(
+      'Sinkronisasi income berhasil'
+    )
+
+    setLoading(false)
+  }
+
   return (
     <main className="p-4 md:p-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -152,22 +205,31 @@ export default function IncomePage() {
           </p>
         </div>
 
-        <label className="bg-black text-white px-5 py-3 rounded-lg cursor-pointer hover:opacity-90 w-fit">
-          Upload Excel Income
+        <div className="flex gap-3 flex-wrap">
+          <label className="bg-black text-white px-5 py-3 rounded-lg cursor-pointer hover:opacity-90 w-fit">
+            Upload Excel Income
 
-          <input
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={uploadExcel}
-            className="hidden"
-          />
-        </label>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={uploadExcel}
+              className="hidden"
+            />
+          </label>
+
+          <button
+            onClick={sinkronkanIncome}
+            className="bg-green-600 text-white px-5 py-3 rounded-lg"
+          >
+            Sinkronkan Income
+          </button>
+        </div>
       </div>
 
       {/* LOADING */}
       {loading && (
         <div className="mb-4 text-blue-600 font-semibold">
-          Sedang memperbarui data income...
+          Sedang memproses data...
         </div>
       )}
 
