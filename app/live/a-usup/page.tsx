@@ -47,6 +47,28 @@ export default function AUsupPage() {
       XLSX.utils.sheet_to_json(sheet)
 
     for (const item of jsonData) {
+      const orderId =
+        item[
+          'ID Pesanan/Penyesuaian'
+        ]?.toString()
+
+      // skip jika kosong
+      if (!orderId) continue
+
+      // cek duplicate
+      const { data: existing } =
+        await supabase
+          .from('live_reports_a_usup')
+          .select('id')
+          .eq('order_id', orderId)
+          .maybeSingle()
+
+      // jika sudah ada → skip
+      if (existing) {
+        continue
+      }
+
+      // insert data baru
       await supabase
         .from('live_reports_a_usup')
         .insert([
@@ -54,10 +76,7 @@ export default function AUsupPage() {
             nomor:
               item['NO']?.toString() || '',
 
-            order_id:
-              item[
-                'ID Pesanan/Penyesuaian'
-              ]?.toString() || '',
+            order_id: orderId,
 
             toko:
               item['TOKO']?.toString() || '',
@@ -73,7 +92,9 @@ export default function AUsupPage() {
         ])
     }
 
-    alert('Upload Excel berhasil')
+    alert(
+      'Upload selesai tanpa duplicate'
+    )
 
     getData()
 
