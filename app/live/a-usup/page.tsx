@@ -43,18 +43,27 @@ export default function AUsupPage() {
           )
 
           if (!group[waktu]) {
-            group[waktu] = 0
+            group[waktu] = {
+              total: 0,
+              jumlahPesanan: 0,
+            }
           }
 
-          group[waktu] += angka || 0
+          group[waktu].total +=
+            angka || 0
+
+          group[waktu]
+            .jumlahPesanan += 1
         }
       })
 
       const hasilGroup = Object.entries(
         group
-      ).map(([waktu, total]) => ({
+      ).map(([waktu, value]: any) => ({
         waktu,
-        total,
+        total: value.total,
+        jumlahPesanan:
+          value.jumlahPesanan,
       }))
 
       setLaporanWaktu(hasilGroup)
@@ -249,15 +258,25 @@ export default function AUsupPage() {
                 key={index}
                 className="border rounded-xl p-5 bg-green-50"
               >
+                {/* WAKTU */}
                 <p className="text-sm text-gray-500 mb-2">
                   {item.waktu}
                 </p>
 
+                {/* TOTAL RUPIAH */}
                 <h2 className="text-2xl font-bold text-green-700">
                   {formatRupiah(
                     Number(item.total)
                   )}
                 </h2>
+
+                {/* TOTAL PESANAN */}
+                <p className="mt-2 text-sm font-semibold text-black">
+                  {
+                    item.jumlahPesanan
+                  }{' '}
+                  Pesanan
+                </p>
               </div>
             )
           )
