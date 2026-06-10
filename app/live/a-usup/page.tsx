@@ -11,12 +11,12 @@ export default function AUsupPage() {
   async function getData() {
     setLoading(true)
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('live_reports_a_usup')
       .select('*')
-      .order('id', { ascending: false })
+      .order('id', { ascending: true })
 
-    if (data) {
+    if (!error && data) {
       setData(data)
     }
 
@@ -59,10 +59,6 @@ export default function AUsupPage() {
                 'ID Pesanan/Penyesuaian'
               ]?.toString() || '',
 
-            no_persamaan:
-              item['no persamaan']?.toString() ||
-              '',
-
             toko:
               item['TOKO']?.toString() || '',
 
@@ -77,63 +73,45 @@ export default function AUsupPage() {
         ])
     }
 
-    alert('Upload berhasil')
+    alert('Upload Excel berhasil')
 
     getData()
 
     setLoading(false)
   }
 
-  async function hapusSemua() {
-    const konfirmasi = confirm(
-      'Hapus semua data?'
-    )
-
-    if (!konfirmasi) return
-
-    await supabase
-      .from('live_reports_a_usup')
-      .delete()
-      .neq('id', 0)
-
-    getData()
-  }
-
   return (
-    <main className="p-6">
-      <div className="flex justify-between items-center mb-8">
+    <main className="p-4 md:p-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold">
             HASIL LIVE A USUP
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Monitoring realtime
+            Monitoring realtime hasil live
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <label className="bg-black text-white px-5 py-3 rounded cursor-pointer">
-            Upload Excel
+        <label className="bg-black text-white px-5 py-3 rounded-lg cursor-pointer hover:opacity-90 w-fit">
+          Upload Excel
 
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={uploadExcel}
-              className="hidden"
-            />
-          </label>
-
-          <button
-            onClick={hapusSemua}
-            className="bg-red-600 text-white px-5 py-3 rounded"
-          >
-            Hapus Semua
-          </button>
-        </div>
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={uploadExcel}
+            className="hidden"
+          />
+        </label>
       </div>
 
-      <div className="overflow-auto border rounded-lg">
+      <div className="mb-4">
+        <p className="text-sm text-gray-500">
+          Total Data: {data.length}
+        </p>
+      </div>
+
+      <div className="overflow-auto border rounded-xl">
         <table className="w-full text-sm">
           <thead className="bg-black text-white">
             <tr>
@@ -142,11 +120,7 @@ export default function AUsupPage() {
               </th>
 
               <th className="p-3 border">
-                ID Pesanan
-              </th>
-
-              <th className="p-3 border">
-                No Persamaan
+                ID Pesanan/Penyesuaian
               </th>
 
               <th className="p-3 border">
@@ -167,25 +141,33 @@ export default function AUsupPage() {
             {loading ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={5}
                   className="text-center p-10"
                 >
                   Loading...
                 </td>
               </tr>
+            ) : data.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="text-center p-10"
+                >
+                  Belum ada data
+                </td>
+              </tr>
             ) : (
-              data.map((item) => (
-                <tr key={item.id}>
-                  <td className="border p-3">
-                    {item.nomor}
+              data.map((item, index) => (
+                <tr
+                  key={item.id}
+                  className="hover:bg-gray-100"
+                >
+                  <td className="border p-3 text-center">
+                    {index + 1}
                   </td>
 
                   <td className="border p-3">
                     {item.order_id}
-                  </td>
-
-                  <td className="border p-3">
-                    {item.no_persamaan}
                   </td>
 
                   <td className="border p-3">
