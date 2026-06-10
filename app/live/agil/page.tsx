@@ -95,9 +95,24 @@ export default function AUsupPage() {
     ).format(angka)
   }
 
+  // UPLOAD EXCEL
   async function uploadExcel(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
+    // PIN SECURITY
+    const pin = prompt(
+      'Masukkan PIN Upload'
+    )
+
+    if (pin !== '345') {
+      alert('PIN salah')
+
+      // reset input
+      event.target.value = ''
+
+      return
+    }
+
     const file =
       event.target.files?.[0]
 
@@ -140,6 +155,7 @@ export default function AUsupPage() {
         .eq('order_id', orderId)
         .maybeSingle()
 
+      // JIKA SUDAH ADA
       if (existing) {
         continue
       }
@@ -192,11 +208,13 @@ export default function AUsupPage() {
       'Masukkan Password'
     )
 
+    // PASSWORD SALAH
     if (password !== '123') {
       alert('Password salah')
       return
     }
 
+    // CEK DATA
     const { data: rows } =
       await supabase
         .from(
@@ -213,6 +231,7 @@ export default function AUsupPage() {
       return
     }
 
+    // HAPUS DATA
     await supabase
       .from(
         'live_reports_a_agil'
@@ -224,6 +243,7 @@ export default function AUsupPage() {
       'Batch berhasil dilunasi'
     )
 
+    // REFRESH
     getData()
   }
 
@@ -239,7 +259,7 @@ export default function AUsupPage() {
               </p>
 
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                HASIL LIVE A AGIL
+                HASIL LIVE A USUP
               </h1>
 
               <p className="text-gray-500 mt-3 text-sm md:text-base">
