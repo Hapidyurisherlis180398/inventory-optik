@@ -13,6 +13,22 @@ export default function AUsupPage() {
     setLaporanWaktu,
   ] = useState<any[]>([])
 
+  // TOTAL
+  const [
+    totalHasilLive,
+    setTotalHasilLive,
+  ] = useState(0)
+
+  const [
+    totalSudahDibayar,
+    setTotalSudahDibayar,
+  ] = useState(0)
+
+  const [
+    totalBelumDibayar,
+    setTotalBelumDibayar,
+  ] = useState(0)
+
   async function getData() {
     setLoading(true)
 
@@ -24,31 +40,59 @@ export default function AUsupPage() {
     if (!error && data) {
       setData(data)
 
+      // TOTAL HASIL LIVE
+      let hasilLive = 0
+
+      // TOTAL SUDAH DIBAYAR
+      let sudahBayar = 0
+
+      // TOTAL BELUM DIBAYAR
+      let belumBayar = 0
+
       // REKAP BERDASARKAN WAKTU
       const group: any = {}
 
       data.forEach((item) => {
+        const angka = Number(
+          item.total_pendapatan
+            ?.toString()
+            .replace(/[^\d]/g, '')
+        )
+
+        // TOTAL SEMUA
+        hasilLive += angka || 0
+
+        // SUDAH DIBAYAR
         if (
           item.status &&
           item.status.includes(
             'TERBAYAR'
           )
         ) {
-          const waktu = item.status
+          sudahBayar += angka || 0
 
-          const angka = Number(
-            item.total_pendapatan
-              ?.toString()
-              .replace(/[^\d]/g, '')
-          )
+          const waktu = item.status
 
           if (!group[waktu]) {
             group[waktu] = 0
           }
 
           group[waktu] += angka || 0
+        } else {
+          // BELUM DIBAYAR
+          belumBayar += angka || 0
         }
       })
+
+      setTotalHasilLive(hasilLive)
+
+      setTotalSudahDibayar(
+        sudahBayar
+      )
+
+      setTotalBelumDibayar(
+        belumBayar
+      )
 
       const hasilGroup = Object.entries(
         group
@@ -162,7 +206,8 @@ export default function AUsupPage() {
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Monitoring realtime hasil live
+            Monitoring realtime hasil
+            live
           </p>
         </div>
 
@@ -178,15 +223,44 @@ export default function AUsupPage() {
         </label>
       </div>
 
-      {/* TOTAL DATA */}
-      <div className="mb-6">
+      {/* TOTAL CARD */}
+      <div className="grid md:grid-cols-3 gap-4 mb-8">
+        {/* TOTAL HASIL LIVE */}
         <div className="border rounded-xl p-5">
           <p className="text-sm text-gray-500 mb-2">
-            Total Data
+            Total Hasil Live
           </p>
 
           <h2 className="text-2xl font-bold">
-            {data.length}
+            {formatRupiah(
+              totalHasilLive
+            )}
+          </h2>
+        </div>
+
+        {/* SUDAH DIBAYAR */}
+        <div className="border rounded-xl p-5 bg-green-50">
+          <p className="text-sm text-gray-500 mb-2">
+            Total Sudah Dibayar
+          </p>
+
+          <h2 className="text-2xl font-bold text-green-700">
+            {formatRupiah(
+              totalSudahDibayar
+            )}
+          </h2>
+        </div>
+
+        {/* BELUM DIBAYAR */}
+        <div className="border rounded-xl p-5 bg-red-50">
+          <p className="text-sm text-gray-500 mb-2">
+            Total Belum Dibayar
+          </p>
+
+          <h2 className="text-2xl font-bold text-red-700">
+            {formatRupiah(
+              totalBelumDibayar
+            )}
           </h2>
         </div>
       </div>
