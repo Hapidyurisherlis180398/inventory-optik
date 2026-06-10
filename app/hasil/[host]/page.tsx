@@ -9,7 +9,7 @@ export default function HostPage({
 }: {
   params: { host: string }
 }) {
-  const host = params.host
+    const host = params.host.toLowerCase()
 
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -58,7 +58,7 @@ export default function HostPage({
         .from('live_reports')
         .insert([
           {
-            host: host,
+            host: host.toLowerCase(),
 
             nomor:
               item['NO']?.toString() || '',
