@@ -20,12 +20,12 @@ export default function IncomePage() {
     const { data, error } = await supabase
       .from('income')
       .select('*')
-      .order('id', { ascending: true })
+      .order('id', { ascending: false })
 
     if (!error && data) {
       setData(data)
 
-      // hitung total pembayaran
+      // HITUNG TOTAL PEMBAYARAN
       const totalBayar = data.reduce(
         (sum, item) => {
           const angka = Number(
@@ -39,7 +39,7 @@ export default function IncomePage() {
         0
       )
 
-      // hitung total pendapatan
+      // HITUNG TOTAL PENDAPATAN
       const totalIncome = data.reduce(
         (sum, item) => {
           const angka = Number(
@@ -85,6 +85,13 @@ export default function IncomePage() {
 
     setLoading(true)
 
+    // HAPUS SEMUA DATA LAMA
+    await supabase
+      .from('income')
+      .delete()
+      .neq('id', 0)
+
+    // BACA FILE EXCEL
     const buffer = await file.arrayBuffer()
 
     const workbook = XLSX.read(buffer)
@@ -95,6 +102,7 @@ export default function IncomePage() {
     const jsonData: any[] =
       XLSX.utils.sheet_to_json(sheet)
 
+    // INSERT DATA BARU
     for (const item of jsonData) {
       const orderId =
         item[
@@ -102,19 +110,6 @@ export default function IncomePage() {
         ]?.toString()
 
       if (!orderId) continue
-
-      // cek duplicate
-      const { data: existing } =
-        await supabase
-          .from('income')
-          .select('id')
-          .eq('order_id', orderId)
-          .maybeSingle()
-
-      // skip jika sudah ada
-      if (existing) {
-        continue
-      }
 
       await supabase
         .from('income')
@@ -136,7 +131,7 @@ export default function IncomePage() {
     }
 
     alert(
-      'Upload Income berhasil tanpa duplicate'
+      'Income terbaru berhasil diperbarui'
     )
 
     getData()
@@ -168,6 +163,13 @@ export default function IncomePage() {
           />
         </label>
       </div>
+
+      {/* LOADING */}
+      {loading && (
+        <div className="mb-4 text-blue-600 font-semibold">
+          Sedang memperbarui data income...
+        </div>
+      )}
 
       {/* TOTAL */}
       <div className="grid md:grid-cols-2 gap-4 mb-8">
