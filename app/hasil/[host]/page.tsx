@@ -9,7 +9,7 @@ export default function HostPage({
 }: {
   params: { host: string }
 }) {
-    const host = params.host.toLowerCase()
+    const host = String(params.host).toLowerCase()
 
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
