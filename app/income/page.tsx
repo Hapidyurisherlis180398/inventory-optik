@@ -85,13 +85,13 @@ export default function IncomePage() {
 
     setLoading(true)
 
-    // HAPUS DATA LAMA
+    // HAPUS SEMUA DATA LAMA
     await supabase
       .from('income')
       .delete()
       .neq('id', 0)
 
-    // BACA EXCEL
+    // BACA FILE EXCEL
     const buffer = await file.arrayBuffer()
 
     const workbook = XLSX.read(buffer)
@@ -142,6 +142,15 @@ export default function IncomePage() {
   async function sinkronkanIncome() {
     setLoading(true)
 
+    // AMBIL TANGGAL & JAM SEKARANG
+    const sekarang = new Date()
+
+    const waktuIndonesia =
+      sekarang.toLocaleString('id-ID', {
+        dateStyle: 'full',
+        timeStyle: 'medium',
+      })
+
     // AMBIL SEMUA DATA INCOME
     const { data: incomes } =
       await supabase
@@ -163,7 +172,9 @@ export default function IncomePage() {
         total_pendapatan:
           income.total_pendapatan,
 
-        status: 'TERBAYAR',
+        status:
+          'TERBAYAR • ' +
+          waktuIndonesia,
       }
 
       // UPDATE A USUP
@@ -219,7 +230,7 @@ export default function IncomePage() {
 
           <button
             onClick={sinkronkanIncome}
-            className="bg-green-600 text-white px-5 py-3 rounded-lg"
+            className="bg-green-600 text-white px-5 py-3 rounded-lg hover:opacity-90"
           >
             Sinkronkan Income
           </button>
