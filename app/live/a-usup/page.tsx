@@ -13,22 +13,6 @@ export default function AUsupPage() {
     setLaporanWaktu,
   ] = useState<any[]>([])
 
-  // TOTAL
-  const [
-    totalHasilLive,
-    setTotalHasilLive,
-  ] = useState(0)
-
-  const [
-    totalSudahDibayar,
-    setTotalSudahDibayar,
-  ] = useState(0)
-
-  const [
-    totalBelumDibayar,
-    setTotalBelumDibayar,
-  ] = useState(0)
-
   async function getData() {
     setLoading(true)
 
@@ -40,59 +24,31 @@ export default function AUsupPage() {
     if (!error && data) {
       setData(data)
 
-      // TOTAL HASIL LIVE
-      let hasilLive = 0
-
-      // TOTAL SUDAH DIBAYAR
-      let sudahBayar = 0
-
-      // TOTAL BELUM DIBAYAR
-      let belumBayar = 0
-
       // REKAP BERDASARKAN WAKTU
       const group: any = {}
 
       data.forEach((item) => {
-        const angka = Number(
-          item.total_pendapatan
-            ?.toString()
-            .replace(/[^\d]/g, '')
-        )
-
-        // TOTAL SEMUA
-        hasilLive += angka || 0
-
-        // SUDAH DIBAYAR
         if (
           item.status &&
           item.status.includes(
             'TERBAYAR'
           )
         ) {
-          sudahBayar += angka || 0
-
           const waktu = item.status
+
+          const angka = Number(
+            item.total_pendapatan
+              ?.toString()
+              .replace(/[^\d]/g, '')
+          )
 
           if (!group[waktu]) {
             group[waktu] = 0
           }
 
           group[waktu] += angka || 0
-        } else {
-          // BELUM DIBAYAR
-          belumBayar += angka || 0
         }
       })
-
-      setTotalHasilLive(hasilLive)
-
-      setTotalSudahDibayar(
-        sudahBayar
-      )
-
-      setTotalBelumDibayar(
-        belumBayar
-      )
 
       const hasilGroup = Object.entries(
         group
@@ -232,9 +188,7 @@ export default function AUsupPage() {
           </p>
 
           <h2 className="text-2xl font-bold">
-            {formatRupiah(
-              totalHasilLive
-            )}
+            {data.length} Pesanan
           </h2>
         </div>
 
@@ -245,9 +199,16 @@ export default function AUsupPage() {
           </p>
 
           <h2 className="text-2xl font-bold text-green-700">
-            {formatRupiah(
-              totalSudahDibayar
-            )}
+            {
+              data.filter(
+                (item) =>
+                  item.status &&
+                  item.status.includes(
+                    'TERBAYAR'
+                  )
+              ).length
+            }{' '}
+            Pesanan
           </h2>
         </div>
 
@@ -258,9 +219,16 @@ export default function AUsupPage() {
           </p>
 
           <h2 className="text-2xl font-bold text-red-700">
-            {formatRupiah(
-              totalBelumDibayar
-            )}
+            {
+              data.filter(
+                (item) =>
+                  !item.status ||
+                  !item.status.includes(
+                    'TERBAYAR'
+                  )
+              ).length
+            }{' '}
+            Pesanan
           </h2>
         </div>
       </div>
