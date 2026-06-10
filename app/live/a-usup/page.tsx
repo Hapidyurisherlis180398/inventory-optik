@@ -162,6 +162,46 @@ export default function AUsupPage() {
     setLoading(false)
   }
 
+  // LUNASI BATCH
+  async function lunasiBatch(
+    waktu: string
+  ) {
+    const password = prompt(
+      'Masukkan Password'
+    )
+
+    // PASSWORD SALAH
+    if (password !== '123') {
+      alert('Password salah')
+
+      return
+    }
+
+    // CEK DATA
+    const { data: rows } =
+      await supabase
+        .from('live_reports_a_usup')
+        .select('*')
+        .eq('status', waktu)
+
+    if (!rows || rows.length === 0) {
+      alert('Data tidak ditemukan')
+
+      return
+    }
+
+    // HAPUS DATA
+    await supabase
+      .from('live_reports_a_usup')
+      .delete()
+      .eq('status', waktu)
+
+    alert('Batch berhasil dilunasi')
+
+    // REFRESH
+    getData()
+  }
+
   return (
     <main className="p-4 md:p-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -256,27 +296,42 @@ export default function AUsupPage() {
             (item, index) => (
               <div
                 key={index}
-                className="border rounded-xl p-5 bg-green-50"
+                className="border rounded-xl p-5 bg-green-50 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
               >
-                {/* WAKTU */}
-                <p className="text-sm text-gray-500 mb-2">
-                  {item.waktu}
-                </p>
+                {/* KIRI */}
+                <div>
+                  {/* WAKTU */}
+                  <p className="text-sm text-gray-500 mb-2">
+                    {item.waktu}
+                  </p>
 
-                {/* TOTAL RUPIAH */}
-                <h2 className="text-2xl font-bold text-green-700">
-                  {formatRupiah(
-                    Number(item.total)
-                  )}
-                </h2>
+                  {/* TOTAL RUPIAH */}
+                  <h2 className="text-2xl font-bold text-green-700">
+                    {formatRupiah(
+                      Number(item.total)
+                    )}
+                  </h2>
 
-                {/* TOTAL PESANAN */}
-                <p className="mt-2 text-sm font-semibold text-black">
-                  {
-                    item.jumlahPesanan
-                  }{' '}
-                  Pesanan
-                </p>
+                  {/* TOTAL PESANAN */}
+                  <p className="mt-2 text-sm font-semibold text-black">
+                    {
+                      item.jumlahPesanan
+                    }{' '}
+                    Pesanan
+                  </p>
+                </div>
+
+                {/* BUTTON */}
+                <button
+                  onClick={() =>
+                    lunasiBatch(
+                      item.waktu
+                    )
+                  }
+                  className="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded-lg font-semibold"
+                >
+                  Lunasi
+                </button>
               </div>
             )
           )
