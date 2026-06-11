@@ -259,7 +259,7 @@ export default function AUsupPage() {
               </p>
 
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                HASIL LIVE A USUP
+                HASIL LIVE A CAPE
               </h1>
 
               <p className="text-gray-500 mt-3 text-sm md:text-base">
