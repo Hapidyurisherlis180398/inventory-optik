@@ -31,7 +31,7 @@ export default function IncomePage() {
           const angka = Number(
             item.jumlah_pembayaran
               ?.toString()
-              .replace(/[^\d]/g, '')
+              .replace(/[^\d-]/g, '')
           )
 
           return sum + (angka || 0)
@@ -45,7 +45,7 @@ export default function IncomePage() {
           const angka = Number(
             item.total_pendapatan
               ?.toString()
-              .replace(/[^\d]/g, '')
+              .replace(/[^\d-]/g, '')
           )
 
           return sum + (angka || 0)
