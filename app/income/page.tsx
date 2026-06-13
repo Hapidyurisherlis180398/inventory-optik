@@ -19,10 +19,10 @@ export default function IncomePage() {
     setTotalPendapatan,
   ] = useState(0)
 
-  // TOTAL UANG TERBAYAR DARI LIVE REPORT
+  // TOTAL UANG TERBAYAR
   const [
-    totalSudahTerbayar,
-    setTotalSudahTerbayar,
+    totalUangTerbayar,
+    setTotalUangTerbayar,
   ] = useState(0)
 
   async function getData() {
@@ -92,51 +92,50 @@ export default function IncomePage() {
     }
 
     // =========================
-    // TOTAL SUDAH TERBAYAR
+    // TOTAL UANG TERBAYAR
     // DARI SEMUA LIVE REPORT
     // =========================
 
     let totalTerbayar = 0
 
     // A USUP
-    const {
-      data: usupData,
-    } = await supabase
-      .from(
-        'live_reports_a_usup'
-      )
-      .select(
-        'total_pendapatan,status'
-      )
+    const { data: usup } =
+      await supabase
+        .from(
+          'live_reports_a_usup'
+        )
+        .select(
+          'total_pendapatan,status'
+        )
 
     // A AGIL
-    const {
-      data: agilData,
-    } = await supabase
-      .from(
-        'live_reports_a_agil'
-      )
-      .select(
-        'total_pendapatan,status'
-      )
+    const { data: agil } =
+      await supabase
+        .from(
+          'live_reports_a_agil'
+        )
+        .select(
+          'total_pendapatan,status'
+        )
 
     // A CAPE
-    const {
-      data: capeData,
-    } = await supabase
-      .from(
-        'live_reports_a_cape'
-      )
-      .select(
-        'total_pendapatan,status'
-      )
+    const { data: cape } =
+      await supabase
+        .from(
+          'live_reports_a_cape'
+        )
+        .select(
+          'total_pendapatan,status'
+        )
 
+    // GABUNG SEMUA DATA
     const semuaData = [
-      ...(usupData || []),
-      ...(agilData || []),
-      ...(capeData || []),
+      ...(usup || []),
+      ...(agil || []),
+      ...(cape || []),
     ]
 
+    // HITUNG TOTAL TERBAYAR
     semuaData.forEach((item) => {
       if (
         item.status &&
@@ -158,7 +157,7 @@ export default function IncomePage() {
       }
     })
 
-    setTotalSudahTerbayar(
+    setTotalUangTerbayar(
       totalTerbayar
     )
 
@@ -197,7 +196,7 @@ export default function IncomePage() {
       .delete()
       .neq('id', 0)
 
-    // BACA EXCEL
+    // BACA FILE EXCEL
     const buffer =
       await file.arrayBuffer()
 
@@ -232,14 +231,12 @@ export default function IncomePage() {
             jumlah_pembayaran:
               item[
                 'Jumlah penyelesaian pembayaran'
-              ]?.toString() ||
-              '',
+              ]?.toString() || '',
 
             total_pendapatan:
               item[
                 'Total Pendapatan'
-              ]?.toString() ||
-              '',
+              ]?.toString() || '',
           },
         ])
     }
@@ -256,8 +253,8 @@ export default function IncomePage() {
   async function sinkronkanIncome() {
     setLoading(true)
 
-    const sekarang =
-      new Date()
+    // TANGGAL SEKARANG
+    const sekarang = new Date()
 
     const waktuIndonesia =
       sekarang.toLocaleString(
@@ -269,16 +266,13 @@ export default function IncomePage() {
       )
 
     // AMBIL DATA INCOME
-    const {
-      data: incomes,
-    } = await supabase
-      .from('income')
-      .select('*')
+    const { data: incomes } =
+      await supabase
+        .from('income')
+        .select('*')
 
     if (!incomes) {
-      alert(
-        'Data income kosong'
-      )
+      alert('Data income kosong')
 
       setLoading(false)
 
@@ -304,10 +298,7 @@ export default function IncomePage() {
           'live_reports_a_usup'
         )
         .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
+        .eq('order_id', orderId)
 
       // UPDATE A AGIL
       await supabase
@@ -315,10 +306,7 @@ export default function IncomePage() {
           'live_reports_a_agil'
         )
         .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
+        .eq('order_id', orderId)
 
       // UPDATE A CAPE
       await supabase
@@ -326,10 +314,7 @@ export default function IncomePage() {
           'live_reports_a_cape'
         )
         .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
+        .eq('order_id', orderId)
     }
 
     alert(
@@ -345,63 +330,71 @@ export default function IncomePage() {
     <main className="p-4 md:p-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-black">
-              DATA INCOME
-            </h1>
+        <div className="bg-white border rounded-3xl p-6 md:p-8 shadow-sm mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+            <div>
+              <p className="text-sm font-semibold text-green-600 mb-2">
+                INCOME DASHBOARD
+              </p>
 
-            <p className="text-gray-500 mt-2">
-              Monitoring income
-              realtime
-            </p>
-          </div>
+              <h1 className="text-4xl font-bold text-gray-900">
+                DATA INCOME
+              </h1>
 
-          <div className="flex gap-3 flex-wrap">
-            <label className="bg-black text-white px-5 py-3 rounded-xl cursor-pointer hover:opacity-90">
-              Upload Excel Income
+              <p className="text-gray-500 mt-3">
+                Monitoring income
+                realtime dan laporan
+                pembayaran live
+              </p>
+            </div>
 
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={
-                  uploadExcel
+            <div className="flex flex-wrap gap-3">
+              {/* UPLOAD */}
+              <label className="bg-black text-white px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-800 transition-all font-semibold shadow-sm">
+                Upload Excel Income
+
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={
+                    uploadExcel
+                  }
+                  className="hidden"
+                />
+              </label>
+
+              {/* SINKRON */}
+              <button
+                onClick={
+                  sinkronkanIncome
                 }
-                className="hidden"
-              />
-            </label>
-
-            <button
-              onClick={
-                sinkronkanIncome
-              }
-              className="bg-green-600 text-white px-5 py-3 rounded-xl hover:bg-green-700"
-            >
-              Sinkronkan
-              Income
-            </button>
+                className="bg-green-600 text-white px-6 py-4 rounded-2xl hover:bg-green-700 transition-all font-semibold shadow-sm"
+              >
+                Sinkronkan Income
+              </button>
+            </div>
           </div>
         </div>
 
         {/* LOADING */}
         {loading && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-xl font-semibold">
+          <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 font-semibold p-4 rounded-2xl">
             Sedang memproses
             data...
           </div>
         )}
 
-        {/* TOTAL CARD */}
+        {/* TOTAL */}
         <div className="grid md:grid-cols-3 gap-5 mb-8">
           {/* TOTAL PEMBAYARAN */}
-          <div className="bg-white rounded-2xl border p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-2">
+          <div className="bg-white border rounded-3xl p-6 shadow-sm">
+            <p className="text-sm text-gray-500 mb-3">
               Total Jumlah
               Penyelesaian
               Pembayaran
             </p>
 
-            <h2 className="text-2xl font-bold text-black">
+            <h2 className="text-3xl font-bold text-gray-900">
               {formatRupiah(
                 totalPembayaran
               )}
@@ -409,49 +402,49 @@ export default function IncomePage() {
           </div>
 
           {/* TOTAL PENDAPATAN */}
-          <div className="bg-white rounded-2xl border p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-2">
+          <div className="bg-white border rounded-3xl p-6 shadow-sm">
+            <p className="text-sm text-gray-500 mb-3">
               Total Pendapatan
             </p>
 
-            <h2 className="text-2xl font-bold text-black">
+            <h2 className="text-3xl font-bold text-green-700">
               {formatRupiah(
                 totalPendapatan
               )}
             </h2>
           </div>
 
-          {/* TOTAL SUDAH TERBAYAR */}
-          <div className="bg-green-50 rounded-2xl border border-green-200 p-6 shadow-sm">
-            <p className="text-sm text-green-700 mb-2">
-              Total Sudah
-              Terbayar Dari
-              Semua Live Report
+          {/* TOTAL TERBAYAR */}
+          <div className="bg-green-50 border border-green-200 rounded-3xl p-6 shadow-sm">
+            <p className="text-sm text-green-700 mb-3">
+              Total Uang
+              Terbayar Dari Semua
+              Report
             </p>
 
-            <h2 className="text-2xl font-bold text-green-700">
+            <h2 className="text-3xl font-bold text-green-700">
               {formatRupiah(
-                totalSudahTerbayar
+                totalUangTerbayar
               )}
             </h2>
           </div>
         </div>
 
         {/* TABLE */}
-        <div className="bg-white border rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-5 border-b">
-            <h2 className="text-2xl font-bold">
+        <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
+          <div className="p-6 border-b">
+            <h2 className="text-2xl font-bold text-gray-900">
               Data Income
             </h2>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Total data:{' '}
-              {data.length}
+            <p className="text-gray-500 text-sm mt-2">
+              Seluruh data income
+              terbaru
             </p>
           </div>
 
           <div className="overflow-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-black text-white">
                 <tr>
                   <th className="p-4 border">
@@ -470,8 +463,7 @@ export default function IncomePage() {
                   </th>
 
                   <th className="p-4 border">
-                    Total
-                    Pendapatan
+                    Total Pendapatan
                   </th>
                 </tr>
               </thead>
@@ -493,8 +485,7 @@ export default function IncomePage() {
                       colSpan={4}
                       className="text-center p-10"
                     >
-                      Belum ada
-                      data
+                      Belum ada data
                     </td>
                   </tr>
                 ) : (
@@ -507,26 +498,46 @@ export default function IncomePage() {
                         key={
                           item.id
                         }
-                        className="hover:bg-gray-50"
+                        className="hover:bg-gray-50 transition-all"
                       >
-                        <td className="border p-4 text-center">
+                        <td className="border p-4 text-center font-medium">
                           {index +
                             1}
                         </td>
 
-                        <td className="border p-4 font-medium">
+                        <td className="border p-4 font-semibold text-gray-900">
                           {
                             item.order_id
                           }
                         </td>
 
-                        <td className="border p-4">
+                        <td
+                          className={`border p-4 font-semibold ${
+                            item.jumlah_pembayaran
+                              ?.toString()
+                              .includes(
+                                '-'
+                              )
+                              ? 'text-red-600'
+                              : 'text-green-700'
+                          }`}
+                        >
                           {
                             item.jumlah_pembayaran
                           }
                         </td>
 
-                        <td className="border p-4 font-semibold text-green-700">
+                        <td
+                          className={`border p-4 font-semibold ${
+                            item.total_pendapatan
+                              ?.toString()
+                              .includes(
+                                '-'
+                              )
+                              ? 'text-red-600'
+                              : 'text-green-700'
+                          }`}
+                        >
                           {
                             item.total_pendapatan
                           }
