@@ -19,10 +19,9 @@ export default function IncomePage() {
     setTotalPendapatan,
   ] = useState(0)
 
-  // TOTAL UANG TERBAYAR
   const [
-    totalUangTerbayar,
-    setTotalUangTerbayar,
+    totalTerbayarReport,
+    setTotalTerbayarReport,
   ] = useState(0)
 
   async function getData() {
@@ -43,44 +42,30 @@ export default function IncomePage() {
       setData(data)
 
       // TOTAL PEMBAYARAN
-      const totalBayar =
-        data.reduce(
-          (sum, item) => {
-            const angka = Number(
-              item.jumlah_pembayaran
-                ?.toString()
-                .replace(
-                  /[^\d-]/g,
-                  ''
-                )
-            )
+      const totalBayar = data.reduce(
+        (sum, item) => {
+          const angka = Number(
+            item.jumlah_pembayaran
+              ?.toString()
+              .replace(/[^\d-]/g, '')
+          )
 
-            return (
-              sum + (angka || 0)
-            )
-          },
-          0
-        )
+          return sum + (angka || 0)
+        },
+        0
+      )
 
       // TOTAL PENDAPATAN
       const totalIncome =
-        data.reduce(
-          (sum, item) => {
-            const angka = Number(
-              item.total_pendapatan
-                ?.toString()
-                .replace(
-                  /[^\d-]/g,
-                  ''
-                )
-            )
+        data.reduce((sum, item) => {
+          const angka = Number(
+            item.total_pendapatan
+              ?.toString()
+              .replace(/[^\d-]/g, '')
+          )
 
-            return (
-              sum + (angka || 0)
-            )
-          },
-          0
-        )
+          return sum + (angka || 0)
+        }, 0)
 
       setTotalPembayaran(
         totalBayar
@@ -92,51 +77,42 @@ export default function IncomePage() {
     }
 
     // =========================
-    // TOTAL UANG TERBAYAR
-    // DARI SEMUA LIVE REPORT
+    // TOTAL TERBAYAR REPORT
     // =========================
 
-    let totalTerbayar = 0
+    let totalReport = 0
 
     // A USUP
-    const { data: usup } =
+    const { data: aUsup } =
       await supabase
-        .from(
-          'live_reports_a_usup'
-        )
+        .from('live_reports_a_usup')
         .select(
           'total_pendapatan,status'
         )
 
     // A AGIL
-    const { data: agil } =
+    const { data: aAgil } =
       await supabase
-        .from(
-          'live_reports_a_agil'
-        )
+        .from('live_reports_a_agil')
         .select(
           'total_pendapatan,status'
         )
 
     // A CAPE
-    const { data: cape } =
+    const { data: aCape } =
       await supabase
-        .from(
-          'live_reports_a_cape'
-        )
+        .from('live_reports_a_cape')
         .select(
           'total_pendapatan,status'
         )
 
-    // GABUNG SEMUA DATA
-    const semuaData = [
-      ...(usup || []),
-      ...(agil || []),
-      ...(cape || []),
+    const semuaReport = [
+      ...(aUsup || []),
+      ...(aAgil || []),
+      ...(aCape || []),
     ]
 
-    // HITUNG TOTAL TERBAYAR
-    semuaData.forEach((item) => {
+    semuaReport.forEach((item) => {
       if (
         item.status &&
         item.status.includes(
@@ -146,19 +122,15 @@ export default function IncomePage() {
         const angka = Number(
           item.total_pendapatan
             ?.toString()
-            .replace(
-              /[^\d-]/g,
-              ''
-            )
+            .replace(/[^\d-]/g, '')
         )
 
-        totalTerbayar +=
-          angka || 0
+        totalReport += angka || 0
       }
     })
 
-    setTotalUangTerbayar(
-      totalTerbayar
+    setTotalTerbayarReport(
+      totalReport
     )
 
     setLoading(false)
@@ -213,7 +185,7 @@ export default function IncomePage() {
         sheet
       )
 
-    // INSERT DATA BARU
+    // INSERT DATA
     for (const item of jsonData) {
       const orderId =
         item[
@@ -253,7 +225,6 @@ export default function IncomePage() {
   async function sinkronkanIncome() {
     setLoading(true)
 
-    // TANGGAL SEKARANG
     const sekarang = new Date()
 
     const waktuIndonesia =
@@ -265,7 +236,6 @@ export default function IncomePage() {
         }
       )
 
-    // AMBIL DATA INCOME
     const { data: incomes } =
       await supabase
         .from('income')
@@ -298,7 +268,10 @@ export default function IncomePage() {
           'live_reports_a_usup'
         )
         .update(updateData)
-        .eq('order_id', orderId)
+        .eq(
+          'order_id',
+          orderId
+        )
 
       // UPDATE A AGIL
       await supabase
@@ -306,7 +279,10 @@ export default function IncomePage() {
           'live_reports_a_agil'
         )
         .update(updateData)
-        .eq('order_id', orderId)
+        .eq(
+          'order_id',
+          orderId
+        )
 
       // UPDATE A CAPE
       await supabase
@@ -314,7 +290,10 @@ export default function IncomePage() {
           'live_reports_a_cape'
         )
         .update(updateData)
-        .eq('order_id', orderId)
+        .eq(
+          'order_id',
+          orderId
+        )
     }
 
     alert(
@@ -327,13 +306,13 @@ export default function IncomePage() {
   }
 
   return (
-    <main className="p-4 md:p-8 bg-gray-50 min-h-screen">
+    <main className="min-h-screen bg-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="bg-white border rounded-3xl p-6 md:p-8 shadow-sm mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
             <div>
-              <p className="text-sm font-semibold text-green-600 mb-2">
+              <p className="text-sm font-semibold text-green-600 mb-2 tracking-wide">
                 INCOME DASHBOARD
               </p>
 
@@ -342,15 +321,15 @@ export default function IncomePage() {
               </h1>
 
               <p className="text-gray-500 mt-3">
-                Monitoring income
-                realtime dan laporan
-                pembayaran live
+                Monitoring income dan
+                sinkronisasi pembayaran
+                realtime
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex gap-3 flex-wrap">
               {/* UPLOAD */}
-              <label className="bg-black text-white px-6 py-4 rounded-2xl cursor-pointer hover:bg-gray-800 transition-all font-semibold shadow-sm">
+              <label className="bg-black hover:bg-gray-800 transition-all text-white px-6 py-4 rounded-2xl cursor-pointer font-semibold shadow-sm">
                 Upload Excel Income
 
                 <input
@@ -368,7 +347,7 @@ export default function IncomePage() {
                 onClick={
                   sinkronkanIncome
                 }
-                className="bg-green-600 text-white px-6 py-4 rounded-2xl hover:bg-green-700 transition-all font-semibold shadow-sm"
+                className="bg-green-600 hover:bg-green-700 transition-all text-white px-6 py-4 rounded-2xl font-semibold shadow-sm"
               >
                 Sinkronkan Income
               </button>
@@ -378,7 +357,7 @@ export default function IncomePage() {
 
         {/* LOADING */}
         {loading && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-700 font-semibold p-4 rounded-2xl">
+          <div className="mb-6 bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 font-medium">
             Sedang memproses
             data...
           </div>
@@ -387,8 +366,12 @@ export default function IncomePage() {
         {/* TOTAL */}
         <div className="grid md:grid-cols-3 gap-5 mb-8">
           {/* TOTAL PEMBAYARAN */}
-          <div className="bg-white border rounded-3xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-3">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
+              💳
+            </div>
+
+            <p className="text-sm text-gray-500 mb-2">
               Total Jumlah
               Penyelesaian
               Pembayaran
@@ -402,8 +385,12 @@ export default function IncomePage() {
           </div>
 
           {/* TOTAL PENDAPATAN */}
-          <div className="bg-white border rounded-3xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-3">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center mb-4">
+              📈
+            </div>
+
+            <p className="text-sm text-gray-500 mb-2">
               Total Pendapatan
             </p>
 
@@ -415,54 +402,60 @@ export default function IncomePage() {
           </div>
 
           {/* TOTAL TERBAYAR */}
-          <div className="bg-green-50 border border-green-200 rounded-3xl p-6 shadow-sm">
-            <p className="text-sm text-green-700 mb-3">
-              Total Uang
-              Terbayar Dari Semua
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center mb-4">
+              🏆
+            </div>
+
+            <p className="text-sm text-gray-500 mb-2">
+              Total Uang Sudah
+              Terbayar dari Semua
               Report
             </p>
 
-            <h2 className="text-3xl font-bold text-green-700">
+            <h2 className="text-3xl font-bold text-yellow-600">
               {formatRupiah(
-                totalUangTerbayar
+                totalTerbayarReport
               )}
             </h2>
           </div>
         </div>
 
         {/* TABLE */}
-        <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
-          <div className="p-6 border-b">
+        <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+          {/* HEADER TABLE */}
+          <div className="p-6 border-b border-gray-100">
             <h2 className="text-2xl font-bold text-gray-900">
               Data Income
             </h2>
 
             <p className="text-gray-500 text-sm mt-2">
-              Seluruh data income
-              terbaru
+              Daftar seluruh data
+              income terbaru
             </p>
           </div>
 
+          {/* TABLE CONTENT */}
           <div className="overflow-auto">
-            <table className="w-full text-sm min-w-[900px]">
-              <thead className="bg-black text-white">
+            <table className="w-full min-w-[900px]">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="p-4 border">
-                    NO
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
+                    No
                   </th>
 
-                  <th className="p-4 border">
-                    ID
-                    Pesanan/Penyesuaian
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
+                    ID Pesanan /
+                    Penyesuaian
                   </th>
 
-                  <th className="p-4 border">
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
                     Jumlah
                     Penyelesaian
                     Pembayaran
                   </th>
 
-                  <th className="p-4 border">
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
                     Total Pendapatan
                   </th>
                 </tr>
@@ -473,7 +466,7 @@ export default function IncomePage() {
                   <tr>
                     <td
                       colSpan={4}
-                      className="text-center p-10"
+                      className="text-center p-12 text-gray-500"
                     >
                       Loading...
                     </td>
@@ -483,7 +476,7 @@ export default function IncomePage() {
                   <tr>
                     <td
                       colSpan={4}
-                      className="text-center p-10"
+                      className="text-center p-12 text-gray-500"
                     >
                       Belum ada data
                     </td>
@@ -498,49 +491,33 @@ export default function IncomePage() {
                         key={
                           item.id
                         }
-                        className="hover:bg-gray-50 transition-all"
+                        className="border-t border-gray-100 hover:bg-gray-50 transition-all"
                       >
-                        <td className="border p-4 text-center font-medium">
+                        <td className="p-5 font-medium text-gray-700">
                           {index +
                             1}
                         </td>
 
-                        <td className="border p-4 font-semibold text-gray-900">
+                        <td className="p-5 font-semibold text-gray-900">
                           {
                             item.order_id
                           }
                         </td>
 
-                        <td
-                          className={`border p-4 font-semibold ${
-                            item.jumlah_pembayaran
-                              ?.toString()
-                              .includes(
-                                '-'
-                              )
-                              ? 'text-red-600'
-                              : 'text-green-700'
-                          }`}
-                        >
-                          {
-                            item.jumlah_pembayaran
-                          }
+                        <td className="p-5">
+                          <span className="font-semibold text-blue-700">
+                            {
+                              item.jumlah_pembayaran
+                            }
+                          </span>
                         </td>
 
-                        <td
-                          className={`border p-4 font-semibold ${
-                            item.total_pendapatan
-                              ?.toString()
-                              .includes(
-                                '-'
-                              )
-                              ? 'text-red-600'
-                              : 'text-green-700'
-                          }`}
-                        >
-                          {
-                            item.total_pendapatan
-                          }
+                        <td className="p-5">
+                          <span className="font-semibold text-green-700">
+                            {
+                              item.total_pendapatan
+                            }
+                          </span>
                         </td>
                       </tr>
                     )
