@@ -14,6 +14,11 @@ export default function AUsupPage() {
     setLaporanWaktu,
   ] = useState<any[]>([])
 
+  const [
+    totalTerbayar,
+    setTotalTerbayar,
+  ] = useState(0)
+
   async function getData() {
     setLoading(true)
 
@@ -27,6 +32,36 @@ export default function AUsupPage() {
 
     if (!error && data) {
       setData(data)
+
+      // TOTAL SEMUA TERBAYAR
+      const totalBayarSemua =
+        data.reduce((sum, item) => {
+          if (
+            item.status &&
+            item.status.includes(
+              'TERBAYAR'
+            )
+          ) {
+            const angka = Number(
+              item.total_pendapatan
+                ?.toString()
+                .replace(
+                  /[^\d-]/g,
+                  ''
+                )
+            )
+
+            return (
+              sum + (angka || 0)
+            )
+          }
+
+          return sum
+        }, 0)
+
+      setTotalTerbayar(
+        totalBayarSemua
+      )
 
       // REKAP BERDASARKAN WAKTU
       const group: any = {}
@@ -43,7 +78,10 @@ export default function AUsupPage() {
           const angka = Number(
             item.total_pendapatan
               ?.toString()
-              .replace(/[^\d]/g, '')
+              .replace(
+                /[^\d-]/g,
+                ''
+              )
           )
 
           if (!group[waktu]) {
@@ -95,21 +133,85 @@ export default function AUsupPage() {
     ).format(angka)
   }
 
-  // UPLOAD EXCEL
+  // EXPORT BELUM TERBAYAR
+  function exportBelumTerbayar() {
+    const belumTerbayar =
+      data.filter(
+        (item) =>
+          !item.status ||
+          !item.status.includes(
+            'TERBAYAR'
+          )
+      )
+
+    if (
+      belumTerbayar.length === 0
+    ) {
+      alert(
+        'Tidak ada data belum terbayar'
+      )
+
+      return
+    }
+
+    const exportData =
+      belumTerbayar.map(
+        (item, index) => ({
+          NO: index + 1,
+
+          'ID Pesanan':
+            item.order_id,
+
+          TOKO: item.toko,
+
+          'Total Pendapatan':
+            item.total_pendapatan,
+
+          STATUS:
+            item.status ||
+            'BELUM DIBAYAR',
+        })
+      )
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        exportData
+      )
+
+    const workbook =
+      XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      'Belum Dibayar'
+    )
+
+    // NAMA FILE
+    const tanggal = new Date()
+      .toLocaleDateString(
+        'id-ID'
+      )
+      .replace(/\//g, '-')
+
+    const namaFile = `A-USUP-BELUM-DIBAYAR-${tanggal}.xlsx`
+
+    XLSX.writeFile(
+      workbook,
+      namaFile
+    )
+  }
+
   async function uploadExcel(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    // PIN SECURITY
+    // PASSWORD
     const pin = prompt(
       'Masukkan PIN Upload'
     )
 
     if (pin !== '345') {
       alert('PIN salah')
-
-      // reset input
-      event.target.value = ''
-
       return
     }
 
@@ -155,12 +257,11 @@ export default function AUsupPage() {
         .eq('order_id', orderId)
         .maybeSingle()
 
-      // JIKA SUDAH ADA
       if (existing) {
         continue
       }
 
-      // INSERT DATA
+      // INSERT
       await supabase
         .from(
           'live_reports_a_cape'
@@ -200,7 +301,7 @@ export default function AUsupPage() {
     setLoading(false)
   }
 
-  // LUNASI BATCH
+  // LUNASI
   async function lunasiBatch(
     waktu: string
   ) {
@@ -208,13 +309,11 @@ export default function AUsupPage() {
       'Masukkan Password'
     )
 
-    // PASSWORD SALAH
     if (password !== '123') {
       alert('Password salah')
       return
     }
 
-    // CEK DATA
     const { data: rows } =
       await supabase
         .from(
@@ -231,7 +330,6 @@ export default function AUsupPage() {
       return
     }
 
-    // HAPUS DATA
     await supabase
       .from(
         'live_reports_a_cape'
@@ -243,7 +341,6 @@ export default function AUsupPage() {
       'Batch berhasil dilunasi'
     )
 
-    // REFRESH
     getData()
   }
 
@@ -269,24 +366,37 @@ export default function AUsupPage() {
               </p>
             </div>
 
-            {/* BUTTON UPLOAD */}
-            <label className="bg-black hover:bg-gray-800 transition-all text-white px-6 py-4 rounded-2xl cursor-pointer text-center font-semibold shadow-sm">
-              Upload Excel
-
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={
-                  uploadExcel
+            <div className="flex flex-wrap gap-3">
+              {/* EXPORT */}
+              <button
+                onClick={
+                  exportBelumTerbayar
                 }
-                className="hidden"
-              />
-            </label>
+                className="bg-red-600 hover:bg-red-700 transition-all text-white px-6 py-4 rounded-2xl font-semibold shadow-sm"
+              >
+                Export Belum
+                Dibayar
+              </button>
+
+              {/* UPLOAD */}
+              <label className="bg-black hover:bg-gray-800 transition-all text-white px-6 py-4 rounded-2xl cursor-pointer text-center font-semibold shadow-sm">
+                Upload Excel
+
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={
+                    uploadExcel
+                  }
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
         </div>
 
         {/* CARD SUMMARY */}
-        <div className="grid md:grid-cols-3 gap-5 mb-8">
+        <div className="grid md:grid-cols-4 gap-5 mb-8">
           {/* TOTAL LIVE */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-3">
@@ -350,13 +460,33 @@ export default function AUsupPage() {
               pembayaran
             </p>
           </div>
+
+          {/* TOTAL TERBAYAR */}
+          <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 shadow-sm">
+            <p className="text-sm text-blue-700 mb-3">
+              Total Uang
+              Terbayar
+            </p>
+
+            <h2 className="text-2xl font-bold text-blue-700">
+              {formatRupiah(
+                totalTerbayar
+              )}
+            </h2>
+
+            <p className="text-sm text-blue-600 mt-2">
+              Akumulasi
+              pembayaran
+            </p>
+          </div>
         </div>
 
         {/* LAPORAN */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-2xl font-bold text-gray-900">
-              Riwayat Pembayaran
+              Riwayat
+              Pembayaran
             </h2>
           </div>
 
@@ -381,7 +511,6 @@ export default function AUsupPage() {
                     className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all"
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                      {/* KIRI */}
                       <div>
                         <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-semibold px-3 py-2 rounded-full mb-4">
                           ● TERBAYAR
@@ -409,7 +538,6 @@ export default function AUsupPage() {
                         </p>
                       </div>
 
-                      {/* BUTTON */}
                       <button
                         onClick={() =>
                           lunasiBatch(
@@ -458,7 +586,8 @@ export default function AUsupPage() {
                   </th>
 
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    Total Pendapatan
+                    Total
+                    Pendapatan
                   </th>
 
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
