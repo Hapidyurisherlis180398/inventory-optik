@@ -22,57 +22,16 @@ export default function ScanPage() {
   const [message, setMessage] =
     useState('')
 
+  const [manualQty, setManualQty] =
+    useState(1)
+
   const [scannerReady, setScannerReady] =
     useState(false)
 
-  // POPUP KONFIRMASI
-  const [
-    confirmData,
-    setConfirmData,
-  ] = useState<any>(null)
+  const scannerRef = useRef<any>(null)
 
-  const lastScanRef = useRef('')
-
-  const scanLockRef = useRef(false)
-
-  // SOUND BEEP
-  function playBeep() {
-    try {
-      const audioContext =
-        new (
-          window.AudioContext ||
-          (
-            window as any
-          ).webkitAudioContext
-        )()
-
-      const oscillator =
-        audioContext.createOscillator()
-
-      const gainNode =
-        audioContext.createGain()
-
-      oscillator.connect(gainNode)
-
-      gainNode.connect(
-        audioContext.destination
-      )
-
-      oscillator.frequency.value = 900
-
-      oscillator.type = 'sine'
-
-      gainNode.gain.value = 0.2
-
-      oscillator.start()
-
-      oscillator.stop(
-        audioContext.currentTime + 0.12
-      )
-    } catch (err) {
-      console.log(err)
-    }
-  }
+  const processingRef =
+    useRef(false)
 
   useEffect(() => {
     let scanner: any
@@ -84,82 +43,67 @@ export default function ScanPage() {
         'html5-qrcode'
       )
 
-      scanner = new Html5Qrcode(
-        'reader'
-      )
+      const html5QrCode =
+        new Html5Qrcode('reader')
+
+      scannerRef.current =
+        html5QrCode
 
       try {
-        await scanner.start(
+        await html5QrCode.start(
           {
-            facingMode:
-              'environment',
+            facingMode: 'environment',
           },
           {
-            fps: 15,
+            fps: 10,
             qrbox: {
               width: 260,
               height: 260,
             },
             aspectRatio: 1,
           },
-
           async (
             decodedText: string
           ) => {
             if (
-              scanLockRef.current
+              processingRef.current
             )
               return
 
-            // ANTI DOUBLE SCAN
-            if (
-              lastScanRef.current ===
-              decodedText
-            ) {
-              return
-            }
-
-            scanLockRef.current =
+            processingRef.current =
               true
 
-            lastScanRef.current =
-              decodedText
+            playBeep()
 
             setResult(decodedText)
 
-            // SOUND
-            playBeep()
+            const konfirmasi =
+              confirm(
+                `QR Terdeteksi\n\n${decodedText}\n\nMode: ${
+                  mode ===
+                  'tambah'
+                    ? 'Tambah Stock'
+                    : 'Kurangi Stock'
+                }\n\nJumlah: ${manualQty}\n\nLanjutkan?`
+              )
 
-            // VIBRATE
-            if (
-              navigator.vibrate
-            ) {
-              navigator.vibrate(
-                120
+            if (konfirmasi) {
+              await prosesStock(
+                decodedText
               )
             }
 
-            await bukaKonfirmasi(
-              decodedText
-            )
-
             setTimeout(() => {
-              scanLockRef.current =
+              processingRef.current =
                 false
-
-              lastScanRef.current =
-                ''
-            }, 2000)
-          }
+            }, 1500)
+          },
+          () => {}
         )
 
         setScannerReady(true)
       } catch (err) {
         console.log(err)
-
-        setMessage(
-          '❌ Kamera gagal dibuka'
-        )
       }
     }
 
@@ -167,24 +111,45 @@ export default function ScanPage() {
 
     return () => {
       if (
-        scanner &&
-        scanner.stop
+        scannerRef.current
       ) {
-        scanner.stop()
+        scannerRef.current
+          .stop()
+          .catch(() => {})
       }
     }
-  }, [mode])
+  }, [mode, manualQty])
 
-  // CEK PRODUK DULU
-  async function bukaKonfirmasi(
+  function playBeep() {
+    try {
+      const audio =
+        new Audio(
+          'https://actions.google.com/sounds/v1/alarms/beep_short.ogg'
+        )
+
+      audio.volume = 1
+
+      audio.play()
+    } catch (err) {
+      console.log(err)
+    }
+  }
+
+  async function prosesStock(
     barcode: string
   ) {
     try {
+      setLoading(true)
+
+      setMessage('')
+
+      // FORMAT:
+      // SKU-WARNA
+
       const splitData =
         barcode.split('-')
 
-      const sku =
-        splitData[0]
+      const sku = splitData[0]
 
       const color =
         splitData
@@ -206,34 +171,17 @@ export default function ScanPage() {
           '❌ Produk tidak ditemukan'
         )
 
+        setLoading(false)
+
         return
       }
 
-      setConfirmData(product)
-    } catch (err) {
-      console.log(err)
-
-      setMessage(
-        '❌ Error membaca barcode'
-      )
-    }
-  }
-
-  // KONFIRMASI UPDATE STOCK
-  async function prosesStock() {
-    if (!confirmData) return
-
-    try {
-      setLoading(true)
-
       let newStock =
-        Number(
-          confirmData.stock
-        ) || 0
+        Number(product.stock) || 0
 
       // MODE KURANG
       if (mode === 'kurang') {
-        newStock -= 1
+        newStock -= manualQty
 
         if (newStock < 0) {
           newStock = 0
@@ -242,19 +190,18 @@ export default function ScanPage() {
 
       // MODE TAMBAH
       if (mode === 'tambah') {
-        newStock += 1
+        newStock += manualQty
       }
 
+      // UPDATE STOCK
       const {
         error: updateError,
       } = await supabase
         .from('products')
         .update({
           stock: newStock,
-          updated_at:
-            new Date().toISOString(),
         })
-        .eq('id', confirmData.id)
+        .eq('id', product.id)
 
       if (updateError) {
         setMessage(
@@ -267,17 +214,20 @@ export default function ScanPage() {
       }
 
       setMessage(
-        `✅ ${confirmData.name} (${confirmData.color}) → Stock sekarang ${newStock}`
-      )
+        `✅ ${product.name}
 
-      setConfirmData(null)
+SKU : ${product.sku}
+Warna : ${product.color}
+
+Stock sekarang : ${newStock}`
+      )
 
       setLoading(false)
     } catch (err) {
       console.log(err)
 
       setMessage(
-        '❌ Error update stock'
+        '❌ Error scanner'
       )
 
       setLoading(false)
@@ -286,100 +236,135 @@ export default function ScanPage() {
 
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
-
+      <div className="max-w-4xl mx-auto">
         {/* HEADER */}
-        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Smart Stock Scanner
-          </h1>
+        <div className="mb-8">
+          <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <p className="text-sm font-semibold text-blue-600 mb-2">
+                  INVENTORY SCANNER
+                </p>
 
-          <p className="text-gray-500 mt-2">
-            Scan barcode frame
-            menggunakan kamera HP
-          </p>
+                <h1 className="text-4xl font-bold text-gray-900">
+                  QR Stock Scanner
+                </h1>
+
+                <p className="text-gray-500 mt-3">
+                  Scan barcode / QR
+                  untuk update stock
+                  otomatis
+                </p>
+              </div>
+
+              <div className="bg-gray-100 rounded-2xl px-5 py-4">
+                <p className="text-sm text-gray-500">
+                  Scanner Status
+                </p>
+
+                <h2 className="font-bold text-lg text-gray-900">
+                  {scannerReady
+                    ? '🟢 ACTIVE'
+                    : '🔴 LOADING'}
+                </h2>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* MODE */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-
+        <div className="grid md:grid-cols-2 gap-5 mb-6">
           <button
             onClick={() =>
               setMode('kurang')
             }
-            className={`rounded-2xl p-5 font-semibold transition-all ${
+            className={`rounded-3xl p-6 transition-all border ${
               mode === 'kurang'
-                ? 'bg-red-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700'
+                ? 'bg-red-600 text-white border-red-600 shadow-lg'
+                : 'bg-white text-gray-800 border-gray-200'
             }`}
           >
-            Barang Keluar
+            <h2 className="text-2xl font-bold">
+              Barang Keluar
+            </h2>
+
+            <p
+              className={`mt-2 ${
+                mode ===
+                'kurang'
+                  ? 'text-red-100'
+                  : 'text-gray-500'
+              }`}
+            >
+              Stock akan
+              berkurang otomatis
+            </p>
           </button>
 
           <button
             onClick={() =>
               setMode('tambah')
             }
-            className={`rounded-2xl p-5 font-semibold transition-all ${
+            className={`rounded-3xl p-6 transition-all border ${
               mode === 'tambah'
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700'
+                ? 'bg-green-600 text-white border-green-600 shadow-lg'
+                : 'bg-white text-gray-800 border-gray-200'
             }`}
           >
-            Tambah Stock
+            <h2 className="text-2xl font-bold">
+              Tambah Stock
+            </h2>
+
+            <p
+              className={`mt-2 ${
+                mode ===
+                'tambah'
+                  ? 'text-green-100'
+                  : 'text-gray-500'
+              }`}
+            >
+              Stock akan
+              bertambah otomatis
+            </p>
           </button>
         </div>
 
+        {/* MANUAL QTY */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
+          <p className="text-sm text-gray-500 mb-3">
+            Quantity Manual
+          </p>
+
+          <input
+            type="number"
+            min={1}
+            value={manualQty}
+            onChange={(e) =>
+              setManualQty(
+                Number(
+                  e.target.value
+                )
+              )
+            }
+            className="w-full border border-gray-300 rounded-2xl px-5 py-4 text-2xl font-bold outline-none focus:border-black"
+          />
+        </div>
+
         {/* SCANNER */}
-        <div className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
-
-          <div className="relative overflow-hidden rounded-3xl border border-gray-200">
-
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
+          <div className="relative overflow-hidden rounded-3xl border-4 border-black">
             <div
               id="reader"
-              className="w-full"
+              className="w-full overflow-hidden"
             />
 
-            {/* FRAME */}
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-
-              <div className="w-[260px] h-[260px] border-4 border-green-500 rounded-3xl shadow-[0_0_25px_rgba(34,197,94,0.7)] animate-pulse" />
-
-            </div>
-          </div>
-
-          {/* STATUS */}
-          <div className="mt-5 flex items-center justify-between">
-
-            <div>
-              <p className="text-sm text-gray-500">
-                Status Scanner
-              </p>
-
-              <p className="font-semibold text-gray-900">
-                {scannerReady
-                  ? '🟢 Active'
-                  : '🔴 Loading'}
-              </p>
-            </div>
-
-            <div
-              className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                mode === 'kurang'
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-green-100 text-green-700'
-              }`}
-            >
-              {mode === 'kurang'
-                ? 'Barang Keluar'
-                : 'Tambah Stock'}
-            </div>
+            {/* SCAN LINE */}
+            <div className="absolute left-0 right-0 top-0 h-1 bg-red-500 animate-pulse" />
           </div>
         </div>
 
-        {/* HASIL */}
-        <div className="mt-6 bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-
+        {/* RESULT */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
           <p className="text-sm text-gray-500 mb-2">
             Hasil Scan
           </p>
@@ -389,147 +374,58 @@ export default function ScanPage() {
           </h2>
 
           {loading && (
-            <div className="mt-4 text-blue-600 font-semibold">
-              Processing...
+            <div className="mt-5">
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-2xl px-5 py-4 font-semibold">
+                Processing...
+              </div>
             </div>
           )}
 
           {message && (
-            <div className="mt-4">
-              <div className="bg-gray-100 rounded-2xl p-4 text-gray-800 font-medium">
+            <div className="mt-5">
+              <div className="bg-gray-100 rounded-2xl p-5 whitespace-pre-line text-gray-800 font-medium">
                 {message}
               </div>
             </div>
           )}
         </div>
 
-        {/* POPUP KONFIRMASI */}
-        {confirmData && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-
-            <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
-
-              <h2 className="text-2xl font-bold text-gray-900 mb-5">
-                Konfirmasi Stock
-              </h2>
-
-              <div className="space-y-4">
-
-                <div className="bg-gray-100 rounded-2xl p-4">
-                  <p className="text-sm text-gray-500">
-                    Nama Produk
-                  </p>
-
-                  <h3 className="font-bold text-lg text-gray-900">
-                    {confirmData.name}
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-
-                  <div className="bg-gray-100 rounded-2xl p-4">
-                    <p className="text-sm text-gray-500">
-                      SKU
-                    </p>
-
-                    <h3 className="font-bold text-gray-900">
-                      {confirmData.sku}
-                    </h3>
-                  </div>
-
-                  <div className="bg-gray-100 rounded-2xl p-4">
-                    <p className="text-sm text-gray-500">
-                      Color
-                    </p>
-
-                    <h3 className="font-bold text-gray-900">
-                      {confirmData.color}
-                    </h3>
-                  </div>
-                </div>
-
-                <div className="bg-black text-white rounded-2xl p-5">
-
-                  <p className="text-sm text-gray-300">
-                    Stock Saat Ini
-                  </p>
-
-                  <h2 className="text-4xl font-bold mt-2">
-                    {confirmData.stock}
-                  </h2>
-                </div>
-
-                <div
-                  className={`rounded-2xl p-4 text-center font-bold ${
-                    mode === 'kurang'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}
-                >
-                  {mode === 'kurang'
-                    ? 'Stock Akan Dikurangi'
-                    : 'Stock Akan Ditambah'}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-2">
-
-                  <button
-                    onClick={() =>
-                      setConfirmData(
-                        null
-                      )
-                    }
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-2xl py-4 font-semibold transition-all"
-                  >
-                    Batal
-                  </button>
-
-                  <button
-                    onClick={
-                      prosesStock
-                    }
-                    className={`rounded-2xl py-4 font-semibold text-white transition-all ${
-                      mode === 'kurang'
-                        ? 'bg-red-600 hover:bg-red-700'
-                        : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                  >
-                    Konfirmasi
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* INFO */}
-        <div className="mt-6 bg-black text-white rounded-3xl p-6">
-
-          <h2 className="text-xl font-bold mb-4">
+        <div className="mt-6 bg-black rounded-3xl p-8 text-white">
+          <h2 className="text-2xl font-bold mb-5">
             Cara Penggunaan
           </h2>
 
-          <ul className="space-y-3 text-sm text-gray-300">
-            <li>
-              • Pilih mode scanner
-            </li>
+          <div className="space-y-3 text-gray-300">
+            <p>
+              • Pilih mode scan
+            </p>
 
-            <li>
-              • Scan barcode frame
-            </li>
+            <p>
+              • Input quantity
+              manual
+            </p>
 
-            <li>
-              • Akan muncul popup konfirmasi
-            </li>
+            <p>
+              • Scan barcode /
+              QR menggunakan HP
+            </p>
 
-            <li>
-              • Tekan konfirmasi untuk update stock
-            </li>
+            <p>
+              • Akan muncul popup
+              konfirmasi
+            </p>
 
-            <li>
-              • Scanner otomatis beep saat scan berhasil
-            </li>
-          </ul>
+            <p>
+              • Stock otomatis
+              update ke Supabase
+            </p>
+
+            <p>
+              • Format barcode:
+              SKU-WARNA
+            </p>
+          </div>
         </div>
       </div>
     </main>
