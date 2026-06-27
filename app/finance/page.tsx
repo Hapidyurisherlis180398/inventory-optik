@@ -5,6 +5,15 @@ import {
   useState,
 } from 'react'
 
+import {
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  Trash2,
+  Plus,
+} from 'lucide-react'
+
 import { supabase } from '../../lib/supabase'
 
 export default function FinancePage() {
@@ -296,26 +305,63 @@ export default function FinancePage() {
   }
 
   return (
-    <main className="min-h-screen bg-white p-4 md:p-8">
+    <main className="min-h-screen bg-[#f5f7fb] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-black">
-            Finance Tracker
-          </h1>
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center">
+                <Wallet size={28} />
+              </div>
 
-          <p className="text-gray-500 mt-2">
-            Monitoring pemasukan &
-            pengeluaran pribadi
-          </p>
+              <div>
+                <h1 className="text-4xl font-black text-black">
+                  Finance Tracker
+                </h1>
+
+                <p className="text-gray-500 mt-1">
+                  Monitoring keuangan
+                  pribadi realtime
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
+            <p className="text-sm text-gray-500">
+              Total Transaksi
+            </p>
+
+            <h2 className="text-3xl font-black text-black mt-1">
+              {data.length}
+            </h2>
+          </div>
         </div>
 
         {/* FORM */}
-        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-8">
+        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-200 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-black text-white p-3 rounded-2xl">
+              <Plus size={22} />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold">
+                Tambah Transaksi
+              </h2>
+
+              <p className="text-gray-500 text-sm">
+                Catat pemasukan dan
+                pengeluaran harian
+              </p>
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-5">
             <div>
               <label className="text-sm font-semibold text-gray-700">
-                Jenis
+                Jenis Transaksi
               </label>
 
               <select
@@ -325,7 +371,7 @@ export default function FinancePage() {
                     e.target.value
                   )
                 }
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4"
+                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
               >
                 <option value="pengeluaran">
                   Pengeluaran
@@ -351,7 +397,7 @@ export default function FinancePage() {
                   )
                 }
                 placeholder="Contoh : Beli makan"
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4"
+                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
               />
             </div>
 
@@ -371,7 +417,7 @@ export default function FinancePage() {
                   )
                 }
                 placeholder="Contoh : 50.000"
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4"
+                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
               />
             </div>
 
@@ -389,7 +435,7 @@ export default function FinancePage() {
                   )
                 }
                 placeholder="Opsional"
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4"
+                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
               />
             </div>
           </div>
@@ -397,7 +443,7 @@ export default function FinancePage() {
           <button
             onClick={saveData}
             disabled={saving}
-            className="mt-6 bg-black hover:bg-gray-800 text-white px-6 py-4 rounded-2xl font-semibold transition-all"
+            className="mt-6 bg-black hover:bg-gray-800 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-lg"
           >
             {saving
               ? 'Menyimpan...'
@@ -407,138 +453,161 @@ export default function FinancePage() {
 
         {/* FILTER */}
         <div className="flex gap-3 flex-wrap mb-8">
-          <button
-            onClick={() =>
-              setFilter('today')
-            }
-            className={`px-5 py-3 rounded-2xl font-semibold ${
-              filter === 'today'
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-black'
-            }`}
-          >
-            Hari Ini
-          </button>
-
-          <button
-            onClick={() =>
-              setFilter(
-                'yesterday'
-              )
-            }
-            className={`px-5 py-3 rounded-2xl font-semibold ${
-              filter ===
-              'yesterday'
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-black'
-            }`}
-          >
-            Kemarin
-          </button>
-
-          <button
-            onClick={() =>
-              setFilter('7days')
-            }
-            className={`px-5 py-3 rounded-2xl font-semibold ${
-              filter === '7days'
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-black'
-            }`}
-          >
-            7 Hari
-          </button>
-
-          <button
-            onClick={() =>
-              setFilter(
-                '30days'
-              )
-            }
-            className={`px-5 py-3 rounded-2xl font-semibold ${
-              filter ===
-              '30days'
-                ? 'bg-black text-white'
-                : 'bg-gray-100 text-black'
-            }`}
-          >
-            30 Hari
-          </button>
+          {[
+            {
+              label: 'Hari Ini',
+              value: 'today',
+            },
+            {
+              label: 'Kemarin',
+              value: 'yesterday',
+            },
+            {
+              label: '7 Hari',
+              value: '7days',
+            },
+            {
+              label: '30 Hari',
+              value: '30days',
+            },
+          ].map((item) => (
+            <button
+              key={item.value}
+              onClick={() =>
+                setFilter(item.value)
+              }
+              className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
+                filter === item.value
+                  ? 'bg-black text-white shadow-lg'
+                  : 'bg-white border border-gray-200 text-black hover:bg-gray-100'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
         {/* SUMMARY */}
-        <div className="grid md:grid-cols-3 gap-5 mb-8">
-          <div className="bg-green-50 border border-green-100 rounded-3xl p-6">
-            <p className="text-sm text-green-700 mb-3">
-              Total Pemasukan
-            </p>
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {/* PEMASUKAN */}
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-3xl p-7 text-white shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-green-100 text-sm">
+                  Total Pemasukan
+                </p>
 
-            <h2 className="text-3xl font-bold text-green-700">
-              {formatRupiah(
-                totalIncome
-              )}
-            </h2>
+                <h2 className="text-3xl font-black mt-2">
+                  {formatRupiah(
+                    totalIncome
+                  )}
+                </h2>
+              </div>
+
+              <div className="bg-white/20 p-4 rounded-2xl">
+                <TrendingUp
+                  size={30}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="bg-red-50 border border-red-100 rounded-3xl p-6">
-            <p className="text-sm text-red-700 mb-3">
-              Total Pengeluaran
-            </p>
+          {/* PENGELUARAN */}
+          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl p-7 text-white shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-red-100 text-sm">
+                  Total Pengeluaran
+                </p>
 
-            <h2 className="text-3xl font-bold text-red-700">
-              {formatRupiah(
-                totalExpense
-              )}
-            </h2>
+                <h2 className="text-3xl font-black mt-2">
+                  {formatRupiah(
+                    totalExpense
+                  )}
+                </h2>
+              </div>
+
+              <div className="bg-white/20 p-4 rounded-2xl">
+                <TrendingDown
+                  size={30}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="bg-black rounded-3xl p-6">
-            <p className="text-sm text-gray-300 mb-3">
-              Saldo
-            </p>
+          {/* SALDO */}
+          <div className="bg-gradient-to-br from-black to-gray-800 rounded-3xl p-7 text-white shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-gray-300 text-sm">
+                  Saldo Saat Ini
+                </p>
 
-            <h2 className="text-3xl font-bold text-white">
-              {formatRupiah(
-                balance
-              )}
-            </h2>
+                <h2 className="text-3xl font-black mt-2">
+                  {formatRupiah(
+                    balance
+                  )}
+                </h2>
+              </div>
+
+              <div className="bg-white/10 p-4 rounded-2xl">
+                <Wallet size={30} />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* TABLE */}
-        <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold">
-              Riwayat Transaksi
-            </h2>
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">
+                Riwayat Transaksi
+              </h2>
+
+              <p className="text-gray-500 text-sm mt-1">
+                Semua data keuangan
+                tersimpan otomatis
+              </p>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl">
+              <Calendar size={18} />
+
+              <span className="text-sm font-medium">
+                {new Date().toLocaleDateString(
+                  'id-ID'
+                )}
+              </span>
+            </div>
           </div>
 
           <div className="overflow-auto">
             <table className="w-full">
               <thead className="bg-black text-white">
                 <tr>
-                  <th className="p-4 text-left">
+                  <th className="p-5 text-left">
                     Jenis
                   </th>
 
-                  <th className="p-4 text-left">
+                  <th className="p-5 text-left">
                     Transaksi
                   </th>
 
-                  <th className="p-4 text-left">
+                  <th className="p-5 text-left">
                     Jumlah
                   </th>
 
-                  <th className="p-4 text-left">
+                  <th className="p-5 text-left">
                     Catatan
                   </th>
 
-                  <th className="p-4 text-left">
+                  <th className="p-5 text-left">
                     Tanggal
                   </th>
 
-                  <th className="p-4 text-center">
-                    Tindakan
+                  <th className="p-5 text-center">
+                    Aksi
                   </th>
                 </tr>
               </thead>
@@ -548,7 +617,7 @@ export default function FinancePage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="p-10 text-center"
+                      className="text-center p-10"
                     >
                       Loading...
                     </td>
@@ -558,7 +627,7 @@ export default function FinancePage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="p-10 text-center"
+                      className="text-center p-10"
                     >
                       Belum ada data
                     </td>
@@ -568,11 +637,11 @@ export default function FinancePage() {
                     (item) => (
                       <tr
                         key={item.id}
-                        className="border-t hover:bg-gray-50"
+                        className="border-t hover:bg-gray-50 transition-all"
                       >
-                        <td className="p-4">
+                        <td className="p-5">
                           <span
-                            className={`px-3 py-2 rounded-full text-xs font-semibold ${
+                            className={`px-4 py-2 rounded-full text-xs font-bold ${
                               item.type ===
                               'pemasukan'
                                 ? 'bg-green-100 text-green-700'
@@ -585,13 +654,13 @@ export default function FinancePage() {
                           </span>
                         </td>
 
-                        <td className="p-4 font-semibold">
+                        <td className="p-5 font-bold text-gray-900">
                           {
                             item.title
                           }
                         </td>
 
-                        <td className="p-4 font-bold">
+                        <td className="p-5 font-black text-lg">
                           {formatRupiah(
                             Number(
                               item.amount
@@ -599,12 +668,12 @@ export default function FinancePage() {
                           )}
                         </td>
 
-                        <td className="p-4 text-gray-500">
+                        <td className="p-5 text-gray-500">
                           {item.note ||
                             '-'}
                         </td>
 
-                        <td className="p-4 text-sm text-gray-500">
+                        <td className="p-5 text-sm text-gray-500">
                           {new Date(
                             item.created_at
                           ).toLocaleString(
@@ -612,16 +681,18 @@ export default function FinancePage() {
                           )}
                         </td>
 
-                        <td className="p-4 text-center">
+                        <td className="p-5 text-center">
                           <button
                             onClick={() =>
                               deleteData(
                                 item.id
                               )
                             }
-                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl"
+                            className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-2xl transition-all"
                           >
-                            Hapus
+                            <Trash2
+                              size={18}
+                            />
                           </button>
                         </td>
                       </tr>
