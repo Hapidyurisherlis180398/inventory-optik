@@ -12,14 +12,22 @@ import {
   Calendar,
   Trash2,
   Wallet,
+  CheckCircle2,
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
 
 export default function FinancePage() {
   const [data, setData] = useState<any[]>([])
+
   const [loading, setLoading] =
     useState(false)
+
+  const [showPopup, setShowPopup] =
+    useState(false)
+
+  const [popupText, setPopupText] =
+    useState('')
 
   const [type, setType] = useState(
     'pengeluaran'
@@ -58,13 +66,33 @@ export default function FinancePage() {
     getData()
   }, [])
 
+  function formatInputRupiah(
+    value: string
+  ) {
+    const number =
+      value.replace(/\D/g, '')
+
+    return new Intl.NumberFormat(
+      'id-ID'
+    ).format(Number(number))
+  }
+
   async function addData() {
     if (!title || !amount) {
-      alert('Lengkapi data')
+      setPopupText(
+        'Lengkapi data terlebih dahulu'
+      )
+
+      setShowPopup(true)
+
       return
     }
 
     setLoading(true)
+
+    const nominal = Number(
+      amount.replace(/\./g, '')
+    )
 
     const { error } =
       await supabase
@@ -73,7 +101,7 @@ export default function FinancePage() {
           {
             type,
             title,
-            amount: Number(amount),
+            amount: nominal,
             note,
           },
         ])
@@ -81,9 +109,11 @@ export default function FinancePage() {
     if (error) {
       console.log(error)
 
-      alert(
-        'Gagal menyimpan data'
+      setPopupText(
+        '❌ Gagal menyimpan data'
       )
+
+      setShowPopup(true)
 
       setLoading(false)
 
@@ -94,7 +124,19 @@ export default function FinancePage() {
     setAmount('')
     setNote('')
 
+    setPopupText(
+      '✅ Data berhasil disimpan'
+    )
+
+    setShowPopup(true)
+
     getData()
+
+    setLoading(false)
+
+    setTimeout(() => {
+      setShowPopup(false)
+    }, 2500)
   }
 
   async function deleteData(id: string) {
@@ -241,7 +283,6 @@ export default function FinancePage() {
     totalPemasukan -
     totalPengeluaran
 
-  // REKAP BULANAN
   const monthlyData =
     useMemo(() => {
       const grouped: any = {}
@@ -304,6 +345,21 @@ export default function FinancePage() {
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* POPUP */}
+        {showPopup && (
+          <div className="fixed top-5 right-5 z-50">
+            <div className="bg-black text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
+              <CheckCircle2
+                size={22}
+              />
+
+              <span className="font-semibold">
+                {popupText}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* HEADER */}
         <div className="mb-8">
           <div className="bg-gradient-to-r from-black to-gray-800 rounded-3xl p-8 text-white shadow-xl">
@@ -314,14 +370,12 @@ export default function FinancePage() {
 
               <div>
                 <h1 className="text-4xl font-bold">
-                  Finance
-                  Tracker
+                  Finance Tracker
                 </h1>
 
                 <p className="text-gray-300 mt-2">
                   Pembukuan
-                  pribadi
-                  harian
+                  pribadi harian
                 </p>
               </div>
             </div>
@@ -354,12 +408,14 @@ export default function FinancePage() {
             </select>
 
             <input
-              type="number"
+              type="text"
               placeholder="Jumlah uang"
               value={amount}
               onChange={(e) =>
                 setAmount(
-                  e.target.value
+                  formatInputRupiah(
+                    e.target.value
+                  )
                 )
               }
               className="border rounded-2xl p-4"
@@ -394,7 +450,9 @@ export default function FinancePage() {
             onClick={addData}
             className="bg-black hover:bg-gray-800 text-white px-6 py-4 rounded-2xl font-semibold transition-all"
           >
-            Simpan Data
+            {loading
+              ? 'Menyimpan...'
+              : 'Simpan Data'}
           </button>
         </div>
 
