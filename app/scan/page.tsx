@@ -31,6 +31,10 @@ export default function ScanPage() {
     setConfirmData,
   ] = useState<any>(null)
 
+  // QTY MANUAL
+  const [manualQty, setManualQty] =
+    useState(1)
+
   const lastScanRef = useRef('')
 
   const scanLockRef = useRef(false)
@@ -175,7 +179,7 @@ export default function ScanPage() {
     }
   }, [mode])
 
-  // CEK PRODUK DULU
+  // CEK PRODUK
   async function bukaKonfirmasi(
     barcode: string
   ) {
@@ -209,6 +213,8 @@ export default function ScanPage() {
         return
       }
 
+      setManualQty(1)
+
       setConfirmData(product)
     } catch (err) {
       console.log(err)
@@ -219,7 +225,7 @@ export default function ScanPage() {
     }
   }
 
-  // KONFIRMASI UPDATE STOCK
+  // UPDATE STOCK
   async function prosesStock() {
     if (!confirmData) return
 
@@ -231,9 +237,13 @@ export default function ScanPage() {
           confirmData.stock
         ) || 0
 
+      // QTY MANUAL
+      const qty =
+        Number(manualQty) || 1
+
       // MODE KURANG
       if (mode === 'kurang') {
-        newStock -= 1
+        newStock -= qty
 
         if (newStock < 0) {
           newStock = 0
@@ -242,7 +252,7 @@ export default function ScanPage() {
 
       // MODE TAMBAH
       if (mode === 'tambah') {
-        newStock += 1
+        newStock += qty
       }
 
       const {
@@ -272,6 +282,8 @@ export default function ScanPage() {
 
       setConfirmData(null)
 
+      setManualQty(1)
+
       setLoading(false)
     } catch (err) {
       console.log(err)
@@ -295,8 +307,7 @@ export default function ScanPage() {
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Scan barcode frame
-            menggunakan kamera HP
+            Scan barcode frame menggunakan kamera HP
           </p>
         </div>
 
@@ -403,7 +414,7 @@ export default function ScanPage() {
           )}
         </div>
 
-        {/* POPUP KONFIRMASI */}
+        {/* POPUP */}
         {confirmData && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
 
@@ -448,6 +459,7 @@ export default function ScanPage() {
                   </div>
                 </div>
 
+                {/* STOCK */}
                 <div className="bg-black text-white rounded-2xl p-5">
 
                   <p className="text-sm text-gray-300">
@@ -459,6 +471,63 @@ export default function ScanPage() {
                   </h2>
                 </div>
 
+                {/* INPUT QTY */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-4">
+
+                  <p className="text-sm text-gray-500 mb-3">
+                    Jumlah Stock
+                  </p>
+
+                  <div className="flex items-center gap-3">
+
+                    {/* MINUS */}
+                    <button
+                      onClick={() =>
+                        setManualQty((prev) =>
+                          prev > 1
+                            ? prev - 1
+                            : 1
+                        )
+                      }
+                      className="w-12 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 text-2xl font-bold"
+                    >
+                      -
+                    </button>
+
+                    {/* INPUT */}
+                    <input
+                      type="number"
+                      min={1}
+                      value={manualQty}
+                      onChange={(e) =>
+                        setManualQty(
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="flex-1 border border-gray-300 rounded-2xl h-12 text-center font-bold text-lg outline-none"
+                    />
+
+                    {/* PLUS */}
+                    <button
+                      onClick={() =>
+                        setManualQty((prev) =>
+                          prev + 1
+                        )
+                      }
+                      className="w-12 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 text-2xl font-bold"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-3">
+                    Opsional • default 1
+                  </p>
+                </div>
+
+                {/* STATUS */}
                 <div
                   className={`rounded-2xl p-4 text-center font-bold ${
                     mode === 'kurang'
@@ -471,6 +540,7 @@ export default function ScanPage() {
                     : 'Stock Akan Ditambah'}
                 </div>
 
+                {/* BUTTON */}
                 <div className="grid grid-cols-2 gap-3 pt-2">
 
                   <button
@@ -520,6 +590,10 @@ export default function ScanPage() {
 
             <li>
               • Akan muncul popup konfirmasi
+            </li>
+
+            <li>
+              • Bisa input qty manual
             </li>
 
             <li>
