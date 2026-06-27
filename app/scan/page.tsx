@@ -25,11 +25,17 @@ export default function ScanPage() {
   const [scannerReady, setScannerReady] =
     useState(false)
 
+  // POPUP KONFIRMASI
+  const [
+    confirmData,
+    setConfirmData,
+  ] = useState<any>(null)
+
   const lastScanRef = useRef('')
 
   const scanLockRef = useRef(false)
 
-  // BEEP PROFESIONAL
+  // SOUND BEEP
   function playBeep() {
     try {
       const audioContext =
@@ -121,10 +127,10 @@ export default function ScanPage() {
 
             setResult(decodedText)
 
-            // BEEP
+            // SOUND
             playBeep()
 
-            // VIBRATE HP
+            // VIBRATE
             if (
               navigator.vibrate
             ) {
@@ -133,7 +139,7 @@ export default function ScanPage() {
               )
             }
 
-            await prosesStock(
+            await bukaKonfirmasi(
               decodedText
             )
 
@@ -143,7 +149,7 @@ export default function ScanPage() {
 
               lastScanRef.current =
                 ''
-            }, 1500)
+            }, 2000)
           }
         )
 
@@ -152,7 +158,7 @@ export default function ScanPage() {
         console.log(err)
 
         setMessage(
-          '❌ Kamera tidak bisa dibuka'
+          '❌ Kamera gagal dibuka'
         )
       }
     }
@@ -169,15 +175,11 @@ export default function ScanPage() {
     }
   }, [mode])
 
-  async function prosesStock(
+  // CEK PRODUK DULU
+  async function bukaKonfirmasi(
     barcode: string
   ) {
     try {
-      setLoading(true)
-
-      setMessage('')
-
-      // BARCODE = SKU + COLOR
       const splitData =
         barcode.split('-')
 
@@ -204,15 +206,32 @@ export default function ScanPage() {
           '❌ Produk tidak ditemukan'
         )
 
-        setLoading(false)
-
         return
       }
 
-      let newStock =
-        Number(product.stock) || 0
+      setConfirmData(product)
+    } catch (err) {
+      console.log(err)
 
-      // MODE KELUAR
+      setMessage(
+        '❌ Error membaca barcode'
+      )
+    }
+  }
+
+  // KONFIRMASI UPDATE STOCK
+  async function prosesStock() {
+    if (!confirmData) return
+
+    try {
+      setLoading(true)
+
+      let newStock =
+        Number(
+          confirmData.stock
+        ) || 0
+
+      // MODE KURANG
       if (mode === 'kurang') {
         newStock -= 1
 
@@ -235,7 +254,7 @@ export default function ScanPage() {
           updated_at:
             new Date().toISOString(),
         })
-        .eq('id', product.id)
+        .eq('id', confirmData.id)
 
       if (updateError) {
         setMessage(
@@ -248,15 +267,17 @@ export default function ScanPage() {
       }
 
       setMessage(
-        `✅ ${product.name} (${product.color}) → Stock sekarang ${newStock}`
+        `✅ ${confirmData.name} (${confirmData.color}) → Stock sekarang ${newStock}`
       )
+
+      setConfirmData(null)
 
       setLoading(false)
     } catch (err) {
       console.log(err)
 
       setMessage(
-        '❌ Error scanner'
+        '❌ Error update stock'
       )
 
       setLoading(false)
@@ -319,7 +340,7 @@ export default function ScanPage() {
               className="w-full"
             />
 
-            {/* FRAME DETECTION */}
+            {/* FRAME */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
 
               <div className="w-[260px] h-[260px] border-4 border-green-500 rounded-3xl shadow-[0_0_25px_rgba(34,197,94,0.7)] animate-pulse" />
@@ -356,7 +377,7 @@ export default function ScanPage() {
           </div>
         </div>
 
-        {/* RESULT */}
+        {/* HASIL */}
         <div className="mt-6 bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
 
           <p className="text-sm text-gray-500 mb-2">
@@ -382,6 +403,105 @@ export default function ScanPage() {
           )}
         </div>
 
+        {/* POPUP KONFIRMASI */}
+        {confirmData && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+
+            <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-5">
+                Konfirmasi Stock
+              </h2>
+
+              <div className="space-y-4">
+
+                <div className="bg-gray-100 rounded-2xl p-4">
+                  <p className="text-sm text-gray-500">
+                    Nama Produk
+                  </p>
+
+                  <h3 className="font-bold text-lg text-gray-900">
+                    {confirmData.name}
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+
+                  <div className="bg-gray-100 rounded-2xl p-4">
+                    <p className="text-sm text-gray-500">
+                      SKU
+                    </p>
+
+                    <h3 className="font-bold text-gray-900">
+                      {confirmData.sku}
+                    </h3>
+                  </div>
+
+                  <div className="bg-gray-100 rounded-2xl p-4">
+                    <p className="text-sm text-gray-500">
+                      Color
+                    </p>
+
+                    <h3 className="font-bold text-gray-900">
+                      {confirmData.color}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="bg-black text-white rounded-2xl p-5">
+
+                  <p className="text-sm text-gray-300">
+                    Stock Saat Ini
+                  </p>
+
+                  <h2 className="text-4xl font-bold mt-2">
+                    {confirmData.stock}
+                  </h2>
+                </div>
+
+                <div
+                  className={`rounded-2xl p-4 text-center font-bold ${
+                    mode === 'kurang'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-green-100 text-green-700'
+                  }`}
+                >
+                  {mode === 'kurang'
+                    ? 'Stock Akan Dikurangi'
+                    : 'Stock Akan Ditambah'}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+
+                  <button
+                    onClick={() =>
+                      setConfirmData(
+                        null
+                      )
+                    }
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-2xl py-4 font-semibold transition-all"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    onClick={
+                      prosesStock
+                    }
+                    className={`rounded-2xl py-4 font-semibold text-white transition-all ${
+                      mode === 'kurang'
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    Konfirmasi
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* INFO */}
         <div className="mt-6 bg-black text-white rounded-3xl p-6">
 
@@ -395,21 +515,19 @@ export default function ScanPage() {
             </li>
 
             <li>
-              • Tambah Stock →
-              stock bertambah otomatis
+              • Scan barcode frame
             </li>
 
             <li>
-              • Barang Keluar →
-              stock berkurang otomatis
+              • Akan muncul popup konfirmasi
             </li>
 
             <li>
-              • Arahkan barcode ke kotak scan
+              • Tekan konfirmasi untuk update stock
             </li>
 
             <li>
-              • Scanner akan bunyi beep saat berhasil scan
+              • Scanner otomatis beep saat scan berhasil
             </li>
           </ul>
         </div>
