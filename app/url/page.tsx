@@ -61,6 +61,12 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/scan",
     icon: "📷",
   },
+  {
+    title: "Finance Tracker",
+    description: "Monitoring keuangan pribadi realtime",
+    url: "https://inventory-optik-ten.vercel.app/finance",
+    icon: "💳",
+  },
 ];
 
 export default function HomePage() {
