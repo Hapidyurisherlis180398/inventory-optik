@@ -2,49 +2,28 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
 } from 'react'
 
-import * as XLSX from 'xlsx'
-
-import jsPDF from 'jspdf'
-
-import autoTable from 'jspdf-autotable'
-
 import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-} from 'recharts'
-
-import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Calendar,
+  Trash2,
   Wallet,
-  TrendingDown,
-  TrendingUp,
-  Plus,
-  Download,
 } from 'lucide-react'
 
 import { supabase } from '../../lib/supabase'
 
 export default function FinancePage() {
-  const [data, setData] =
-    useState<any[]>([])
-
+  const [data, setData] = useState<any[]>([])
   const [loading, setLoading] =
     useState(false)
 
-  const [type, setType] =
-    useState('pengeluaran')
-
-  const [category, setCategory] =
-    useState('')
+  const [type, setType] = useState(
+    'pengeluaran'
+  )
 
   const [title, setTitle] =
     useState('')
@@ -52,21 +31,10 @@ export default function FinancePage() {
   const [amount, setAmount] =
     useState('')
 
-  const [note, setNote] =
-    useState('')
+  const [note, setNote] = useState('')
 
-  const [
-    totalIncome,
-    setTotalIncome,
-  ] = useState(0)
-
-  const [
-    totalExpense,
-    setTotalExpense,
-  ] = useState(0)
-
-  const [balance, setBalance] =
-    useState(0)
+  const [filter, setFilter] =
+    useState('today')
 
   async function getData() {
     setLoading(true)
@@ -81,38 +49,6 @@ export default function FinancePage() {
 
     if (!error && data) {
       setData(data)
-
-      const income = data
-        .filter(
-          (item) =>
-            item.type ===
-            'pendapatan'
-        )
-        .reduce(
-          (sum, item) =>
-            sum +
-            Number(item.amount || 0),
-          0
-        )
-
-      const expense = data
-        .filter(
-          (item) =>
-            item.type ===
-            'pengeluaran'
-        )
-        .reduce(
-          (sum, item) =>
-            sum +
-            Number(item.amount || 0),
-          0
-        )
-
-      setTotalIncome(income)
-
-      setTotalExpense(expense)
-
-      setBalance(income - expense)
     }
 
     setLoading(false)
@@ -122,52 +58,46 @@ export default function FinancePage() {
     getData()
   }, [])
 
-  function formatRupiah(
-    angka: number
-  ) {
-    return new Intl.NumberFormat(
-      'id-ID',
-      {
-        style: 'currency',
-        currency: 'IDR',
-      }
-    ).format(angka)
-  }
-
-  async function tambahData() {
+  async function addData() {
     if (!title || !amount) {
-      alert(
-        'Lengkapi data terlebih dahulu'
-      )
-
+      alert('Lengkapi data')
       return
     }
 
     setLoading(true)
 
-    await supabase
-      .from('finance_logs')
-      .insert([
-        {
-          type,
-          category,
-          title,
-          amount: Number(amount),
-          note,
-        },
-      ])
+    const { error } =
+      await supabase
+        .from('finance_logs')
+        .insert([
+          {
+            type,
+            title,
+            amount: Number(amount),
+            note,
+          },
+        ])
+
+    if (error) {
+      console.log(error)
+
+      alert(
+        'Gagal menyimpan data'
+      )
+
+      setLoading(false)
+
+      return
+    }
 
     setTitle('')
-    setCategory('')
     setAmount('')
     setNote('')
 
     getData()
   }
 
-  async function hapusData(
-    id: string
-  ) {
+  async function deleteData(id: string) {
     const confirmDelete =
       confirm(
         'Yakin ingin menghapus data?'
@@ -183,259 +113,228 @@ export default function FinancePage() {
     getData()
   }
 
-  function exportExcel() {
-    const worksheet =
-      XLSX.utils.json_to_sheet(data)
+  function formatRupiah(
+    angka: number
+  ) {
+    return new Intl.NumberFormat(
+      'id-ID',
+      {
+        style: 'currency',
+        currency: 'IDR',
+      }
+    ).format(angka)
+  }
 
-    const workbook =
-      XLSX.utils.book_new()
+  function isToday(date: string) {
+    const today = new Date()
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      'Finance'
-    )
+    const d = new Date(date)
 
-    XLSX.writeFile(
-      workbook,
-      `Finance-${
-        new Date().toISOString()
-      }.xlsx`
+    return (
+      d.getDate() ===
+        today.getDate() &&
+      d.getMonth() ===
+        today.getMonth() &&
+      d.getFullYear() ===
+        today.getFullYear()
     )
   }
 
-  function exportPDF() {
-    const doc = new jsPDF()
+  function isYesterday(date: string) {
+    const yesterday = new Date()
 
-    doc.text(
-      'Laporan Finance',
-      14,
-      15
+    yesterday.setDate(
+      yesterday.getDate() - 1
     )
 
-    autoTable(doc, {
-      head: [
-        [
-          'Tanggal',
-          'Type',
-          'Kategori',
-          'Transaksi',
-          'Jumlah',
-        ],
-      ],
+    const d = new Date(date)
 
-      body: data.map((item) => [
-        new Date(
+    return (
+      d.getDate() ===
+        yesterday.getDate() &&
+      d.getMonth() ===
+        yesterday.getMonth() &&
+      d.getFullYear() ===
+        yesterday.getFullYear()
+    )
+  }
+
+  const filteredData = useMemo(() => {
+    const now = new Date()
+
+    return data.filter((item) => {
+      const itemDate = new Date(
+        item.created_at
+      )
+
+      if (filter === 'today') {
+        return isToday(
           item.created_at
-        ).toLocaleDateString(
-          'id-ID'
-        ),
+        )
+      }
 
-        item.type,
+      if (filter === 'yesterday') {
+        return isYesterday(
+          item.created_at
+        )
+      }
 
-        item.category,
+      if (filter === '7days') {
+        const last7 =
+          new Date()
 
-        item.title,
+        last7.setDate(
+          now.getDate() - 7
+        )
 
-        formatRupiah(
-          item.amount
-        ),
-      ]),
+        return itemDate >= last7
+      }
+
+      if (filter === '1month') {
+        const lastMonth =
+          new Date()
+
+        lastMonth.setMonth(
+          now.getMonth() - 1
+        )
+
+        return (
+          itemDate >= lastMonth
+        )
+      }
+
+      return true
     })
+  }, [data, filter])
 
-    doc.save(
-      `Finance-${
-        new Date().toISOString()
-      }.pdf`
-    )
-  }
+  const totalPemasukan =
+    filteredData
+      .filter(
+        (item) =>
+          item.type ===
+          'pemasukan'
+      )
+      .reduce(
+        (
+          sum,
+          item
+        ) => sum + item.amount,
+        0
+      )
 
-  const chartData = [
-    {
-      name: 'Pendapatan',
-      value: totalIncome,
-    },
+  const totalPengeluaran =
+    filteredData
+      .filter(
+        (item) =>
+          item.type ===
+          'pengeluaran'
+      )
+      .reduce(
+        (
+          sum,
+          item
+        ) => sum + item.amount,
+        0
+      )
 
-    {
-      name: 'Pengeluaran',
-      value: totalExpense,
-    },
-  ]
+  const saldo =
+    totalPemasukan -
+    totalPengeluaran
+
+  // REKAP BULANAN
+  const monthlyData =
+    useMemo(() => {
+      const grouped: any = {}
+
+      data.forEach((item) => {
+        const date = new Date(
+          item.created_at
+        )
+
+        const month =
+          date.toLocaleString(
+            'id-ID',
+            {
+              month: 'long',
+              year: 'numeric',
+            }
+          )
+
+        if (!grouped[month]) {
+          grouped[month] = {
+            pemasukan: 0,
+            pengeluaran: 0,
+          }
+        }
+
+        if (
+          item.type ===
+          'pemasukan'
+        ) {
+          grouped[
+            month
+          ].pemasukan +=
+            item.amount
+        }
+
+        if (
+          item.type ===
+          'pengeluaran'
+        ) {
+          grouped[
+            month
+          ].pengeluaran +=
+            item.amount
+        }
+      })
+
+      return Object.entries(
+        grouped
+      ).map(
+        ([month, value]: any) => ({
+          month,
+          pemasukan:
+            value.pemasukan,
+          pengeluaran:
+            value.pengeluaran,
+        })
+      )
+    }, [data])
 
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
-
       <div className="max-w-7xl mx-auto">
-
         {/* HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-black to-gray-800 rounded-3xl p-8 text-white shadow-xl">
+            <div className="flex items-center gap-4 mb-4">
+              <Wallet
+                size={40}
+              />
 
-          <div>
-            <h1 className="text-4xl font-black text-gray-900">
-              Finance Dashboard
-            </h1>
+              <div>
+                <h1 className="text-4xl font-bold">
+                  Finance
+                  Tracker
+                </h1>
 
-            <p className="text-gray-500 mt-2">
-              Monitoring keuangan pribadi
-            </p>
-          </div>
-
-          <div className="flex gap-3 flex-wrap">
-
-            <button
-              onClick={exportExcel}
-              className="bg-green-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2"
-            >
-              <Download size={18} />
-
-              Export Excel
-            </button>
-
-            <button
-              onClick={exportPDF}
-              className="bg-red-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2"
-            >
-              <Download size={18} />
-
-              Export PDF
-            </button>
-
-          </div>
-        </div>
-
-        {/* CARD */}
-        <div className="grid md:grid-cols-3 gap-5 mb-8">
-
-          <div className="bg-black text-white rounded-3xl p-6">
-            <Wallet size={35} />
-
-            <p className="mt-5 text-gray-300">
-              Total Saldo
-            </p>
-
-            <h2 className="text-4xl font-black mt-2">
-              {formatRupiah(balance)}
-            </h2>
-          </div>
-
-          <div className="bg-green-50 rounded-3xl p-6 border border-green-100">
-            <TrendingUp
-              className="text-green-600"
-              size={35}
-            />
-
-            <p className="mt-5 text-green-700">
-              Pendapatan
-            </p>
-
-            <h2 className="text-4xl font-black text-green-700 mt-2">
-              {formatRupiah(
-                totalIncome
-              )}
-            </h2>
-          </div>
-
-          <div className="bg-red-50 rounded-3xl p-6 border border-red-100">
-            <TrendingDown
-              className="text-red-600"
-              size={35}
-            />
-
-            <p className="mt-5 text-red-700">
-              Pengeluaran
-            </p>
-
-            <h2 className="text-4xl font-black text-red-700 mt-2">
-              {formatRupiah(
-                totalExpense
-              )}
-            </h2>
-          </div>
-
-        </div>
-
-        {/* CHART */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-
-          {/* PIE */}
-          <div className="bg-white border rounded-3xl p-6">
-
-            <h2 className="text-2xl font-bold mb-6">
-              Statistik Keuangan
-            </h2>
-
-            <div className="h-[300px]">
-
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <PieChart>
-
-                  <Pie
-                    data={chartData}
-                    dataKey="value"
-                    outerRadius={100}
-                    label
-                  >
-
-                    <Cell fill="#16a34a" />
-
-                    <Cell fill="#dc2626" />
-
-                  </Pie>
-
-                  <Tooltip />
-
-                </PieChart>
-              </ResponsiveContainer>
-
-            </div>
-          </div>
-
-          {/* BAR */}
-          <div className="bg-white border rounded-3xl p-6">
-
-            <h2 className="text-2xl font-bold mb-6">
-              Grafik Pendapatan
-            </h2>
-
-            <div className="h-[300px]">
-
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-
-                <BarChart
-                  data={chartData}
-                >
-
-                  <XAxis dataKey="name" />
-
-                  <YAxis />
-
-                  <Tooltip />
-
-                  <Bar dataKey="value" />
-
-                </BarChart>
-
-              </ResponsiveContainer>
-
+                <p className="text-gray-300 mt-2">
+                  Pembukuan
+                  pribadi
+                  harian
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* FORM */}
-        <div className="bg-white border rounded-3xl p-6 mb-8">
-
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-8">
           <h2 className="text-2xl font-bold mb-6">
             Tambah Data
           </h2>
 
-          <div className="grid md:grid-cols-2 gap-4">
-
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
             <select
               value={type}
               onChange={(e) =>
@@ -449,34 +348,10 @@ export default function FinancePage() {
                 Pengeluaran
               </option>
 
-              <option value="pendapatan">
-                Pendapatan
+              <option value="pemasukan">
+                Pemasukan
               </option>
             </select>
-
-            <input
-              type="text"
-              placeholder="Kategori"
-              value={category}
-              onChange={(e) =>
-                setCategory(
-                  e.target.value
-                )
-              }
-              className="border rounded-2xl p-4"
-            />
-
-            <input
-              type="text"
-              placeholder="Nama transaksi"
-              value={title}
-              onChange={(e) =>
-                setTitle(
-                  e.target.value
-                )
-              }
-              className="border rounded-2xl p-4"
-            />
 
             <input
               type="number"
@@ -489,146 +364,338 @@ export default function FinancePage() {
               }
               className="border rounded-2xl p-4"
             />
-
           </div>
 
+          <input
+            type="text"
+            placeholder="Contoh: beli makan"
+            value={title}
+            onChange={(e) =>
+              setTitle(
+                e.target.value
+              )
+            }
+            className="border rounded-2xl p-4 w-full mb-4"
+          />
+
           <textarea
-            placeholder="Catatan"
+            placeholder="Catatan tambahan"
             value={note}
             onChange={(e) =>
               setNote(
                 e.target.value
               )
             }
-            className="border rounded-2xl p-4 mt-4 w-full h-28"
+            className="border rounded-2xl p-4 w-full mb-4"
+            rows={3}
           />
 
           <button
-            onClick={tambahData}
-            className="mt-5 bg-black text-white px-6 py-4 rounded-2xl font-semibold flex items-center gap-2"
+            onClick={addData}
+            className="bg-black hover:bg-gray-800 text-white px-6 py-4 rounded-2xl font-semibold transition-all"
           >
-            <Plus size={20} />
-
             Simpan Data
           </button>
+        </div>
 
+        {/* FILTER */}
+        <div className="flex flex-wrap gap-3 mb-8">
+          {[
+            {
+              label:
+                'Hari Ini',
+              value: 'today',
+            },
+            {
+              label:
+                'Kemarin',
+              value:
+                'yesterday',
+            },
+            {
+              label:
+                '7 Hari',
+              value: '7days',
+            },
+            {
+              label:
+                '1 Bulan',
+              value:
+                '1month',
+            },
+          ].map((item) => (
+            <button
+              key={item.value}
+              onClick={() =>
+                setFilter(
+                  item.value
+                )
+              }
+              className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
+                filter ===
+                item.value
+                  ? 'bg-black text-white'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* SUMMARY */}
+        <div className="grid md:grid-cols-3 gap-5 mb-8">
+          <div className="bg-green-50 border border-green-100 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <ArrowUpCircle className="text-green-600" />
+
+              <p className="text-green-700 font-semibold">
+                Total
+                Pemasukan
+              </p>
+            </div>
+
+            <h2 className="text-3xl font-bold text-green-700">
+              {formatRupiah(
+                totalPemasukan
+              )}
+            </h2>
+          </div>
+
+          <div className="bg-red-50 border border-red-100 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <ArrowDownCircle className="text-red-600" />
+
+              <p className="text-red-700 font-semibold">
+                Total
+                Pengeluaran
+              </p>
+            </div>
+
+            <h2 className="text-3xl font-bold text-red-700">
+              {formatRupiah(
+                totalPengeluaran
+              )}
+            </h2>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <Wallet className="text-blue-600" />
+
+              <p className="text-blue-700 font-semibold">
+                Saldo
+              </p>
+            </div>
+
+            <h2 className="text-3xl font-bold text-blue-700">
+              {formatRupiah(
+                saldo
+              )}
+            </h2>
+          </div>
+        </div>
+
+        {/* REKAP BULANAN */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-8">
+          <h2 className="text-2xl font-bold mb-6">
+            Rekap Bulanan
+          </h2>
+
+          <div className="overflow-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-black text-white">
+                  <th className="p-4 text-left rounded-l-2xl">
+                    Bulan
+                  </th>
+
+                  <th className="p-4 text-left">
+                    Pemasukan
+                  </th>
+
+                  <th className="p-4 text-left rounded-r-2xl">
+                    Pengeluaran
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {monthlyData.map(
+                  (
+                    item,
+                    index
+                  ) => (
+                    <tr
+                      key={index}
+                      className="border-b"
+                    >
+                      <td className="p-4 font-semibold">
+                        {
+                          item.month
+                        }
+                      </td>
+
+                      <td className="p-4 text-green-600 font-bold">
+                        {formatRupiah(
+                          item.pemasukan
+                        )}
+                      </td>
+
+                      <td className="p-4 text-red-600 font-bold">
+                        {formatRupiah(
+                          item.pengeluaran
+                        )}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* TABLE */}
-        <div className="bg-white border rounded-3xl overflow-hidden">
-
+        <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
           <div className="p-6 border-b">
             <h2 className="text-2xl font-bold">
-              Riwayat Transaksi
+              Riwayat
+              Transaksi
             </h2>
           </div>
 
           <div className="overflow-auto">
-
-            <table className="w-full min-w-[900px]">
-
+            <table className="w-full min-w-[800px]">
               <thead className="bg-black text-white">
-
                 <tr>
-
                   <th className="p-4 text-left">
                     Tanggal
                   </th>
 
                   <th className="p-4 text-left">
-                    Type
+                    Jenis
                   </th>
 
                   <th className="p-4 text-left">
-                    Kategori
+                    Judul
                   </th>
 
                   <th className="p-4 text-left">
-                    Transaksi
+                    Nominal
                   </th>
 
                   <th className="p-4 text-left">
-                    Jumlah
+                    Catatan
                   </th>
 
                   <th className="p-4 text-left">
-                    Aksi
+                    Action
                   </th>
-
                 </tr>
               </thead>
 
               <tbody>
-
-                {data.map((item) => (
-
-                  <tr
-                    key={item.id}
-                    className="border-t hover:bg-gray-50"
-                  >
-
-                    <td className="p-4">
-                      {new Date(
-                        item.created_at
-                      ).toLocaleString(
-                        'id-ID'
-                      )}
-                    </td>
-
-                    <td className="p-4">
-
-                      <span
-                        className={`px-3 py-2 rounded-full text-xs font-bold ${
-                          item.type ===
-                          'pendapatan'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {item.type}
-                      </span>
-
-                    </td>
-
-                    <td className="p-4">
-                      {item.category}
-                    </td>
-
-                    <td className="p-4 font-semibold">
-                      {item.title}
-                    </td>
-
+                {loading ? (
+                  <tr>
                     <td
-                      className={`p-4 font-bold ${
-                        item.type ===
-                        'pendapatan'
-                          ? 'text-green-700'
-                          : 'text-red-700'
-                      }`}
+                      colSpan={6}
+                      className="p-10 text-center"
                     >
-                      {formatRupiah(
-                        item.amount
-                      )}
+                      Loading...
                     </td>
-
-                    <td className="p-4">
-
-                      <button
-                        onClick={() =>
-                          hapusData(
-                            item.id
-                          )
-                        }
-                        className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm"
-                      >
-                        Hapus
-                      </button>
-
-                    </td>
-
                   </tr>
+                ) : filteredData.length ===
+                  0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="p-10 text-center"
+                    >
+                      Belum ada
+                      data
+                    </td>
+                  </tr>
+                ) : (
+                  filteredData.map(
+                    (item) => (
+                      <tr
+                        key={
+                          item.id
+                        }
+                        className="border-b hover:bg-gray-50"
+                      >
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={16} />
 
-                ))}
+                            {new Date(
+                              item.created_at
+                            ).toLocaleString(
+                              'id-ID'
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="p-4">
+                          <span
+                            className={`px-3 py-2 rounded-full text-xs font-bold ${
+                              item.type ===
+                              'pemasukan'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}
+                          >
+                            {
+                              item.type
+                            }
+                          </span>
+                        </td>
+
+                        <td className="p-4 font-semibold">
+                          {
+                            item.title
+                          }
+                        </td>
+
+                        <td
+                          className={`p-4 font-bold ${
+                            item.type ===
+                            'pemasukan'
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {formatRupiah(
+                            item.amount
+                          )}
+                        </td>
+
+                        <td className="p-4 text-gray-500">
+                          {
+                            item.note
+                          }
+                        </td>
+
+                        <td className="p-4">
+                          <button
+                            onClick={() =>
+                              deleteData(
+                                item.id
+                              )
+                            }
+                            className="bg-red-100 hover:bg-red-200 text-red-600 p-3 rounded-xl transition-all"
+                          >
+                            <Trash2
+                              size={
+                                18
+                              }
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  )
+                )}
               </tbody>
             </table>
           </div>
