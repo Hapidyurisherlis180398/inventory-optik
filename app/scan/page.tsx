@@ -1,200 +1,259 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Html5QrcodeScanner } from 'html5-qrcode'
+import {
+  useEffect,
+  useState,
+} from 'react'
+
 import { supabase } from '../../lib/supabase'
 
 export default function ScanPage() {
+  const [loading, setLoading] =
+    useState(false)
+
   const [result, setResult] =
     useState('')
-
-  const [qty, setQty] = useState(1)
 
   const [mode, setMode] = useState<
     'tambah' | 'kurang'
   >('kurang')
 
-  const [loading, setLoading] =
-    useState(false)
+  const [message, setMessage] =
+    useState('')
 
   useEffect(() => {
-    const scanner =
-      new Html5QrcodeScanner(
-        'reader',
-        {
-          fps: 10,
-          qrbox: 250,
-        },
-        false
+    let scanner: any
+
+    async function startScanner() {
+      const {
+        Html5QrcodeScanner,
+      } = await import(
+        'html5-qrcode'
       )
 
-    scanner.render(
-      async (decodedText) => {
-        setResult(decodedText)
+      scanner =
+        new Html5QrcodeScanner(
+          'reader',
+          {
+            fps: 10,
+            qrbox: 250,
+          },
+          false
+        )
 
-        scanner.clear()
+      scanner.render(
+        async (
+          decodedText: string
+        ) => {
+          setResult(decodedText)
 
-        await prosesStock(decodedText)
-      },
-      (error) => {}
-    )
+          await prosesStock(
+            decodedText
+          )
+        },
+        () => {}
+      )
+    }
+
+    startScanner()
 
     return () => {
-      scanner.clear().catch(() => {})
+      if (
+        scanner &&
+        scanner.clear
+      ) {
+        scanner.clear()
+      }
     }
-  }, [mode, qty])
+  }, [mode])
 
   async function prosesStock(
-    barcode: string
+    sku: string
   ) {
-    setLoading(true)
+    try {
+      setLoading(true)
 
-    const { data, error } =
-      await supabase
+      setMessage('')
+
+      // AMBIL DATA PRODUK
+      const {
+        data: product,
+        error,
+      } = await supabase
         .from('products')
         .select('*')
-        .eq('barcode', barcode)
+        .eq('sku', sku)
         .single()
 
-    if (error || !data) {
-      alert('Produk tidak ditemukan')
+      if (error || !product) {
+        setMessage(
+          '❌ Produk tidak ditemukan'
+        )
+
+        setLoading(false)
+
+        return
+      }
+
+      let newStock =
+        Number(product.stock) || 0
+
+      // MODE KURANG
+      if (mode === 'kurang') {
+        newStock -= 1
+
+        if (newStock < 0) {
+          newStock = 0
+        }
+      }
+
+      // MODE TAMBAH
+      if (mode === 'tambah') {
+        newStock += 1
+      }
+
+      // UPDATE STOCK
+      const { error: updateError } =
+        await supabase
+          .from('products')
+          .update({
+            stock: newStock,
+          })
+          .eq('id', product.id)
+
+      if (updateError) {
+        setMessage(
+          '❌ Gagal update stock'
+        )
+
+        setLoading(false)
+
+        return
+      }
+
+      setMessage(
+        `✅ ${product.name} (${product.color}) → Stock sekarang ${newStock}`
+      )
 
       setLoading(false)
+    } catch (err) {
+      console.log(err)
 
-      return
-    }
-
-    let newStock = data.stock || 0
-
-    // KURANGI STOCK
-    if (mode === 'kurang') {
-      newStock -= qty
-    }
-
-    // TAMBAH STOCK
-    if (mode === 'tambah') {
-      newStock += qty
-    }
-
-    if (newStock < 0) {
-      alert('Stock tidak cukup')
+      setMessage('❌ Error scanner')
 
       setLoading(false)
-
-      return
     }
-
-    await supabase
-      .from('products')
-      .update({
-        stock: newStock,
-      })
-      .eq('id', data.id)
-
-    alert(
-      `Stock berhasil diupdate
-
-Produk: ${data.name}
-Warna: ${data.color}
-
-Stock sekarang: ${newStock}`
-    )
-
-    setLoading(false)
-
-    location.reload()
   }
 
   return (
-    <main className="min-h-screen bg-white p-6">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen bg-white p-4 md:p-8">
+      <div className="max-w-3xl mx-auto">
         {/* HEADER */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-black">
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">
             QR Stock Scanner
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Scan QR untuk tambah
-            atau kurangi stock
+            Scan QR untuk
+            mengurangi atau
+            menambah stock
+            produk
           </p>
         </div>
 
-        {/* CARD */}
-        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-          {/* MODE */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <button
-              onClick={() =>
-                setMode('kurang')
-              }
-              className={`p-4 rounded-2xl font-bold transition-all ${
-                mode === 'kurang'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-gray-100'
-              }`}
-            >
-              Kurangi Stock
-            </button>
+        {/* MODE */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <button
+            onClick={() =>
+              setMode('kurang')
+            }
+            className={`rounded-2xl p-5 font-semibold transition-all ${
+              mode === 'kurang'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            Mode Barang Keluar
+          </button>
 
-            <button
-              onClick={() =>
-                setMode('tambah')
-              }
-              className={`p-4 rounded-2xl font-bold transition-all ${
-                mode === 'tambah'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100'
-              }`}
-            >
-              Tambah Stock
-            </button>
-          </div>
+          <button
+            onClick={() =>
+              setMode('tambah')
+            }
+            className={`rounded-2xl p-5 font-semibold transition-all ${
+              mode === 'tambah'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            Mode Tambah Stock
+          </button>
+        </div>
 
-          {/* INPUT QTY */}
-          <div className="mb-6">
-            <label className="block mb-2 font-semibold">
-              Jumlah
-            </label>
-
-            <input
-              type="number"
-              value={qty}
-              onChange={(e) =>
-                setQty(
-                  Number(
-                    e.target.value
-                  )
-                )
-              }
-              className="w-full border rounded-2xl p-4"
-            />
-          </div>
-
-          {/* SCANNER */}
+        {/* CARD SCANNER */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
           <div
             id="reader"
-            className="overflow-hidden rounded-3xl border"
+            className="overflow-hidden rounded-2xl"
           />
+        </div>
 
-          {/* RESULT */}
-          {result && (
-            <div className="mt-6 p-5 bg-gray-50 rounded-2xl">
-              <p className="text-sm text-gray-500 mb-2">
-                Barcode
-              </p>
+        {/* HASIL */}
+        <div className="mt-6 bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+          <p className="text-sm text-gray-500 mb-2">
+            Hasil Scan
+          </p>
 
-              <h2 className="font-bold text-xl">
-                {result}
-              </h2>
-            </div>
-          )}
+          <h2 className="text-xl font-bold break-all text-gray-900">
+            {result || '-'}
+          </h2>
 
           {loading && (
-            <div className="mt-6 text-blue-600 font-semibold">
-              Memproses...
+            <p className="mt-4 text-blue-600 font-semibold">
+              Processing...
+            </p>
+          )}
+
+          {message && (
+            <div className="mt-4">
+              <div className="bg-gray-100 rounded-2xl p-4 text-gray-800 font-medium">
+                {message}
+              </div>
             </div>
           )}
+        </div>
+
+        {/* INFO */}
+        <div className="mt-6 bg-black text-white rounded-3xl p-6">
+          <h2 className="text-xl font-bold mb-3">
+            Cara Penggunaan
+          </h2>
+
+          <ul className="space-y-2 text-sm text-gray-300">
+            <li>
+              • Pilih mode
+              terlebih dahulu
+            </li>
+
+            <li>
+              • Barang Keluar →
+              stock otomatis
+              berkurang
+            </li>
+
+            <li>
+              • Tambah Stock →
+              stock otomatis
+              bertambah
+            </li>
+
+            <li>
+              • Scan QR pada
+              frame menggunakan
+              kamera HP
+            </li>
+          </ul>
         </div>
       </div>
     </main>
