@@ -12,7 +12,12 @@ import {
   Calendar,
   Trash2,
   Plus,
+  FileDown,
 } from 'lucide-react'
+
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 import { supabase } from '../../lib/supabase'
 
@@ -49,8 +54,8 @@ export default function FinancePage() {
     setTotalExpense,
   ] = useState(0)
 
-  const [balance, setBalance] =
-    useState(0)
+  const [monthlyData, setMonthlyData] =
+    useState<any[]>([])
 
   useEffect(() => {
     getData()
@@ -165,6 +170,7 @@ export default function FinancePage() {
     if (!error && data) {
       setData(data)
 
+      // TOTAL PEMASUKAN
       const income =
         data
           .filter(
@@ -184,6 +190,7 @@ export default function FinancePage() {
             0
           )
 
+      // TOTAL PENGELUARAN
       const expense =
         data
           .filter(
@@ -207,8 +214,56 @@ export default function FinancePage() {
 
       setTotalExpense(expense)
 
-      setBalance(
-        income - expense
+      // DATA BULANAN
+      const monthlyMap: any = {}
+
+      data.forEach((item) => {
+        const date = new Date(
+          item.created_at
+        )
+
+        const month =
+          date.toLocaleString(
+            'id-ID',
+            {
+              month: 'long',
+              year: 'numeric',
+            }
+          )
+
+        if (!monthlyMap[month]) {
+          monthlyMap[month] = {
+            month,
+            pemasukan: 0,
+            pengeluaran: 0,
+          }
+        }
+
+        if (
+          item.type ===
+          'pemasukan'
+        ) {
+          monthlyMap[
+            month
+          ].pemasukan += Number(
+            item.amount || 0
+          )
+        }
+
+        if (
+          item.type ===
+          'pengeluaran'
+        ) {
+          monthlyMap[
+            month
+          ].pengeluaran += Number(
+            item.amount || 0
+          )
+        }
+      })
+
+      setMonthlyData(
+        Object.values(monthlyMap)
       )
     }
 
@@ -304,6 +359,103 @@ export default function FinancePage() {
     getData()
   }
 
+  function downloadPDF() {
+    const doc = new jsPDF()
+
+    doc.setFontSize(20)
+
+    doc.text(
+      'Laporan Keuangan',
+      14,
+      20
+    )
+
+    autoTable(doc, {
+      startY: 35,
+
+      head: [
+        [
+          'Tanggal',
+          'Jenis',
+          'Transaksi',
+          'Jumlah',
+          'Catatan',
+        ],
+      ],
+
+      body: data.map(
+        (item) => [
+          new Date(
+            item.created_at
+          ).toLocaleDateString(
+            'id-ID'
+          ),
+
+          item.type,
+
+          item.title,
+
+          formatRupiah(
+            Number(item.amount)
+          ),
+
+          item.note || '-',
+        ]
+      ),
+    })
+
+    doc.save(
+      `laporan-keuangan-${new Date().toLocaleDateString(
+        'id-ID'
+      )}.pdf`
+    )
+  }
+
+  function downloadExcel() {
+    const excelData = data.map(
+      (item) => ({
+        Tanggal:
+          new Date(
+            item.created_at
+          ).toLocaleDateString(
+            'id-ID'
+          ),
+
+        Jenis: item.type,
+
+        Transaksi:
+          item.title,
+
+        Jumlah:
+          Number(item.amount),
+
+        Catatan:
+          item.note || '-',
+      })
+    )
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        excelData
+      )
+
+    const workbook =
+      XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      'Keuangan'
+    )
+
+    XLSX.writeFile(
+      workbook,
+      `laporan-keuangan-${new Date().toLocaleDateString(
+        'id-ID'
+      )}.xlsx`
+    )
+  }
+
   return (
     <main className="min-h-screen bg-[#f5f7fb] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -321,8 +473,9 @@ export default function FinancePage() {
                 </h1>
 
                 <p className="text-gray-500 mt-1">
-                  Monitoring keuangan
-                  pribadi realtime
+                  Monitoring
+                  keuangan pribadi
+                  realtime
                 </p>
               </div>
             </div>
@@ -352,8 +505,9 @@ export default function FinancePage() {
               </h2>
 
               <p className="text-gray-500 text-sm">
-                Catat pemasukan dan
-                pengeluaran harian
+                Catat pemasukan
+                dan pengeluaran
+                harian
               </p>
             </div>
           </div>
@@ -452,49 +606,86 @@ export default function FinancePage() {
         </div>
 
         {/* FILTER */}
-        <div className="flex gap-3 flex-wrap mb-8">
-          {[
-            {
-              label: 'Hari Ini',
-              value: 'today',
-            },
-            {
-              label: 'Kemarin',
-              value: 'yesterday',
-            },
-            {
-              label: '7 Hari',
-              value: '7days',
-            },
-            {
-              label: '30 Hari',
-              value: '30days',
-            },
-          ].map((item) => (
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div className="flex gap-3 flex-wrap">
+            {[
+              {
+                label:
+                  'Hari Ini',
+                value: 'today',
+              },
+              {
+                label:
+                  'Kemarin',
+                value:
+                  'yesterday',
+              },
+              {
+                label: '7 Hari',
+                value: '7days',
+              },
+              {
+                label:
+                  '30 Hari',
+                value:
+                  '30days',
+              },
+            ].map((item) => (
+              <button
+                key={item.value}
+                onClick={() =>
+                  setFilter(
+                    item.value
+                  )
+                }
+                className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
+                  filter ===
+                  item.value
+                    ? 'bg-black text-white shadow-lg'
+                    : 'bg-white border border-gray-200 text-black hover:bg-gray-100'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
             <button
-              key={item.value}
-              onClick={() =>
-                setFilter(item.value)
+              onClick={
+                downloadPDF
               }
-              className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
-                filter === item.value
-                  ? 'bg-black text-white shadow-lg'
-                  : 'bg-white border border-gray-200 text-black hover:bg-gray-100'
-              }`}
+              className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
             >
-              {item.label}
+              <FileDown
+                size={18}
+              />
+              PDF
             </button>
-          ))}
+
+            <button
+              onClick={
+                downloadExcel
+              }
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+            >
+              <FileDown
+                size={18}
+              />
+              Excel
+            </button>
+          </div>
         </div>
 
         {/* SUMMARY */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* PEMASUKAN */}
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-3xl p-7 text-white shadow-xl">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-green-100 text-sm">
-                  Total Pemasukan
+                  Total
+                  Pemasukan
                 </p>
 
                 <h2 className="text-3xl font-black mt-2">
@@ -517,7 +708,8 @@ export default function FinancePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-red-100 text-sm">
-                  Total Pengeluaran
+                  Total
+                  Pengeluaran
                 </p>
 
                 <h2 className="text-3xl font-black mt-2">
@@ -534,27 +726,6 @@ export default function FinancePage() {
               </div>
             </div>
           </div>
-
-          {/* SALDO */}
-          <div className="bg-gradient-to-br from-black to-gray-800 rounded-3xl p-7 text-white shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <p className="text-gray-300 text-sm">
-                  Saldo Saat Ini
-                </p>
-
-                <h2 className="text-3xl font-black mt-2">
-                  {formatRupiah(
-                    balance
-                  )}
-                </h2>
-              </div>
-
-              <div className="bg-white/10 p-4 rounded-2xl">
-                <Wallet size={30} />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* TABLE */}
@@ -562,17 +733,22 @@ export default function FinancePage() {
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">
-                Riwayat Transaksi
+                Riwayat
+                Transaksi
               </h2>
 
               <p className="text-gray-500 text-sm mt-1">
-                Semua data keuangan
-                tersimpan otomatis
+                Semua data
+                keuangan
+                tersimpan
+                otomatis
               </p>
             </div>
 
             <div className="hidden md:flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl">
-              <Calendar size={18} />
+              <Calendar
+                size={18}
+              />
 
               <span className="text-sm font-medium">
                 {new Date().toLocaleDateString(
@@ -629,14 +805,17 @@ export default function FinancePage() {
                       colSpan={6}
                       className="text-center p-10"
                     >
-                      Belum ada data
+                      Belum ada
+                      data
                     </td>
                   </tr>
                 ) : (
                   data.map(
                     (item) => (
                       <tr
-                        key={item.id}
+                        key={
+                          item.id
+                        }
                         className="border-t hover:bg-gray-50 transition-all"
                       >
                         <td className="p-5">
@@ -691,12 +870,81 @@ export default function FinancePage() {
                             className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-2xl transition-all"
                           >
                             <Trash2
-                              size={18}
+                              size={
+                                18
+                              }
                             />
                           </button>
                         </td>
                       </tr>
                     )
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* LAPORAN BULANAN */}
+        <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-2xl font-bold">
+              Laporan Bulanan
+            </h2>
+
+            <p className="text-gray-500 text-sm mt-1">
+              Total pemasukan
+              & pengeluaran
+              setiap bulan
+            </p>
+          </div>
+
+          <div className="overflow-auto">
+            <table className="w-full">
+              <thead className="bg-black text-white">
+                <tr>
+                  <th className="p-5 text-left">
+                    Bulan
+                  </th>
+
+                  <th className="p-5 text-left">
+                    Pemasukan
+                  </th>
+
+                  <th className="p-5 text-left">
+                    Pengeluaran
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {monthlyData.map(
+                  (
+                    item,
+                    index
+                  ) => (
+                    <tr
+                      key={index}
+                      className="border-t hover:bg-gray-50"
+                    >
+                      <td className="p-5 font-bold">
+                        {
+                          item.month
+                        }
+                      </td>
+
+                      <td className="p-5 text-green-600 font-bold">
+                        {formatRupiah(
+                          item.pemasukan
+                        )}
+                      </td>
+
+                      <td className="p-5 text-red-600 font-bold">
+                        {formatRupiah(
+                          item.pengeluaran
+                        )}
+                      </td>
+                    </tr>
                   )
                 )}
               </tbody>
