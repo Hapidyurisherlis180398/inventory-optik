@@ -9,9 +9,6 @@ import {
 import { supabase } from '../../lib/supabase'
 
 export default function ScanPage() {
-  const scannerRef = useRef<any>(null)
-  const lastScanRef = useRef('')
-
   const [loading, setLoading] =
     useState(false)
 
@@ -25,139 +22,152 @@ export default function ScanPage() {
   const [message, setMessage] =
     useState('')
 
-  const [scanSuccess, setScanSuccess] =
+  const [scannerReady, setScannerReady] =
     useState(false)
 
-  const [cameraReady, setCameraReady] =
-    useState(false)
+  const lastScanRef = useRef('')
+
+  const scanLockRef = useRef(false)
+
+  // BEEP PROFESIONAL
+  function playBeep() {
+    try {
+      const audioContext =
+        new (
+          window.AudioContext ||
+          (
+            window as any
+          ).webkitAudioContext
+        )()
+
+      const oscillator =
+        audioContext.createOscillator()
+
+      const gainNode =
+        audioContext.createGain()
+
+      oscillator.connect(gainNode)
+
+      gainNode.connect(
+        audioContext.destination
+      )
+
+      oscillator.frequency.value = 900
+
+      oscillator.type = 'sine'
+
+      gainNode.gain.value = 0.2
+
+      oscillator.start()
+
+      oscillator.stop(
+        audioContext.currentTime + 0.12
+      )
+    } catch (err) {
+      console.log(err)
+    }
+  }
 
   useEffect(() => {
-    startScanner()
+    let scanner: any
 
-    return () => {
-      stopScanner()
-    }
-  }, [mode])
-
-  async function startScanner() {
-    try {
-      stopScanner()
-
+    async function startScanner() {
       const {
         Html5Qrcode,
       } = await import(
         'html5-qrcode'
       )
 
-      const html5QrCode =
-        new Html5Qrcode('reader')
+      scanner = new Html5Qrcode(
+        'reader'
+      )
 
-      scannerRef.current =
-        html5QrCode
-
-      const cameras =
-        await Html5Qrcode.getCameras()
-
-      if (
-        !cameras ||
-        cameras.length === 0
-      ) {
-        setMessage(
-          '❌ Kamera tidak ditemukan'
-        )
-        return
-      }
-
-      setCameraReady(true)
-
-      await html5QrCode.start(
-        {
-          facingMode: 'environment',
-        },
-        {
-          fps: 15,
-          qrbox: {
-            width: 260,
-            height: 260,
+      try {
+        await scanner.start(
+          {
+            facingMode:
+              'environment',
           },
-          aspectRatio: 1,
-        },
+          {
+            fps: 15,
+            qrbox: {
+              width: 260,
+              height: 260,
+            },
+            aspectRatio: 1,
+          },
 
-        async (
-          decodedText: string
-        ) => {
-          // ANTI DOUBLE SCAN
-          if (
-            lastScanRef.current ===
-            decodedText
-          ) {
-            return
-          }
+          async (
+            decodedText: string
+          ) => {
+            if (
+              scanLockRef.current
+            )
+              return
 
-          lastScanRef.current =
-            decodedText
+            // ANTI DOUBLE SCAN
+            if (
+              lastScanRef.current ===
+              decodedText
+            ) {
+              return
+            }
 
-          setResult(decodedText)
+            scanLockRef.current =
+              true
 
-          // EFFECT SCAN SUCCESS
-          setScanSuccess(true)
+            lastScanRef.current =
+              decodedText
 
-          setTimeout(() => {
-            setScanSuccess(false)
-          }, 900)
+            setResult(decodedText)
 
-          // VIBRATION HP
-          if (
-            navigator.vibrate
-          ) {
-            navigator.vibrate(150)
-          }
+            // BEEP
+            playBeep()
 
-          // SOUND BEEP
-          const audio =
-            new Audio(
-              'https://actions.google.com/sounds/v1/cartoon/pop.ogg'
+            // VIBRATE HP
+            if (
+              navigator.vibrate
+            ) {
+              navigator.vibrate(
+                120
+              )
+            }
+
+            await prosesStock(
+              decodedText
             )
 
-          audio.play()
+            setTimeout(() => {
+              scanLockRef.current =
+                false
 
-          await prosesStock(
-            decodedText
-          )
+              lastScanRef.current =
+                ''
+            }, 1500)
+          }
+        )
 
-          // RESET AGAR BISA SCAN LAGI
-          setTimeout(() => {
-            lastScanRef.current =
-              ''
-          }, 1800)
-        },
+        setScannerReady(true)
+      } catch (err) {
+        console.log(err)
 
-        () => {}
-      )
-    } catch (err) {
-      console.log(err)
-
-      setMessage(
-        '❌ Gagal membuka kamera'
-      )
-    }
-  }
-
-  async function stopScanner() {
-    try {
-      if (
-        scannerRef.current
-      ) {
-        await scannerRef.current.stop()
-
-        await scannerRef.current.clear()
-
-        scannerRef.current = null
+        setMessage(
+          '❌ Kamera tidak bisa dibuka'
+        )
       }
-    } catch (err) {
-      console.log(err)
     }
-  }
+
+    startScanner()
+
+    return () => {
+      if (
+        scanner &&
+        scanner.stop
+      ) {
+        scanner.stop()
+      }
+    }
+  }, [mode])
 
   async function prosesStock(
     barcode: string
@@ -167,20 +177,18 @@ export default function ScanPage() {
 
       setMessage('')
 
-      // FORMAT BARCODE
-      // SKU-COLOR
-      const splitBarcode =
+      // BARCODE = SKU + COLOR
+      const splitData =
         barcode.split('-')
 
       const sku =
-        splitBarcode[0]
+        splitData[0]
 
       const color =
-        splitBarcode
+        splitData
           .slice(1)
           .join('-')
 
-      // AMBIL PRODUK
       const {
         data: product,
         error,
@@ -204,7 +212,7 @@ export default function ScanPage() {
       let newStock =
         Number(product.stock) || 0
 
-      // MODE BARANG KELUAR
+      // MODE KELUAR
       if (mode === 'kurang') {
         newStock -= 1
 
@@ -213,12 +221,11 @@ export default function ScanPage() {
         }
       }
 
-      // MODE TAMBAH STOCK
+      // MODE TAMBAH
       if (mode === 'tambah') {
         newStock += 1
       }
 
-      // UPDATE STOCK
       const {
         error: updateError,
       } = await supabase
@@ -249,7 +256,7 @@ export default function ScanPage() {
       console.log(err)
 
       setMessage(
-        '❌ Terjadi kesalahan scanner'
+        '❌ Error scanner'
       )
 
       setLoading(false)
@@ -258,237 +265,153 @@ export default function ScanPage() {
 
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl mx-auto">
+
         {/* HEADER */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-black to-gray-800 rounded-3xl p-8 text-white shadow-2xl">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-              <div>
-                <p className="text-sm text-gray-300 mb-2">
-                  INVENTORY SYSTEM
-                </p>
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Smart Stock Scanner
+          </h1>
 
-                <h1 className="text-4xl font-bold">
-                  QR STOCK SCANNER
-                </h1>
-
-                <p className="text-gray-300 mt-3">
-                  Scan barcode
-                  produk untuk
-                  update stock
-                  otomatis realtime
-                </p>
-              </div>
-
-              <div className="bg-white/10 backdrop-blur-lg rounded-2xl px-5 py-4 border border-white/20">
-                <p className="text-sm text-gray-300">
-                  Status Kamera
-                </p>
-
-                <div className="flex items-center gap-2 mt-2">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      cameraReady
-                        ? 'bg-green-400 animate-pulse'
-                        : 'bg-red-400'
-                    }`}
-                  />
-
-                  <span className="font-semibold">
-                    {cameraReady
-                      ? 'ACTIVE'
-                      : 'OFFLINE'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <p className="text-gray-500 mt-2">
+            Scan barcode frame
+            menggunakan kamera HP
+          </p>
         </div>
 
         {/* MODE */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-6">
+
           <button
             onClick={() =>
               setMode('kurang')
             }
-            className={`rounded-3xl p-6 transition-all duration-300 border-2 ${
+            className={`rounded-2xl p-5 font-semibold transition-all ${
               mode === 'kurang'
-                ? 'bg-red-600 border-red-600 text-white shadow-xl scale-[1.02]'
-                : 'bg-white border-gray-200 text-gray-700 hover:border-red-300'
+                ? 'bg-red-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-700'
             }`}
           >
-            <div className="text-3xl mb-3">
-              📦
-            </div>
-
-            <h2 className="font-bold text-xl">
-              Barang Keluar
-            </h2>
-
-            <p className="text-sm mt-2 opacity-80">
-              Stock otomatis
-              berkurang
-            </p>
+            Barang Keluar
           </button>
 
           <button
             onClick={() =>
               setMode('tambah')
             }
-            className={`rounded-3xl p-6 transition-all duration-300 border-2 ${
+            className={`rounded-2xl p-5 font-semibold transition-all ${
               mode === 'tambah'
-                ? 'bg-green-600 border-green-600 text-white shadow-xl scale-[1.02]'
-                : 'bg-white border-gray-200 text-gray-700 hover:border-green-300'
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-700'
             }`}
           >
-            <div className="text-3xl mb-3">
-              ➕
-            </div>
-
-            <h2 className="font-bold text-xl">
-              Tambah Stock
-            </h2>
-
-            <p className="text-sm mt-2 opacity-80">
-              Stock otomatis
-              bertambah
-            </p>
+            Tambah Stock
           </button>
         </div>
 
         {/* SCANNER */}
-        <div className="bg-white border border-gray-200 rounded-[30px] shadow-xl overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Live Scanner
-                </h2>
+        <div className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
 
-                <p className="text-gray-500 mt-1">
-                  Arahkan kamera ke
-                  barcode frame
-                </p>
-              </div>
+          <div className="relative overflow-hidden rounded-3xl border border-gray-200">
 
-              <div
-                className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                  scanSuccess
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                {scanSuccess
-                  ? 'SCAN DETECTED'
-                  : 'READY'}
-              </div>
+            <div
+              id="reader"
+              className="w-full"
+            />
+
+            {/* FRAME DETECTION */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+
+              <div className="w-[260px] h-[260px] border-4 border-green-500 rounded-3xl shadow-[0_0_25px_rgba(34,197,94,0.7)] animate-pulse" />
+
             </div>
           </div>
 
-          {/* CAMERA */}
-          <div className="relative">
-            <div
-              id="reader"
-              className="w-full overflow-hidden"
-            />
+          {/* STATUS */}
+          <div className="mt-5 flex items-center justify-between">
 
-            {/* OVERLAY */}
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div
-                className={`w-[260px] h-[260px] rounded-3xl border-4 transition-all duration-300 ${
-                  scanSuccess
-                    ? 'border-green-400 shadow-[0_0_40px_rgba(34,197,94,0.8)]'
-                    : 'border-white shadow-[0_0_40px_rgba(255,255,255,0.6)]'
-                }`}
-              />
+            <div>
+              <p className="text-sm text-gray-500">
+                Status Scanner
+              </p>
+
+              <p className="font-semibold text-gray-900">
+                {scannerReady
+                  ? '🟢 Active'
+                  : '🔴 Loading'}
+              </p>
             </div>
 
-            {/* SCAN LINE */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[250px] h-1 bg-red-500 animate-pulse rounded-full shadow-lg" />
+            <div
+              className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                mode === 'kurang'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-green-100 text-green-700'
+              }`}
+            >
+              {mode === 'kurang'
+                ? 'Barang Keluar'
+                : 'Tambah Stock'}
             </div>
           </div>
         </div>
 
         {/* RESULT */}
-        <div className="mt-8 grid md:grid-cols-2 gap-6">
-          {/* HASIL */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-lg">
-            <p className="text-sm font-semibold text-gray-500 mb-3">
-              HASIL SCAN
-            </p>
+        <div className="mt-6 bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
 
-            <div className="bg-gray-50 rounded-2xl p-5">
-              <h2 className="text-lg font-bold text-gray-900 break-all">
-                {result || '-'}
-              </h2>
+          <p className="text-sm text-gray-500 mb-2">
+            Hasil Scan
+          </p>
+
+          <h2 className="text-xl font-bold break-all text-gray-900">
+            {result || '-'}
+          </h2>
+
+          {loading && (
+            <div className="mt-4 text-blue-600 font-semibold">
+              Processing...
             </div>
+          )}
 
-            {loading && (
-              <div className="mt-4 flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-
-                <p className="text-blue-600 font-semibold">
-                  Processing...
-                </p>
+          {message && (
+            <div className="mt-4">
+              <div className="bg-gray-100 rounded-2xl p-4 text-gray-800 font-medium">
+                {message}
               </div>
-            )}
-          </div>
-
-          {/* STATUS */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-lg">
-            <p className="text-sm font-semibold text-gray-500 mb-3">
-              STATUS
-            </p>
-
-            <div
-              className={`rounded-2xl p-5 font-semibold ${
-                message.includes(
-                  '❌'
-                )
-                  ? 'bg-red-50 text-red-700 border border-red-100'
-                  : 'bg-green-50 text-green-700 border border-green-100'
-              }`}
-            >
-              {message ||
-                'Menunggu scan barcode...'}
             </div>
-          </div>
+          )}
         </div>
 
         {/* INFO */}
-        <div className="mt-8 bg-black rounded-3xl p-8 text-white shadow-2xl">
-          <h2 className="text-2xl font-bold mb-5">
+        <div className="mt-6 bg-black text-white rounded-3xl p-6">
+
+          <h2 className="text-xl font-bold mb-4">
             Cara Penggunaan
           </h2>
 
-          <div className="grid md:grid-cols-2 gap-5">
-            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-              <h3 className="font-bold mb-3">
-                📦 Barang Keluar
-              </h3>
+          <ul className="space-y-3 text-sm text-gray-300">
+            <li>
+              • Pilih mode scanner
+            </li>
 
-              <p className="text-gray-300 text-sm leading-7">
-                Scan barcode saat
-                frame terjual maka
-                stock otomatis
-                berkurang 1.
-              </p>
-            </div>
+            <li>
+              • Tambah Stock →
+              stock bertambah otomatis
+            </li>
 
-            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-              <h3 className="font-bold mb-3">
-                ➕ Tambah Stock
-              </h3>
+            <li>
+              • Barang Keluar →
+              stock berkurang otomatis
+            </li>
 
-              <p className="text-gray-300 text-sm leading-7">
-                Scan barcode saat
-                restock maka stock
-                otomatis bertambah
-                1.
-              </p>
-            </div>
-          </div>
+            <li>
+              • Arahkan barcode ke kotak scan
+            </li>
+
+            <li>
+              • Scanner akan bunyi beep saat berhasil scan
+            </li>
+          </ul>
         </div>
       </div>
     </main>
