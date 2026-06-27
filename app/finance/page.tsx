@@ -11,7 +11,6 @@ import {
   TrendingDown,
   Calendar,
   Trash2,
-  Plus,
   FileDown,
 } from 'lucide-react'
 
@@ -30,9 +29,8 @@ export default function FinancePage() {
 
   const [data, setData] = useState<any[]>([])
 
-  const [type, setType] = useState(
-    'pengeluaran'
-  )
+  const [type, setType] =
+    useState('pengeluaran')
 
   const [title, setTitle] =
     useState('')
@@ -110,7 +108,9 @@ export default function FinancePage() {
         0
       )
 
-      now.setDate(now.getDate() - 1)
+      now.setDate(
+        now.getDate() - 1
+      )
 
       now.setHours(
         23,
@@ -214,7 +214,7 @@ export default function FinancePage() {
 
       setTotalExpense(expense)
 
-      // DATA BULANAN
+      // BULANAN
       const monthlyMap: any = {}
 
       data.forEach((item) => {
@@ -459,6 +459,7 @@ export default function FinancePage() {
   return (
     <main className="min-h-screen bg-[#f5f7fb] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+
         {/* HEADER */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
           <div>
@@ -473,131 +474,112 @@ export default function FinancePage() {
                 </h1>
 
                 <p className="text-gray-500 mt-1">
-                  Monitoring
-                  keuangan pribadi
-                  realtime
+                  Monitoring keuangan pribadi realtime
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
-            <p className="text-sm text-gray-500">
-              Total Transaksi
-            </p>
+          <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={downloadPDF}
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+            >
+              <FileDown size={18} />
+              Download PDF
+            </button>
 
-            <h2 className="text-3xl font-black text-black mt-1">
-              {data.length}
-            </h2>
+            <button
+              onClick={downloadExcel}
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+            >
+              <FileDown size={18} />
+              Download Excel
+            </button>
           </div>
         </div>
 
         {/* FORM */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-200 mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-black text-white p-3 rounded-2xl">
-              <Plus size={22} />
-            </div>
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 mb-8">
+          <h2 className="text-2xl font-bold mb-6">
+            Tambah Transaksi
+          </h2>
 
-            <div>
-              <h2 className="text-2xl font-bold">
-                Tambah Transaksi
-              </h2>
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <button
+              onClick={() =>
+                setType('pemasukan')
+              }
+              className={`p-4 rounded-2xl font-bold ${
+                type ===
+                'pemasukan'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100'
+              }`}
+            >
+              Pemasukan
+            </button>
 
-              <p className="text-gray-500 text-sm">
-                Catat pemasukan
-                dan pengeluaran
-                harian
-              </p>
-            </div>
+            <button
+              onClick={() =>
+                setType(
+                  'pengeluaran'
+                )
+              }
+              className={`p-4 rounded-2xl font-bold ${
+                type ===
+                'pengeluaran'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-gray-100'
+              }`}
+            >
+              Pengeluaran
+            </button>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-5">
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Jenis Transaksi
-              </label>
+          <div className="grid md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Nama transaksi"
+              value={title}
+              onChange={(e) =>
+                setTitle(
+                  e.target.value
+                )
+              }
+              className="border border-gray-200 rounded-2xl p-4 outline-none"
+            />
 
-              <select
-                value={type}
-                onChange={(e) =>
-                  setType(
+            <input
+              type="text"
+              placeholder="Jumlah uang"
+              value={amount}
+              onChange={(e) =>
+                setAmount(
+                  formatInputRupiah(
                     e.target.value
                   )
-                }
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
-              >
-                <option value="pengeluaran">
-                  Pengeluaran
-                </option>
-
-                <option value="pemasukan">
-                  Pemasukan
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Nama Transaksi
-              </label>
-
-              <input
-                type="text"
-                value={title}
-                onChange={(e) =>
-                  setTitle(
-                    e.target.value
-                  )
-                }
-                placeholder="Contoh : Beli makan"
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Jumlah Uang
-              </label>
-
-              <input
-                type="text"
-                value={amount}
-                onChange={(e) =>
-                  setAmount(
-                    formatInputRupiah(
-                      e.target.value
-                    )
-                  )
-                }
-                placeholder="Contoh : 50.000"
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold text-gray-700">
-                Catatan
-              </label>
-
-              <input
-                type="text"
-                value={note}
-                onChange={(e) =>
-                  setNote(
-                    e.target.value
-                  )
-                }
-                placeholder="Opsional"
-                className="w-full mt-2 border border-gray-300 rounded-2xl p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
+                )
+              }
+              className="border border-gray-200 rounded-2xl p-4 outline-none"
+            />
           </div>
+
+          <textarea
+            placeholder="Catatan"
+            value={note}
+            onChange={(e) =>
+              setNote(
+                e.target.value
+              )
+            }
+            className="border border-gray-200 rounded-2xl p-4 outline-none w-full mt-4 min-h-[120px]"
+          />
 
           <button
             onClick={saveData}
             disabled={saving}
-            className="mt-6 bg-black hover:bg-gray-800 text-white px-7 py-4 rounded-2xl font-bold transition-all shadow-lg"
+            className="mt-5 bg-black hover:opacity-90 text-white px-6 py-4 rounded-2xl font-bold w-full"
           >
             {saving
               ? 'Menyimpan...'
@@ -606,86 +588,61 @@ export default function FinancePage() {
         </div>
 
         {/* FILTER */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex gap-3 flex-wrap">
-            {[
-              {
-                label:
-                  'Hari Ini',
-                value: 'today',
-              },
-              {
-                label:
-                  'Kemarin',
-                value:
-                  'yesterday',
-              },
-              {
-                label: '7 Hari',
-                value: '7days',
-              },
-              {
-                label:
-                  '30 Hari',
-                value:
-                  '30days',
-              },
-            ].map((item) => (
-              <button
-                key={item.value}
-                onClick={() =>
-                  setFilter(
-                    item.value
-                  )
-                }
-                className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
-                  filter ===
+        <div className="flex flex-wrap gap-3 mb-8">
+          {[
+            {
+              label:
+                'Hari Ini',
+              value:
+                'today',
+            },
+            {
+              label:
+                'Kemarin',
+              value:
+                'yesterday',
+            },
+            {
+              label:
+                '7 Hari',
+              value:
+                '7days',
+            },
+            {
+              label:
+                '30 Hari',
+              value:
+                '30days',
+            },
+          ].map((item) => (
+            <button
+              key={item.value}
+              onClick={() =>
+                setFilter(
                   item.value
-                    ? 'bg-black text-white shadow-lg'
-                    : 'bg-white border border-gray-200 text-black hover:bg-gray-100'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={
-                downloadPDF
+                )
               }
-              className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+              className={`px-5 py-3 rounded-2xl font-semibold ${
+                filter ===
+                item.value
+                  ? 'bg-black text-white'
+                  : 'bg-white border border-gray-200'
+              }`}
             >
-              <FileDown
-                size={18}
-              />
-              PDF
+              {item.label}
             </button>
-
-            <button
-              onClick={
-                downloadExcel
-              }
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
-            >
-              <FileDown
-                size={18}
-              />
-              Excel
-            </button>
-          </div>
+          ))}
         </div>
 
         {/* SUMMARY */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
+
           {/* PEMASUKAN */}
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-3xl p-7 text-white shadow-xl">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-green-100 text-sm">
-                  Total
-                  Pemasukan
+                  Total Pemasukan
                 </p>
 
                 <h2 className="text-3xl font-black mt-2">
@@ -696,9 +653,7 @@ export default function FinancePage() {
               </div>
 
               <div className="bg-white/20 p-4 rounded-2xl">
-                <TrendingUp
-                  size={30}
-                />
+                <TrendingUp size={30} />
               </div>
             </div>
           </div>
@@ -708,8 +663,7 @@ export default function FinancePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="text-red-100 text-sm">
-                  Total
-                  Pengeluaran
+                  Total Pengeluaran
                 </p>
 
                 <h2 className="text-3xl font-black mt-2">
@@ -720,35 +674,112 @@ export default function FinancePage() {
               </div>
 
               <div className="bg-white/20 p-4 rounded-2xl">
-                <TrendingDown
-                  size={30}
-                />
+                <TrendingDown size={30} />
               </div>
             </div>
           </div>
         </div>
 
+        {/* LAPORAN BULANAN */}
+        <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-2xl font-bold">
+              Laporan Bulanan
+            </h2>
+
+            <p className="text-gray-500 text-sm mt-1">
+              Total pemasukan, pengeluaran & saldo akhir setiap bulan
+            </p>
+          </div>
+
+          <div className="overflow-auto">
+            <table className="w-full">
+              <thead className="bg-black text-white">
+                <tr>
+                  <th className="p-5 text-left">
+                    Bulan
+                  </th>
+
+                  <th className="p-5 text-left">
+                    Pemasukan
+                  </th>
+
+                  <th className="p-5 text-left">
+                    Pengeluaran
+                  </th>
+
+                  <th className="p-5 text-left">
+                    Saldo Akhir
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {monthlyData.map(
+                  (
+                    item,
+                    index
+                  ) => {
+                    const saldo =
+                      item.pemasukan -
+                      item.pengeluaran
+
+                    return (
+                      <tr
+                        key={index}
+                        className="border-t hover:bg-gray-50"
+                      >
+                        <td className="p-5 font-bold">
+                          {item.month}
+                        </td>
+
+                        <td className="p-5 text-green-600 font-bold">
+                          {formatRupiah(
+                            item.pemasukan
+                          )}
+                        </td>
+
+                        <td className="p-5 text-red-600 font-bold">
+                          {formatRupiah(
+                            item.pengeluaran
+                          )}
+                        </td>
+
+                        <td
+                          className={`p-5 font-bold ${
+                            saldo >= 0
+                              ? 'text-blue-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {formatRupiah(
+                            saldo
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  }
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* TABLE */}
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">
-                Riwayat
-                Transaksi
+                Riwayat Transaksi
               </h2>
 
               <p className="text-gray-500 text-sm mt-1">
-                Semua data
-                keuangan
-                tersimpan
-                otomatis
+                Semua data keuangan tersimpan otomatis
               </p>
             </div>
 
             <div className="hidden md:flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl">
-              <Calendar
-                size={18}
-              />
+              <Calendar size={18} />
 
               <span className="text-sm font-medium">
                 {new Date().toLocaleDateString(
@@ -798,154 +829,75 @@ export default function FinancePage() {
                       Loading...
                     </td>
                   </tr>
-                ) : data.length ===
-                  0 ? (
+                ) : data.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
                       className="text-center p-10"
                     >
-                      Belum ada
-                      data
+                      Belum ada data
                     </td>
                   </tr>
                 ) : (
-                  data.map(
-                    (item) => (
-                      <tr
-                        key={
-                          item.id
-                        }
-                        className="border-t hover:bg-gray-50 transition-all"
-                      >
-                        <td className="p-5">
-                          <span
-                            className={`px-4 py-2 rounded-full text-xs font-bold ${
-                              item.type ===
-                              'pemasukan'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}
-                          >
-                            {
-                              item.type
-                            }
-                          </span>
-                        </td>
-
-                        <td className="p-5 font-bold text-gray-900">
-                          {
-                            item.title
-                          }
-                        </td>
-
-                        <td className="p-5 font-black text-lg">
-                          {formatRupiah(
-                            Number(
-                              item.amount
-                            )
-                          )}
-                        </td>
-
-                        <td className="p-5 text-gray-500">
-                          {item.note ||
-                            '-'}
-                        </td>
-
-                        <td className="p-5 text-sm text-gray-500">
-                          {new Date(
-                            item.created_at
-                          ).toLocaleString(
-                            'id-ID'
-                          )}
-                        </td>
-
-                        <td className="p-5 text-center">
-                          <button
-                            onClick={() =>
-                              deleteData(
-                                item.id
-                              )
-                            }
-                            className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-2xl transition-all"
-                          >
-                            <Trash2
-                              size={
-                                18
-                              }
-                            />
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* LAPORAN BULANAN */}
-        <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold">
-              Laporan Bulanan
-            </h2>
-
-            <p className="text-gray-500 text-sm mt-1">
-              Total pemasukan
-              & pengeluaran
-              setiap bulan
-            </p>
-          </div>
-
-          <div className="overflow-auto">
-            <table className="w-full">
-              <thead className="bg-black text-white">
-                <tr>
-                  <th className="p-5 text-left">
-                    Bulan
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Pemasukan
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Pengeluaran
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {monthlyData.map(
-                  (
-                    item,
-                    index
-                  ) => (
+                  data.map((item) => (
                     <tr
-                      key={index}
-                      className="border-t hover:bg-gray-50"
+                      key={item.id}
+                      className="border-t hover:bg-gray-50 transition-all"
                     >
-                      <td className="p-5 font-bold">
-                        {
-                          item.month
-                        }
+                      <td className="p-5">
+                        <span
+                          className={`px-4 py-2 rounded-full text-xs font-bold ${
+                            item.type ===
+                            'pemasukan'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}
+                        >
+                          {item.type}
+                        </span>
                       </td>
 
-                      <td className="p-5 text-green-600 font-bold">
+                      <td className="p-5 font-bold text-gray-900">
+                        {item.title}
+                      </td>
+
+                      <td className="p-5 font-black text-lg">
                         {formatRupiah(
-                          item.pemasukan
+                          Number(
+                            item.amount
+                          )
                         )}
                       </td>
 
-                      <td className="p-5 text-red-600 font-bold">
-                        {formatRupiah(
-                          item.pengeluaran
+                      <td className="p-5 text-gray-500">
+                        {item.note ||
+                          '-'}
+                      </td>
+
+                      <td className="p-5 text-sm text-gray-500">
+                        {new Date(
+                          item.created_at
+                        ).toLocaleString(
+                          'id-ID'
                         )}
+                      </td>
+
+                      <td className="p-5 text-center">
+                        <button
+                          onClick={() =>
+                            deleteData(
+                              item.id
+                            )
+                          }
+                          className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-2xl transition-all"
+                        >
+                          <Trash2
+                            size={18}
+                          />
+                        </button>
                       </td>
                     </tr>
-                  )
+                  ))
                 )}
               </tbody>
             </table>
