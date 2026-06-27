@@ -422,7 +422,9 @@ export default function FinancePage() {
     })
 
     doc.save(
-      `laporan-keuangan.pdf`
+      `laporan-keuangan-${new Date().toLocaleDateString(
+        'id-ID'
+      )}.pdf`
     )
   }
 
@@ -463,12 +465,14 @@ export default function FinancePage() {
     XLSX.utils.book_append_sheet(
       workbook,
       worksheet,
-      'Finance'
+      'Keuangan'
     )
 
     XLSX.writeFile(
       workbook,
-      'laporan-keuangan.xlsx'
+      `laporan-keuangan-${new Date().toLocaleDateString(
+        'id-ID'
+      )}.xlsx`
     )
   }
 
@@ -478,10 +482,8 @@ export default function FinancePage() {
 
         {/* HEADER */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-
           <div>
             <div className="flex items-center gap-3 mb-3">
-
               <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center">
                 <Wallet size={28} />
               </div>
@@ -499,41 +501,37 @@ export default function FinancePage() {
           </div>
 
           <div className="flex gap-3 flex-wrap">
-
             <button
               onClick={downloadPDF}
-              className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2"
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
             >
               <FileDown size={18} />
-              PDF
+              Download PDF
             </button>
 
             <button
               onClick={downloadExcel}
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
             >
               <FileDown size={18} />
-              Excel
+              Download Excel
             </button>
-
           </div>
         </div>
 
         {/* FORM */}
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 mb-8">
-
           <h2 className="text-2xl font-bold mb-6">
             Tambah Transaksi
           </h2>
 
           {/* TYPE */}
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-
             <button
               onClick={() =>
                 setType('pemasukan')
               }
-              className={`p-4 rounded-2xl font-bold transition-all ${
+              className={`p-4 rounded-2xl font-bold ${
                 type ===
                 'pemasukan'
                   ? 'bg-green-600 text-white'
@@ -549,7 +547,7 @@ export default function FinancePage() {
                   'pengeluaran'
                 )
               }
-              className={`p-4 rounded-2xl font-bold transition-all ${
+              className={`p-4 rounded-2xl font-bold ${
                 type ===
                 'pengeluaran'
                   ? 'bg-red-600 text-white'
@@ -558,23 +556,21 @@ export default function FinancePage() {
             >
               Pengeluaran
             </button>
-
           </div>
 
           {/* PAYMENT METHOD */}
           <div className="grid md:grid-cols-2 gap-4 mb-4">
 
-            {/* CASH */}
             <button
               onClick={() =>
                 setPaymentMethod(
                   'cash'
                 )
               }
-              className={`p-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`p-4 rounded-2xl font-bold flex items-center justify-center gap-2 ${
                 paymentMethod ===
                 'cash'
-                  ? 'bg-yellow-500 text-white shadow-lg'
+                  ? 'bg-yellow-500 text-white'
                   : 'bg-gray-100 text-gray-700'
               }`}
             >
@@ -582,17 +578,16 @@ export default function FinancePage() {
               CASH
             </button>
 
-            {/* TRANSFER */}
             <button
               onClick={() =>
                 setPaymentMethod(
                   'transfer'
                 )
               }
-              className={`p-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`p-4 rounded-2xl font-bold flex items-center justify-center gap-2 ${
                 paymentMethod ===
                 'transfer'
-                  ? 'bg-blue-600 text-white shadow-lg'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700'
               }`}
             >
@@ -604,7 +599,6 @@ export default function FinancePage() {
 
           {/* INPUT */}
           <div className="grid md:grid-cols-2 gap-4">
-
             <input
               type="text"
               placeholder="Nama transaksi"
@@ -630,7 +624,6 @@ export default function FinancePage() {
               }
               className="border border-gray-200 rounded-2xl p-4 outline-none"
             />
-
           </div>
 
           <textarea
@@ -653,7 +646,6 @@ export default function FinancePage() {
               ? 'Menyimpan...'
               : 'Simpan Data'}
           </button>
-
         </div>
       </div>
     </main>
