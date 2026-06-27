@@ -143,7 +143,7 @@ export default function ScanPage() {
 
       setMessage('')
 
-      // FORMAT:
+      // FORMAT BARCODE:
       // SKU-WARNA
 
       const splitData =
@@ -193,7 +193,6 @@ export default function ScanPage() {
         newStock += manualQty
       }
 
-      // UPDATE STOCK
       const {
         error: updateError,
       } = await supabase
@@ -237,10 +236,12 @@ Stock sekarang : ${newStock}`
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
+
         {/* HEADER */}
         <div className="mb-8">
           <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
             <div className="flex items-center justify-between flex-wrap gap-4">
+
               <div>
                 <p className="text-sm font-semibold text-blue-600 mb-2">
                   INVENTORY SCANNER
@@ -252,8 +253,7 @@ Stock sekarang : ${newStock}`
 
                 <p className="text-gray-500 mt-3">
                   Scan barcode / QR
-                  untuk update stock
-                  otomatis
+                  untuk update stock otomatis
                 </p>
               </div>
 
@@ -268,12 +268,14 @@ Stock sekarang : ${newStock}`
                     : '🔴 LOADING'}
                 </h2>
               </div>
+
             </div>
           </div>
         </div>
 
         {/* MODE */}
         <div className="grid md:grid-cols-2 gap-5 mb-6">
+
           <button
             onClick={() =>
               setMode('kurang')
@@ -296,8 +298,7 @@ Stock sekarang : ${newStock}`
                   : 'text-gray-500'
               }`}
             >
-              Stock akan
-              berkurang otomatis
+              Stock akan berkurang otomatis
             </p>
           </button>
 
@@ -323,14 +324,15 @@ Stock sekarang : ${newStock}`
                   : 'text-gray-500'
               }`}
             >
-              Stock akan
-              bertambah otomatis
+              Stock akan bertambah otomatis
             </p>
           </button>
+
         </div>
 
-        {/* MANUAL QTY */}
+        {/* QTY */}
         <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
+
           <p className="text-sm text-gray-500 mb-3">
             Quantity Manual
           </p>
@@ -348,11 +350,14 @@ Stock sekarang : ${newStock}`
             }
             className="w-full border border-gray-300 rounded-2xl px-5 py-4 text-2xl font-bold outline-none focus:border-black"
           />
+
         </div>
 
         {/* SCANNER */}
         <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
+
           <div className="relative overflow-hidden rounded-3xl border-4 border-black">
+
             <div
               id="reader"
               className="w-full overflow-hidden"
@@ -360,11 +365,14 @@ Stock sekarang : ${newStock}`
 
             {/* SCAN LINE */}
             <div className="absolute left-0 right-0 top-0 h-1 bg-red-500 animate-pulse" />
+
           </div>
+
         </div>
 
         {/* RESULT */}
         <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+
           <p className="text-sm text-gray-500 mb-2">
             Hasil Scan
           </p>
@@ -388,44 +396,44 @@ Stock sekarang : ${newStock}`
               </div>
             </div>
           )}
+
         </div>
 
         {/* INFO */}
         <div className="mt-6 bg-black rounded-3xl p-8 text-white">
+
           <h2 className="text-2xl font-bold mb-5">
             Cara Penggunaan
           </h2>
 
           <div className="space-y-3 text-gray-300">
+
             <p>
               • Pilih mode scan
             </p>
 
             <p>
-              • Input quantity
-              manual
+              • Input quantity manual
             </p>
 
             <p>
-              • Scan barcode /
-              QR menggunakan HP
+              • Scan barcode / QR menggunakan HP
             </p>
 
             <p>
-              • Akan muncul popup
-              konfirmasi
+              • Akan muncul popup konfirmasi
             </p>
 
             <p>
-              • Stock otomatis
-              update ke Supabase
+              • Stock otomatis update ke Supabase
             </p>
 
             <p>
-              • Format barcode:
-              SKU-WARNA
+              • Format barcode: SKU-WARNA
             </p>
+
           </div>
+
         </div>
       </div>
     </main>
