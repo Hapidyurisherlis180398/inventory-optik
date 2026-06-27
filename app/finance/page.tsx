@@ -474,23 +474,23 @@ export default function FinancePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f7fb] p-4 md:p-8">
+    <main className="min-h-screen bg-[#f5f7fb] p-4 md:p-8 text-gray-900">
       <div className="max-w-7xl mx-auto">
 
         {/* HEADER */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
                 <Wallet size={28} />
               </div>
 
               <div>
-                <h1 className="text-4xl font-black text-black">
+                <h1 className="text-3xl md:text-4xl font-black text-black leading-tight">
                   Finance Tracker
                 </h1>
 
-                <p className="text-gray-500 mt-1">
+                <p className="text-gray-600 mt-1 text-sm md:text-base">
                   Monitoring keuangan pribadi realtime
                 </p>
               </div>
@@ -500,7 +500,7 @@ export default function FinancePage() {
           <div className="flex gap-3 flex-wrap">
             <button
               onClick={downloadPDF}
-              className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2 transition-all"
             >
               <FileDown size={18} />
               Download PDF
@@ -508,7 +508,7 @@ export default function FinancePage() {
 
             <button
               onClick={downloadExcel}
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2 transition-all"
             >
               <FileDown size={18} />
               Download Excel
@@ -518,7 +518,7 @@ export default function FinancePage() {
 
         {/* FORM */}
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">
             Tambah Transaksi
           </h2>
 
@@ -527,11 +527,11 @@ export default function FinancePage() {
               onClick={() =>
                 setType('pemasukan')
               }
-              className={`p-4 rounded-2xl font-bold ${
+              className={`p-4 rounded-2xl font-bold transition-all ${
                 type ===
                 'pemasukan'
                   ? 'bg-green-600 text-white'
-                  : 'bg-gray-100'
+                  : 'bg-gray-100 text-gray-800'
               }`}
             >
               Pemasukan
@@ -543,11 +543,11 @@ export default function FinancePage() {
                   'pengeluaran'
                 )
               }
-              className={`p-4 rounded-2xl font-bold ${
+              className={`p-4 rounded-2xl font-bold transition-all ${
                 type ===
                 'pengeluaran'
                   ? 'bg-red-600 text-white'
-                  : 'bg-gray-100'
+                  : 'bg-gray-100 text-gray-800'
               }`}
             >
               Pengeluaran
@@ -564,7 +564,7 @@ export default function FinancePage() {
                   e.target.value
                 )
               }
-              className="border border-gray-200 rounded-2xl p-4 outline-none"
+              className="border border-gray-200 rounded-2xl p-4 outline-none text-gray-900 placeholder:text-gray-400"
             />
 
             <input
@@ -578,7 +578,7 @@ export default function FinancePage() {
                   )
                 )
               }
-              className="border border-gray-200 rounded-2xl p-4 outline-none"
+              className="border border-gray-200 rounded-2xl p-4 outline-none text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -594,7 +594,7 @@ export default function FinancePage() {
                 paymentMethod ===
                 'cash'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700'
+                  : 'bg-gray-100 text-gray-800'
               }`}
             >
               Cash
@@ -610,7 +610,7 @@ export default function FinancePage() {
                 paymentMethod ===
                 'transfer'
                   ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-700'
+                  : 'bg-gray-100 text-gray-800'
               }`}
             >
               Transfer
@@ -625,13 +625,13 @@ export default function FinancePage() {
                 e.target.value
               )
             }
-            className="border border-gray-200 rounded-2xl p-4 outline-none w-full mt-4 min-h-[120px]"
+            className="border border-gray-200 rounded-2xl p-4 outline-none w-full mt-4 min-h-[120px] text-gray-900 placeholder:text-gray-400"
           />
 
           <button
             onClick={saveData}
             disabled={saving}
-            className="mt-5 bg-black hover:opacity-90 text-white px-6 py-4 rounded-2xl font-bold w-full"
+            className="mt-5 bg-black hover:opacity-90 text-white px-6 py-4 rounded-2xl font-bold w-full transition-all"
           >
             {saving
               ? 'Menyimpan...'
@@ -674,11 +674,11 @@ export default function FinancePage() {
                   item.value
                 )
               }
-              className={`px-5 py-3 rounded-2xl font-semibold ${
+              className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
                 filter ===
                 item.value
                   ? 'bg-black text-white'
-                  : 'bg-white border border-gray-200'
+                  : 'bg-white border border-gray-200 text-gray-800'
               }`}
             >
               {item.label}
@@ -696,14 +696,14 @@ export default function FinancePage() {
                   Total Pemasukan
                 </p>
 
-                <h2 className="text-3xl font-black mt-2">
+                <h2 className="text-2xl md:text-3xl font-black mt-2 break-words">
                   {formatRupiah(
                     totalIncome
                   )}
                 </h2>
               </div>
 
-              <div className="bg-white/20 p-4 rounded-2xl">
+              <div className="bg-white/20 p-4 rounded-2xl shrink-0">
                 <TrendingUp size={30} />
               </div>
             </div>
@@ -716,14 +716,14 @@ export default function FinancePage() {
                   Total Pengeluaran
                 </p>
 
-                <h2 className="text-3xl font-black mt-2">
+                <h2 className="text-2xl md:text-3xl font-black mt-2 break-words">
                   {formatRupiah(
                     totalExpense
                   )}
                 </h2>
               </div>
 
-              <div className="bg-white/20 p-4 rounded-2xl">
+              <div className="bg-white/20 p-4 rounded-2xl shrink-0">
                 <TrendingDown size={30} />
               </div>
             </div>
@@ -733,7 +733,7 @@ export default function FinancePage() {
         {/* LAPORAN BULANAN */}
         <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-2xl font-bold text-gray-900">
               Laporan Bulanan
             </h2>
 
@@ -743,22 +743,22 @@ export default function FinancePage() {
           </div>
 
           <div className="overflow-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[700px]">
               <thead className="bg-black text-white">
                 <tr>
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Bulan
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Pemasukan
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Pengeluaran
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Saldo Akhir
                   </th>
                 </tr>
@@ -779,24 +779,24 @@ export default function FinancePage() {
                         key={index}
                         className="border-t hover:bg-gray-50"
                       >
-                        <td className="p-5 font-bold">
+                        <td className="p-5 font-bold text-gray-900">
                           {item.month}
                         </td>
 
-                        <td className="p-5 text-green-600 font-bold">
+                        <td className="p-5 text-green-600 font-bold whitespace-nowrap">
                           {formatRupiah(
                             item.pemasukan
                           )}
                         </td>
 
-                        <td className="p-5 text-red-600 font-bold">
+                        <td className="p-5 text-red-600 font-bold whitespace-nowrap">
                           {formatRupiah(
                             item.pengeluaran
                           )}
                         </td>
 
                         <td
-                          className={`p-5 font-bold ${
+                          className={`p-5 font-bold whitespace-nowrap ${
                             saldo >= 0
                               ? 'text-blue-600'
                               : 'text-red-600'
@@ -819,7 +819,7 @@ export default function FinancePage() {
         <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-2xl font-bold text-gray-900">
                 Riwayat Transaksi
               </h2>
 
@@ -828,7 +828,7 @@ export default function FinancePage() {
               </p>
             </div>
 
-            <div className="hidden md:flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl">
+            <div className="hidden md:flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl text-gray-800">
               <Calendar size={18} />
 
               <span className="text-sm font-medium">
@@ -840,34 +840,34 @@ export default function FinancePage() {
           </div>
 
           <div className="overflow-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[1100px]">
               <thead className="bg-black text-white">
                 <tr>
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Jenis
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Transaksi
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Jumlah
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Pembayaran
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Catatan
                   </th>
 
-                  <th className="p-5 text-left">
+                  <th className="p-5 text-left font-semibold">
                     Tanggal
                   </th>
 
-                  <th className="p-5 text-center">
+                  <th className="p-5 text-center font-semibold">
                     Aksi
                   </th>
                 </tr>
@@ -878,7 +878,7 @@ export default function FinancePage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="text-center p-10"
+                      className="text-center p-10 text-gray-700"
                     >
                       Loading...
                     </td>
@@ -887,7 +887,7 @@ export default function FinancePage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="text-center p-10"
+                      className="text-center p-10 text-gray-700"
                     >
                       Belum ada data
                     </td>
@@ -915,7 +915,7 @@ export default function FinancePage() {
                         {item.title}
                       </td>
 
-                      <td className="p-5 font-black text-lg">
+                      <td className="p-5 font-black text-lg text-gray-900 whitespace-nowrap">
                         {formatRupiah(
                           Number(
                             item.amount
@@ -936,12 +936,12 @@ export default function FinancePage() {
                         </span>
                       </td>
 
-                      <td className="p-5 text-gray-500">
+                      <td className="p-5 text-gray-600">
                         {item.note ||
                           '-'}
                       </td>
 
-                      <td className="p-5 text-sm text-gray-500">
+                      <td className="p-5 text-sm text-gray-500 whitespace-nowrap">
                         {new Date(
                           item.created_at
                         ).toLocaleString(
