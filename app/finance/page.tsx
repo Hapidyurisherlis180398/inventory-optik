@@ -12,6 +12,7 @@ import {
   Calendar,
   Trash2,
   FileDown,
+  CreditCard,
 } from 'lucide-react'
 
 import jsPDF from 'jspdf'
@@ -27,10 +28,17 @@ export default function FinancePage() {
   const [saving, setSaving] =
     useState(false)
 
-  const [data, setData] = useState<any[]>([])
+  const [data, setData] =
+    useState<any[]>([])
 
   const [type, setType] =
     useState('pengeluaran')
+
+  // PAYMENT METHOD
+  const [
+    paymentMethod,
+    setPaymentMethod,
+  ] = useState('cash')
 
   const [title, setTitle] =
     useState('')
@@ -292,8 +300,14 @@ export default function FinancePage() {
         .insert([
           {
             type,
+
+            payment_method:
+              paymentMethod,
+
             title,
+
             amount: cleanAmount,
+
             note,
           },
         ])
@@ -377,6 +391,7 @@ export default function FinancePage() {
         [
           'Tanggal',
           'Jenis',
+          'Metode',
           'Transaksi',
           'Jumlah',
           'Catatan',
@@ -393,6 +408,8 @@ export default function FinancePage() {
 
           item.type,
 
+          item.payment_method,
+
           item.title,
 
           formatRupiah(
@@ -405,9 +422,7 @@ export default function FinancePage() {
     })
 
     doc.save(
-      `laporan-keuangan-${new Date().toLocaleDateString(
-        'id-ID'
-      )}.pdf`
+      `laporan-keuangan.pdf`
     )
   }
 
@@ -422,6 +437,9 @@ export default function FinancePage() {
           ),
 
         Jenis: item.type,
+
+        Metode:
+          item.payment_method,
 
         Transaksi:
           item.title,
@@ -445,14 +463,12 @@ export default function FinancePage() {
     XLSX.utils.book_append_sheet(
       workbook,
       worksheet,
-      'Keuangan'
+      'Finance'
     )
 
     XLSX.writeFile(
       workbook,
-      `laporan-keuangan-${new Date().toLocaleDateString(
-        'id-ID'
-      )}.xlsx`
+      'laporan-keuangan.xlsx'
     )
   }
 
@@ -462,8 +478,10 @@ export default function FinancePage() {
 
         {/* HEADER */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+
           <div>
             <div className="flex items-center gap-3 mb-3">
+
               <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center">
                 <Wallet size={28} />
               </div>
@@ -481,36 +499,41 @@ export default function FinancePage() {
           </div>
 
           <div className="flex gap-3 flex-wrap">
+
             <button
               onClick={downloadPDF}
-              className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2"
             >
               <FileDown size={18} />
-              Download PDF
+              PDF
             </button>
 
             <button
               onClick={downloadExcel}
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2"
             >
               <FileDown size={18} />
-              Download Excel
+              Excel
             </button>
+
           </div>
         </div>
 
         {/* FORM */}
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 mb-8">
+
           <h2 className="text-2xl font-bold mb-6">
             Tambah Transaksi
           </h2>
 
+          {/* TYPE */}
           <div className="grid md:grid-cols-2 gap-4 mb-4">
+
             <button
               onClick={() =>
                 setType('pemasukan')
               }
-              className={`p-4 rounded-2xl font-bold ${
+              className={`p-4 rounded-2xl font-bold transition-all ${
                 type ===
                 'pemasukan'
                   ? 'bg-green-600 text-white'
@@ -526,7 +549,7 @@ export default function FinancePage() {
                   'pengeluaran'
                 )
               }
-              className={`p-4 rounded-2xl font-bold ${
+              className={`p-4 rounded-2xl font-bold transition-all ${
                 type ===
                 'pengeluaran'
                   ? 'bg-red-600 text-white'
@@ -535,9 +558,53 @@ export default function FinancePage() {
             >
               Pengeluaran
             </button>
+
           </div>
 
+          {/* PAYMENT METHOD */}
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+
+            {/* CASH */}
+            <button
+              onClick={() =>
+                setPaymentMethod(
+                  'cash'
+                )
+              }
+              className={`p-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+                paymentMethod ===
+                'cash'
+                  ? 'bg-yellow-500 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Wallet size={20} />
+              CASH
+            </button>
+
+            {/* TRANSFER */}
+            <button
+              onClick={() =>
+                setPaymentMethod(
+                  'transfer'
+                )
+              }
+              className={`p-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+                paymentMethod ===
+                'transfer'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              <CreditCard size={20} />
+              TRANSFER
+            </button>
+
+          </div>
+
+          {/* INPUT */}
           <div className="grid md:grid-cols-2 gap-4">
+
             <input
               type="text"
               placeholder="Nama transaksi"
@@ -563,6 +630,7 @@ export default function FinancePage() {
               }
               className="border border-gray-200 rounded-2xl p-4 outline-none"
             />
+
           </div>
 
           <textarea
@@ -585,323 +653,7 @@ export default function FinancePage() {
               ? 'Menyimpan...'
               : 'Simpan Data'}
           </button>
-        </div>
 
-        {/* FILTER */}
-        <div className="flex flex-wrap gap-3 mb-8">
-          {[
-            {
-              label:
-                'Hari Ini',
-              value:
-                'today',
-            },
-            {
-              label:
-                'Kemarin',
-              value:
-                'yesterday',
-            },
-            {
-              label:
-                '7 Hari',
-              value:
-                '7days',
-            },
-            {
-              label:
-                '30 Hari',
-              value:
-                '30days',
-            },
-          ].map((item) => (
-            <button
-              key={item.value}
-              onClick={() =>
-                setFilter(
-                  item.value
-                )
-              }
-              className={`px-5 py-3 rounded-2xl font-semibold ${
-                filter ===
-                item.value
-                  ? 'bg-black text-white'
-                  : 'bg-white border border-gray-200'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* SUMMARY */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-
-          {/* PEMASUKAN */}
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-3xl p-7 text-white shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <p className="text-green-100 text-sm">
-                  Total Pemasukan
-                </p>
-
-                <h2 className="text-3xl font-black mt-2">
-                  {formatRupiah(
-                    totalIncome
-                  )}
-                </h2>
-              </div>
-
-              <div className="bg-white/20 p-4 rounded-2xl">
-                <TrendingUp size={30} />
-              </div>
-            </div>
-          </div>
-
-          {/* PENGELUARAN */}
-          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl p-7 text-white shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <p className="text-red-100 text-sm">
-                  Total Pengeluaran
-                </p>
-
-                <h2 className="text-3xl font-black mt-2">
-                  {formatRupiah(
-                    totalExpense
-                  )}
-                </h2>
-              </div>
-
-              <div className="bg-white/20 p-4 rounded-2xl">
-                <TrendingDown size={30} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* LAPORAN BULANAN */}
-        <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold">
-              Laporan Bulanan
-            </h2>
-
-            <p className="text-gray-500 text-sm mt-1">
-              Total pemasukan, pengeluaran & saldo akhir setiap bulan
-            </p>
-          </div>
-
-          <div className="overflow-auto">
-            <table className="w-full">
-              <thead className="bg-black text-white">
-                <tr>
-                  <th className="p-5 text-left">
-                    Bulan
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Pemasukan
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Pengeluaran
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Saldo Akhir
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {monthlyData.map(
-                  (
-                    item,
-                    index
-                  ) => {
-                    const saldo =
-                      item.pemasukan -
-                      item.pengeluaran
-
-                    return (
-                      <tr
-                        key={index}
-                        className="border-t hover:bg-gray-50"
-                      >
-                        <td className="p-5 font-bold">
-                          {item.month}
-                        </td>
-
-                        <td className="p-5 text-green-600 font-bold">
-                          {formatRupiah(
-                            item.pemasukan
-                          )}
-                        </td>
-
-                        <td className="p-5 text-red-600 font-bold">
-                          {formatRupiah(
-                            item.pengeluaran
-                          )}
-                        </td>
-
-                        <td
-                          className={`p-5 font-bold ${
-                            saldo >= 0
-                              ? 'text-blue-600'
-                              : 'text-red-600'
-                          }`}
-                        >
-                          {formatRupiah(
-                            saldo
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  }
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* TABLE */}
-        <div className="mt-8 bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">
-                Riwayat Transaksi
-              </h2>
-
-              <p className="text-gray-500 text-sm mt-1">
-                Semua data keuangan tersimpan otomatis
-              </p>
-            </div>
-
-            <div className="hidden md:flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl">
-              <Calendar size={18} />
-
-              <span className="text-sm font-medium">
-                {new Date().toLocaleDateString(
-                  'id-ID'
-                )}
-              </span>
-            </div>
-          </div>
-
-          <div className="overflow-auto">
-            <table className="w-full">
-              <thead className="bg-black text-white">
-                <tr>
-                  <th className="p-5 text-left">
-                    Jenis
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Transaksi
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Jumlah
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Catatan
-                  </th>
-
-                  <th className="p-5 text-left">
-                    Tanggal
-                  </th>
-
-                  <th className="p-5 text-center">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="text-center p-10"
-                    >
-                      Loading...
-                    </td>
-                  </tr>
-                ) : data.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="text-center p-10"
-                    >
-                      Belum ada data
-                    </td>
-                  </tr>
-                ) : (
-                  data.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-t hover:bg-gray-50 transition-all"
-                    >
-                      <td className="p-5">
-                        <span
-                          className={`px-4 py-2 rounded-full text-xs font-bold ${
-                            item.type ===
-                            'pemasukan'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {item.type}
-                        </span>
-                      </td>
-
-                      <td className="p-5 font-bold text-gray-900">
-                        {item.title}
-                      </td>
-
-                      <td className="p-5 font-black text-lg">
-                        {formatRupiah(
-                          Number(
-                            item.amount
-                          )
-                        )}
-                      </td>
-
-                      <td className="p-5 text-gray-500">
-                        {item.note ||
-                          '-'}
-                      </td>
-
-                      <td className="p-5 text-sm text-gray-500">
-                        {new Date(
-                          item.created_at
-                        ).toLocaleString(
-                          'id-ID'
-                        )}
-                      </td>
-
-                      <td className="p-5 text-center">
-                        <button
-                          onClick={() =>
-                            deleteData(
-                              item.id
-                            )
-                          }
-                          className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-2xl transition-all"
-                        >
-                          <Trash2
-                            size={18}
-                          />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
     </main>
