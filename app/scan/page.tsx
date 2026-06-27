@@ -303,7 +303,7 @@ export default function ScanPage() {
         {/* HEADER */}
         <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm mb-6">
           <h1 className="text-3xl font-bold text-gray-900">
-            Smart Stock Scanner
+            TMH-Smart Stock Scanner
           </h1>
 
           <p className="text-gray-500 mt-2">
