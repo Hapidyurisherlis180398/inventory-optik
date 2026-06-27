@@ -55,6 +55,12 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/live/agil",
     icon: "🎬",
   },
+  {
+    title: "Scanner",
+    description: "Scan Barcode Frame",
+    url: "https://inventory-optik-ten.vercel.app/scan",
+    icon: "📷",
+  },
 ];
 
 export default function HomePage() {
