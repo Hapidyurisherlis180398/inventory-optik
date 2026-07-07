@@ -28,6 +28,39 @@ export default function PrintBarcodePage() {
   const [loading, setLoading] =
     useState(false)
 
+  const [selectedIds, setSelectedIds] =
+    useState<Set<string>>(new Set())
+
+  const selectedProducts = products.filter(
+    (item) => selectedIds.has(String(item.id))
+  )
+
+  function toggleSelect(id: string | number) {
+    const key = String(id)
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+
+      return next
+    })
+  }
+
+  function selectAll() {
+    setSelectedIds(
+      new Set(products.map((item) => String(item.id)))
+    )
+  }
+
+  function deselectAll() {
+    setSelectedIds(new Set())
+  }
+
   async function getProducts() {
     setLoading(true)
 
@@ -41,6 +74,9 @@ export default function PrintBarcodePage() {
 
     if (data) {
       setProducts(data)
+      setSelectedIds(
+        new Set(data.map((item) => String(item.id)))
+      )
 
       const tempQr: any = {}
 
@@ -62,6 +98,11 @@ export default function PrintBarcodePage() {
   }, [])
 
   function printPage() {
+    if (selectedProducts.length === 0) {
+      alert('Pilih minimal 1 produk untuk dicetak.')
+      return
+    }
+
     window.print()
   }
 
@@ -92,14 +133,16 @@ export default function PrintBarcodePage() {
 
   // DOWNLOAD WORD
   async function downloadWord() {
-    if (products.length === 0)
+    if (selectedProducts.length === 0) {
+      alert('Pilih minimal 1 produk untuk didownload.')
       return
+    }
 
     setLoading(true)
 
     const children: Paragraph[] = []
 
-    for (const item of products) {
+    for (const item of selectedProducts) {
       const qrBase64 =
         qrCodes[item.id]
 
@@ -258,20 +301,44 @@ export default function PrintBarcodePage() {
           </p>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
-          <button
-            onClick={printPage}
-            className="bg-black text-white px-6 py-3 rounded-2xl hover:opacity-90"
-          >
-            Print Barcode
-          </button>
+        <div className="flex flex-col items-start md:items-end gap-3">
+          <p className="text-sm text-gray-600">
+            {selectedIds.size} dari {products.length} produk dipilih
+          </p>
 
-          <button
-            onClick={downloadWord}
-            className="bg-blue-600 text-white px-6 py-3 rounded-2xl hover:opacity-90"
-          >
-            Download Word
-          </button>
+          <div className="flex gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={selectAll}
+              className="border border-gray-300 text-gray-700 px-4 py-3 rounded-2xl hover:bg-gray-50"
+            >
+              Pilih Semua
+            </button>
+
+            <button
+              type="button"
+              onClick={deselectAll}
+              className="border border-gray-300 text-gray-700 px-4 py-3 rounded-2xl hover:bg-gray-50"
+            >
+              Batal Semua
+            </button>
+
+            <button
+              onClick={printPage}
+              disabled={selectedIds.size === 0}
+              className="bg-black text-white px-6 py-3 rounded-2xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Print Barcode
+            </button>
+
+            <button
+              onClick={downloadWord}
+              disabled={selectedIds.size === 0}
+              className="bg-blue-600 text-white px-6 py-3 rounded-2xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Download Word
+            </button>
+          </div>
         </div>
       </div>
 
@@ -284,11 +351,30 @@ export default function PrintBarcodePage() {
 
       {/* GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
-        {products.map((item) => (
+        {products.map((item) => {
+          const isSelected = selectedIds.has(String(item.id))
+
+          return (
           <div
             key={item.id}
-            className="border border-gray-200 rounded-2xl p-4 flex flex-col items-center text-center bg-white"
+            className={`border rounded-2xl p-4 flex flex-col items-center text-center bg-white transition-colors ${
+              isSelected
+                ? 'border-blue-500 ring-2 ring-blue-100'
+                : 'border-gray-200 opacity-60 print:hidden'
+            }`}
           >
+            <label className="w-full flex items-center gap-2 mb-3 cursor-pointer print:hidden">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => toggleSelect(item.id)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-xs font-medium text-gray-600">
+                {isSelected ? 'Dipilih' : 'Tidak dipilih'}
+              </span>
+            </label>
+
             {/* QR */}
             {qrCodes[item.id] && (
               <img
@@ -320,7 +406,7 @@ export default function PrintBarcodePage() {
               {item.barcode}
             </div>
           </div>
-        ))}
+        )})}
       </div>
     </main>
   )
