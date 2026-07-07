@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase'
 
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   ImageRun,
   Packer,
@@ -17,7 +18,6 @@ import {
   TableCell,
   TableRow,
   WidthType,
-  BorderStyle,
 } from 'docx'
 
 export default function PrintBarcodePage() {
@@ -107,7 +107,7 @@ export default function PrintBarcodePage() {
   }
 
   // =========================
-  // CREATE IMAGE LABEL
+  // CREATE LABEL IMAGE
   // =========================
 
   async function createBarcodeImage(
@@ -122,10 +122,11 @@ export default function PrintBarcodePage() {
     if (!ctx) return null
 
     canvas.width = 420
-    canvas.height = 300
+    canvas.height = 340
 
     // BACKGROUND
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#FFFFFF'
+
     ctx.fillRect(
       0,
       0,
@@ -170,37 +171,58 @@ export default function PrintBarcodePage() {
       180
     )
 
-    // TEXT STYLE
+    // =========================
+    // TEXT
+    // =========================
+
     ctx.fillStyle = '#000000'
     ctx.textAlign = 'center'
 
-    // NAME
+    // PRODUCT NAME
     ctx.font =
-      'bold 20px Arial'
+      'bold 24px Arial'
 
     ctx.fillText(
       item.name || '-',
       210,
-      220
-    )
-
-    // SKU
-    ctx.font =
-      '16px Arial'
-
-    ctx.fillText(
-      `SKU : ${item.sku || '-'}`,
-      210,
-      245
+      225
     )
 
     // COLOR
+    ctx.font =
+      '18px Arial'
+
     ctx.fillText(
       `COLOR : ${
         item.color || '-'
       }`,
       210,
-      268
+      260
+    )
+
+    // SKU
+    // SEKARANG POSISI DI BAWAH COLOR
+    // DAN BOLD
+
+    ctx.font =
+      'bold 18px Arial'
+
+    ctx.fillText(
+      `SKU : ${
+        item.sku || '-'
+      }`,
+      210,
+      292
+    )
+
+    // BARCODE TEXT
+    ctx.font =
+      'bold 18px Arial'
+
+    ctx.fillText(
+      item.barcode || '-',
+      210,
+      322
     )
 
     return canvas.toDataURL(
@@ -355,7 +377,7 @@ export default function PrintBarcodePage() {
                           transformation:
                             {
                               width: 260,
-                              height: 185,
+                              height: 210,
                             },
 
                           type: 'png',
@@ -439,8 +461,8 @@ export default function PrintBarcodePage() {
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Barcode akan menjadi
-            gambar di Word
+            Barcode menjadi image
+            di Word
           </p>
         </div>
 
