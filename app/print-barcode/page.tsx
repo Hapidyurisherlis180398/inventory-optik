@@ -12,9 +12,9 @@ import { supabase } from '../../lib/supabase'
 import {
   Document,
   Packer,
-  Paragraph,
   TextRun,
   ImageRun,
+  Textbox,
   AlignmentType,
 } from 'docx'
 
@@ -131,6 +131,64 @@ export default function PrintBarcodePage() {
     return bytes
   }
 
+  function createBarcodeTextbox(
+    item: any,
+    imageData: Uint8Array,
+    index: number
+  ) {
+    const cols = 3
+    const boxWidthPt = 145
+    const boxHeightPt = 210
+    const gapPt = 12
+    const marginPt = 24
+    const col = index % cols
+    const row = Math.floor(index / cols)
+
+    return new Textbox({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new ImageRun({
+          type: 'png',
+          data: imageData,
+          transformation: {
+            width: 90,
+            height: 90,
+          },
+        }),
+        new TextRun({
+          text: item.name || '-',
+          bold: true,
+          size: 22,
+          break: 1,
+        }),
+        new TextRun({
+          text: `SKU : ${item.sku || '-'}`,
+          size: 18,
+          break: 1,
+        }),
+        new TextRun({
+          text: `COLOR : ${item.color || '-'}`,
+          size: 18,
+          break: 1,
+        }),
+        new TextRun({
+          text: item.barcode || '-',
+          bold: true,
+          size: 20,
+          break: 1,
+        }),
+      ],
+      style: {
+        width: `${boxWidthPt}pt`,
+        height: 'auto',
+        position: 'absolute',
+        left: `${marginPt + col * (boxWidthPt + gapPt)}pt`,
+        top: `${marginPt + row * (boxHeightPt + gapPt)}pt`,
+        wrapStyle: 'none',
+      },
+    })
+  }
+
   // DOWNLOAD WORD
   async function downloadWord() {
     if (selectedProducts.length === 0) {
@@ -140,7 +198,8 @@ export default function PrintBarcodePage() {
 
     setLoading(true)
 
-    const children: Paragraph[] = []
+    const children: Textbox[] = []
+    let boxIndex = 0
 
     for (const item of selectedProducts) {
       const qrBase64 =
@@ -154,107 +213,30 @@ export default function PrintBarcodePage() {
         )
 
       children.push(
-        new Paragraph({
-          alignment:
-            AlignmentType.CENTER,
-
-          children: [
-            new ImageRun({
-              type: 'png',
-
-              data: imageData,
-
-              transformation: {
-                width: 90,
-                height: 90,
-              },
-            }),
-          ],
-
-          spacing: {
-            after: 100,
-          },
-        })
+        createBarcodeTextbox(
+          item,
+          imageData,
+          boxIndex
+        )
       )
 
-      children.push(
-        new Paragraph({
-          alignment:
-            AlignmentType.CENTER,
-
-          children: [
-            new TextRun({
-              text:
-                item.name || '-',
-
-              bold: true,
-
-              size: 22,
-            }),
-          ],
-        })
-      )
-
-      children.push(
-        new Paragraph({
-          alignment:
-            AlignmentType.CENTER,
-
-          children: [
-            new TextRun({
-              text: `SKU : ${
-                item.sku || '-'
-              }`,
-              size: 18,
-            }),
-          ],
-        })
-      )
-
-      children.push(
-        new Paragraph({
-          alignment:
-            AlignmentType.CENTER,
-
-          children: [
-            new TextRun({
-              text: `COLOR : ${
-                item.color || '-'
-              }`,
-              size: 18,
-            }),
-          ],
-        })
-      )
-
-      children.push(
-        new Paragraph({
-          alignment:
-            AlignmentType.CENTER,
-
-          children: [
-            new TextRun({
-              text:
-                item.barcode ||
-                '-',
-
-              bold: true,
-
-              size: 20,
-            }),
-          ],
-
-          spacing: {
-            after: 500,
-          },
-        })
-      )
+      boxIndex += 1
     }
+
+    const lastRow = Math.ceil(children.length / 3)
+    const pageHeightPt =
+      24 + lastRow * 222
 
     const doc = new Document({
       sections: [
         {
-          properties: {},
+          properties: {
+            page: {
+              size: {
+                height: `${Math.max(pageHeightPt, 842)}pt`,
+              },
+            },
+          },
 
           children,
         },
