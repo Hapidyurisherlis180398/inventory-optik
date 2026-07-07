@@ -27,13 +27,28 @@ export default function PrintBarcodePage() {
   const [loading, setLoading] =
     useState(false)
 
+  const [searchSku, setSearchSku] =
+    useState('')
+
+  const [qrCodes, setQrCodes] =
+    useState<any>({})
+
   const [selectedIds, setSelectedIds] =
     useState<Set<string>>(new Set())
 
-  const selectedProducts = products.filter(
-    (item) =>
+  const filteredProducts =
+    products.filter((item) =>
+      item.sku
+        ?.toLowerCase()
+        .includes(
+          searchSku.toLowerCase()
+        )
+    )
+
+  const selectedProducts =
+    filteredProducts.filter((item) =>
       selectedIds.has(String(item.id))
-  )
+    )
 
   useEffect(() => {
     getProducts()
@@ -66,6 +81,21 @@ export default function PrintBarcodePage() {
             )
           )
         )
+
+        const tempQr: any = {}
+
+        for (const item of data) {
+          tempQr[item.id] =
+            await QRCode.toDataURL(
+              item.barcode || '-',
+              {
+                width: 300,
+                margin: 1,
+              }
+            )
+        }
+
+        setQrCodes(tempQr)
       }
     } catch (error) {
       console.error(error)
@@ -95,7 +125,7 @@ export default function PrintBarcodePage() {
   function selectAll() {
     setSelectedIds(
       new Set(
-        products.map((item) =>
+        filteredProducts.map((item) =>
           String(item.id)
         )
       )
@@ -107,7 +137,7 @@ export default function PrintBarcodePage() {
   }
 
   // =========================
-  // CREATE LABEL IMAGE
+  // CREATE IMAGE LABEL
   // =========================
 
   async function createBarcodeImage(
@@ -121,8 +151,8 @@ export default function PrintBarcodePage() {
 
     if (!ctx) return null
 
-    canvas.width = 420
-    canvas.height = 340
+    canvas.width = 500
+    canvas.height = 420
 
     // BACKGROUND
     ctx.fillStyle = '#FFFFFF'
@@ -135,23 +165,23 @@ export default function PrintBarcodePage() {
     )
 
     // BORDER
-    ctx.strokeStyle = '#000000'
-    ctx.lineWidth = 2
+    ctx.strokeStyle = '#111111'
+    ctx.lineWidth = 3
 
     ctx.strokeRect(
-      2,
-      2,
-      canvas.width - 4,
-      canvas.height - 4
+      3,
+      3,
+      canvas.width - 6,
+      canvas.height - 6
     )
 
-    // QR CODE
+    // QR
     const qrDataUrl =
       await QRCode.toDataURL(
         item.barcode || '-',
         {
+          width: 220,
           margin: 1,
-          width: 180,
         }
       )
 
@@ -165,64 +195,65 @@ export default function PrintBarcodePage() {
 
     ctx.drawImage(
       qrImage,
-      120,
-      15,
-      180,
-      180
+      140,
+      20,
+      220,
+      220
     )
 
-    // =========================
-    // TEXT
-    // =========================
+    // ======================
+    // TEXT STYLE
+    // ======================
 
-    ctx.fillStyle = '#000000'
     ctx.textAlign = 'center'
+    ctx.fillStyle = '#000000'
 
     // PRODUCT NAME
     ctx.font =
-      'bold 24px Arial'
+      'bold 30px Arial'
 
     ctx.fillText(
       item.name || '-',
-      210,
-      225
+      250,
+      285
     )
 
     // COLOR
     ctx.font =
-      '18px Arial'
+      '20px Arial'
+
+    ctx.fillStyle = '#444444'
 
     ctx.fillText(
       `COLOR : ${
         item.color || '-'
       }`,
-      210,
-      260
+      250,
+      325
     )
 
     // SKU
-    // SEKARANG POSISI DI BAWAH COLOR
-    // DAN BOLD
-
     ctx.font =
-      'bold 18px Arial'
+      'bold 22px Arial'
+
+    ctx.fillStyle = '#000000'
 
     ctx.fillText(
       `SKU : ${
         item.sku || '-'
       }`,
-      210,
-      292
+      250,
+      360
     )
 
-    // BARCODE TEXT
+    // BARCODE
     ctx.font =
-      'bold 18px Arial'
+      'bold 20px Arial'
 
     ctx.fillText(
       item.barcode || '-',
-      210,
-      322
+      250,
+      395
     )
 
     return canvas.toDataURL(
@@ -376,8 +407,8 @@ export default function PrintBarcodePage() {
 
                           transformation:
                             {
-                              width: 260,
-                              height: 210,
+                              width: 300,
+                              height: 250,
                             },
 
                           type: 'png',
@@ -452,104 +483,161 @@ export default function PrintBarcodePage() {
   }
 
   return (
-    <main className="min-h-screen bg-white p-6">
+    <main className="min-h-screen bg-gray-100 p-6">
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">
-            Print Barcode
-          </h1>
+      <div className="bg-white rounded-3xl shadow-sm p-6 mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div>
+            <h1 className="text-4xl font-black text-black">
+              Print Barcode
+            </h1>
 
-          <p className="text-gray-500 mt-2">
-            Barcode menjadi image
-            di Word
-          </p>
+            <p className="text-gray-500 mt-2 text-lg">
+              Download barcode
+              dalam bentuk image ke
+              Word
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={selectAll}
+              className="bg-black text-white px-5 py-3 rounded-2xl font-bold hover:opacity-90"
+            >
+              Pilih Semua
+            </button>
+
+            <button
+              onClick={deselectAll}
+              className="bg-gray-200 text-black px-5 py-3 rounded-2xl font-bold hover:bg-gray-300"
+            >
+              Batal Semua
+            </button>
+
+            <button
+              onClick={downloadWord}
+              className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-blue-700"
+            >
+              Download Word
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={selectAll}
-            className="border border-gray-300 px-4 py-3 rounded-xl"
-          >
-            Pilih Semua
-          </button>
-
-          <button
-            onClick={deselectAll}
-            className="border border-gray-300 px-4 py-3 rounded-xl"
-          >
-            Batal Semua
-          </button>
-
-          <button
-            onClick={downloadWord}
-            className="bg-blue-600 text-white px-5 py-3 rounded-xl"
-          >
-            Download Word
-          </button>
+        {/* SEARCH */}
+        <div className="mt-6">
+          <input
+            type="text"
+            placeholder="Cari berdasarkan SKU..."
+            value={searchSku}
+            onChange={(e) =>
+              setSearchSku(
+                e.target.value
+              )
+            }
+            className="w-full lg:w-[420px] border border-gray-300 rounded-2xl px-5 py-4 text-black font-semibold outline-none focus:ring-4 focus:ring-blue-200"
+          />
         </div>
       </div>
 
       {/* LOADING */}
       {loading && (
-        <div className="mb-5 bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-xl">
+        <div className="mb-5 bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-2xl font-bold">
           Processing...
         </div>
       )}
 
       {/* GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
-        {products.map((item) => {
-          const isSelected =
-            selectedIds.has(
-              String(item.id)
-            )
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {filteredProducts.map(
+          (item) => {
+            const isSelected =
+              selectedIds.has(
+                String(item.id)
+              )
 
-          return (
-            <div
-              key={item.id}
-              className={`border rounded-2xl p-4 text-center transition-all ${
-                isSelected
-                  ? 'border-blue-500 ring-2 ring-blue-100'
-                  : 'opacity-40 border-gray-200'
-              }`}
-            >
-              <label className="flex items-center gap-2 mb-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={
-                    isSelected
-                  }
-                  onChange={() =>
-                    toggleSelect(
-                      item.id
-                    )
-                  }
-                />
+            return (
+              <div
+                key={item.id}
+                className={`bg-white rounded-3xl p-5 transition-all border shadow-sm hover:shadow-xl ${
+                  isSelected
+                    ? 'border-blue-500 ring-4 ring-blue-100'
+                    : 'border-gray-200 opacity-60'
+                }`}
+              >
+                {/* CHECKBOX */}
+                <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={
+                      isSelected
+                    }
+                    onChange={() =>
+                      toggleSelect(
+                        item.id
+                      )
+                    }
+                    className="w-5 h-5"
+                  />
 
-                <span className="text-sm">
-                  Pilih
-                </span>
-              </label>
+                  <span className="font-bold text-black">
+                    Pilih Produk
+                  </span>
+                </label>
 
-              <h2 className="font-bold text-sm">
-                {item.name}
-              </h2>
+                {/* QR */}
+                <div className="bg-gray-50 rounded-2xl p-4 flex justify-center mb-5">
+                  {qrCodes[item.id] && (
+                    <img
+                      src={
+                        qrCodes[
+                          item.id
+                        ]
+                      }
+                      alt="QR"
+                      className="w-40 h-40 object-contain"
+                    />
+                  )}
+                </div>
 
-              <p className="text-xs text-gray-500">
-                {item.sku}
-              </p>
+                {/* PRODUCT NAME */}
+                <h2 className="text-[18px] font-black text-black text-center uppercase leading-tight">
+                  {item.name}
+                </h2>
 
-              <p className="text-xs text-gray-500">
-                {item.color}
-              </p>
+                {/* COLOR */}
+                <div className="mt-5 text-center">
+                  <p className="text-gray-500 text-sm font-semibold">
+                    COLOR
+                  </p>
 
-              <div className="mt-2 text-xs font-semibold break-all">
-                {item.barcode}
+                  <p className="text-black text-[15px] font-bold mt-1">
+                    {item.color ||
+                      '-'}
+                  </p>
+                </div>
+
+                {/* SKU */}
+                <div className="mt-4 text-center">
+                  <p className="text-gray-500 text-sm font-semibold">
+                    SKU
+                  </p>
+
+                  <p className="text-black text-[16px] font-black mt-1">
+                    {item.sku ||
+                      '-'}
+                  </p>
+                </div>
+
+                {/* BARCODE */}
+                <div className="mt-5 bg-black rounded-2xl px-4 py-3 text-center">
+                  <p className="text-white text-[12px] font-black tracking-[2px] break-all">
+                    {item.barcode}
+                  </p>
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          }
+        )}
       </div>
     </main>
   )
