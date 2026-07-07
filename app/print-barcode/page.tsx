@@ -1,13 +1,15 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
-import { saveAs } from 'file-saver'
 
 import { supabase } from '../../lib/supabase'
 
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   ImageRun,
   Packer,
@@ -17,7 +19,6 @@ import {
   TableRow,
   TextRun,
   WidthType,
-  BorderStyle,
 } from 'docx'
 
 export default function PrintBarcodePage() {
@@ -34,7 +35,8 @@ export default function PrintBarcodePage() {
     useState<Set<string>>(new Set())
 
   const selectedProducts = products.filter(
-    (item) => selectedIds.has(String(item.id))
+    (item) =>
+      selectedIds.has(String(item.id))
   )
 
   useEffect(() => {
@@ -42,40 +44,53 @@ export default function PrintBarcodePage() {
   }, [])
 
   async function getProducts() {
-    setLoading(true)
+    try {
+      setLoading(true)
 
-    const { data } =
-      await supabase
-        .from('products')
-        .select('*')
-        .order('name', {
-          ascending: true,
-        })
+      const { data, error } =
+        await supabase
+          .from('products')
+          .select('*')
+          .order('name', {
+            ascending: true,
+          })
 
-    if (data) {
-      setProducts(data)
-
-      setSelectedIds(
-        new Set(data.map((item) => String(item.id)))
-      )
-
-      const tempQr: any = {}
-
-      for (const item of data) {
-        tempQr[item.id] =
-          await QRCode.toDataURL(
-            item.barcode || '-',
-            {
-              width: 300,
-              margin: 1,
-            }
-          )
+      if (error) {
+        console.error(error)
+        return
       }
 
-      setQrCodes(tempQr)
-    }
+      if (data) {
+        setProducts(data)
 
-    setLoading(false)
+        setSelectedIds(
+          new Set(
+            data.map((item) =>
+              String(item.id)
+            )
+          )
+        )
+
+        const tempQr: any = {}
+
+        for (const item of data) {
+          tempQr[item.id] =
+            await QRCode.toDataURL(
+              item.barcode || '-',
+              {
+                width: 300,
+                margin: 1,
+              }
+            )
+        }
+
+        setQrCodes(tempQr)
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function toggleSelect(
@@ -98,7 +113,11 @@ export default function PrintBarcodePage() {
 
   function selectAll() {
     setSelectedIds(
-      new Set(products.map((i) => String(i.id)))
+      new Set(
+        products.map((item) =>
+          String(item.id)
+        )
+      )
     )
   }
 
@@ -122,9 +141,10 @@ export default function PrintBarcodePage() {
     const binaryString =
       window.atob(base64Data)
 
-    const bytes = new Uint8Array(
-      binaryString.length
-    )
+    const bytes =
+      new Uint8Array(
+        binaryString.length
+      )
 
     for (
       let i = 0;
@@ -171,22 +191,22 @@ export default function PrintBarcodePage() {
       borders: {
         top: {
           style: BorderStyle.SINGLE,
-          size: 1,
+          size: 2,
           color: '000000',
         },
         bottom: {
           style: BorderStyle.SINGLE,
-          size: 1,
+          size: 2,
           color: '000000',
         },
         left: {
           style: BorderStyle.SINGLE,
-          size: 1,
+          size: 2,
           color: '000000',
         },
         right: {
           style: BorderStyle.SINGLE,
-          size: 1,
+          size: 2,
           color: '000000',
         },
       },
@@ -195,6 +215,10 @@ export default function PrintBarcodePage() {
         new Paragraph({
           alignment:
             AlignmentType.CENTER,
+
+          spacing: {
+            after: 120,
+          },
 
           children: [
             new ImageRun({
@@ -221,7 +245,7 @@ export default function PrintBarcodePage() {
               text:
                 item.name || '-',
               bold: true,
-              size: 20,
+              size: 22,
             }),
           ],
         }),
@@ -259,7 +283,7 @@ export default function PrintBarcodePage() {
             AlignmentType.CENTER,
 
           spacing: {
-            before: 60,
+            before: 80,
           },
 
           children: [
@@ -277,109 +301,138 @@ export default function PrintBarcodePage() {
   }
 
   async function downloadWord() {
-    if (
-      selectedProducts.length === 0
-    ) {
-      alert(
-        'Pilih minimal 1 produk.'
-      )
-      return
-    }
-
-    setLoading(true)
-
-    const rows: TableRow[] = []
-
-    for (
-      let i = 0;
-      i < selectedProducts.length;
-      i += 3
-    ) {
-      const chunk =
-        selectedProducts.slice(
-          i,
-          i + 3
+    try {
+      if (
+        selectedProducts.length === 0
+      ) {
+        alert(
+          'Pilih minimal 1 produk.'
         )
-
-      while (chunk.length < 3) {
-        chunk.push(null)
+        return
       }
 
-      rows.push(
-        new TableRow({
-          children: chunk.map(
-            (item) => {
-              if (!item) {
-                return new TableCell({
-                  children: [
-                    new Paragraph(
-                      ''
-                    ),
-                  ],
-                })
+      setLoading(true)
+
+      const rows: TableRow[] = []
+
+      for (
+        let i = 0;
+        i < selectedProducts.length;
+        i += 3
+      ) {
+        const chunk =
+          selectedProducts.slice(
+            i,
+            i + 3
+          )
+
+        while (chunk.length < 3) {
+          chunk.push(null)
+        }
+
+        rows.push(
+          new TableRow({
+            children: chunk.map(
+              (item) => {
+                if (!item) {
+                  return new TableCell({
+                    children: [
+                      new Paragraph(
+                        ''
+                      ),
+                    ],
+                  })
+                }
+
+                return createProductCell(
+                  item
+                )
               }
+            ),
+          })
+        )
+      }
 
-              return createProductCell(
-                item
-              )
-            }
-          ),
-        })
-      )
-    }
-
-    const table = new Table({
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE,
-      },
-
-      rows,
-    })
-
-    const doc = new Document({
-      sections: [
-        {
-          children: [table],
+      const table = new Table({
+        width: {
+          size: 100,
+          type:
+            WidthType.PERCENTAGE,
         },
-      ],
-    })
 
-    const blob =
-      await Packer.toBlob(doc)
+        rows,
+      })
 
-    saveAs(
-      blob,
-      'BARCODE-PRODUCTS.docx'
-    )
+      const doc = new Document({
+        sections: [
+          {
+            children: [table],
+          },
+        ],
+      })
 
-    setLoading(false)
+      const blob =
+        await Packer.toBlob(doc)
+
+      const url =
+        window.URL.createObjectURL(
+          blob
+        )
+
+      const a =
+        document.createElement('a')
+
+      a.href = url
+
+      a.download =
+        'BARCODE-PRODUCTS.docx'
+
+      document.body.appendChild(a)
+
+      a.click()
+
+      a.remove()
+
+      window.URL.revokeObjectURL(
+        url
+      )
+    } catch (error) {
+      console.error(error)
+
+      alert(
+        'Terjadi error saat membuat Word'
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <main className="min-h-screen bg-white p-6">
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 print:hidden">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold text-black">
             Print Barcode
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Download barcode ke Word
+            Download barcode ke
+            Word
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <button
             onClick={selectAll}
-            className="border px-4 py-3 rounded-xl"
+            className="border border-gray-300 px-4 py-3 rounded-xl"
           >
             Pilih Semua
           </button>
 
           <button
             onClick={deselectAll}
-            className="border px-4 py-3 rounded-xl"
+            className="border border-gray-300 px-4 py-3 rounded-xl"
           >
             Batal Semua
           </button>
@@ -400,12 +453,14 @@ export default function PrintBarcodePage() {
         </div>
       </div>
 
+      {/* LOADING */}
       {loading && (
-        <div className="mb-5 bg-blue-50 border border-blue-200 p-4 rounded-xl">
+        <div className="mb-5 bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-xl font-semibold">
           Processing...
         </div>
       )}
 
+      {/* GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
         {products.map((item) => {
           const isSelected =
@@ -416,10 +471,10 @@ export default function PrintBarcodePage() {
           return (
             <div
               key={item.id}
-              className={`border rounded-2xl p-4 text-center transition ${
+              className={`border rounded-2xl p-4 text-center transition-all ${
                 isSelected
-                  ? 'border-blue-500'
-                  : 'opacity-40'
+                  ? 'border-blue-500 ring-2 ring-blue-100'
+                  : 'opacity-40 border-gray-200'
               }`}
             >
               <label className="flex items-center gap-2 mb-3 cursor-pointer">
@@ -450,7 +505,7 @@ export default function PrintBarcodePage() {
                 />
               )}
 
-              <h2 className="font-bold mt-3 text-sm">
+              <h2 className="font-bold mt-3 text-sm text-black">
                 {item.name}
               </h2>
 
@@ -462,7 +517,7 @@ export default function PrintBarcodePage() {
                 {item.color}
               </p>
 
-              <div className="mt-2 text-xs font-semibold break-all">
+              <div className="mt-2 text-xs font-semibold break-all text-black">
                 {item.barcode}
               </div>
             </div>
