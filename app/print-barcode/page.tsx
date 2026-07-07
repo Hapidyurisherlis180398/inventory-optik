@@ -1,21 +1,23 @@
 'use client'
 
-import {
-  useEffect,
-  useState,
-} from 'react'
-
+import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
+import { saveAs } from 'file-saver'
 
 import { supabase } from '../../lib/supabase'
 
 import {
-  Document,
-  Packer,
-  TextRun,
-  ImageRun,
-  Textbox,
   AlignmentType,
+  Document,
+  ImageRun,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+  BorderStyle,
 } from 'docx'
 
 export default function PrintBarcodePage() {
@@ -35,7 +37,50 @@ export default function PrintBarcodePage() {
     (item) => selectedIds.has(String(item.id))
   )
 
-  function toggleSelect(id: string | number) {
+  useEffect(() => {
+    getProducts()
+  }, [])
+
+  async function getProducts() {
+    setLoading(true)
+
+    const { data } =
+      await supabase
+        .from('products')
+        .select('*')
+        .order('name', {
+          ascending: true,
+        })
+
+    if (data) {
+      setProducts(data)
+
+      setSelectedIds(
+        new Set(data.map((item) => String(item.id)))
+      )
+
+      const tempQr: any = {}
+
+      for (const item of data) {
+        tempQr[item.id] =
+          await QRCode.toDataURL(
+            item.barcode || '-',
+            {
+              width: 300,
+              margin: 1,
+            }
+          )
+      }
+
+      setQrCodes(tempQr)
+    }
+
+    setLoading(false)
+  }
+
+  function toggleSelect(
+    id: string | number
+  ) {
     const key = String(id)
 
     setSelectedIds((prev) => {
@@ -53,7 +98,7 @@ export default function PrintBarcodePage() {
 
   function selectAll() {
     setSelectedIds(
-      new Set(products.map((item) => String(item.id)))
+      new Set(products.map((i) => String(i.id)))
     )
   }
 
@@ -61,52 +106,10 @@ export default function PrintBarcodePage() {
     setSelectedIds(new Set())
   }
 
-  async function getProducts() {
-    setLoading(true)
-
-    const { data } =
-      await supabase
-        .from('products')
-        .select('*')
-        .order('name', {
-          ascending: true,
-        })
-
-    if (data) {
-      setProducts(data)
-      setSelectedIds(
-        new Set(data.map((item) => String(item.id)))
-      )
-
-      const tempQr: any = {}
-
-      for (const item of data) {
-        tempQr[item.id] =
-          await QRCode.toDataURL(
-            item.barcode
-          )
-      }
-
-      setQrCodes(tempQr)
-    }
-
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    getProducts()
-  }, [])
-
   function printPage() {
-    if (selectedProducts.length === 0) {
-      alert('Pilih minimal 1 produk untuk dicetak.')
-      return
-    }
-
     window.print()
   }
 
-  // CONVERT BASE64 TO UINT8ARRAY
   function base64ToUint8Array(
     base64: string
   ) {
@@ -119,11 +122,15 @@ export default function PrintBarcodePage() {
     const binaryString =
       window.atob(base64Data)
 
-    const len = binaryString.length
+    const bytes = new Uint8Array(
+      binaryString.length
+    )
 
-    const bytes = new Uint8Array(len)
-
-    for (let i = 0; i < len; i++) {
+    for (
+      let i = 0;
+      i < binaryString.length;
+      i++
+    ) {
       bytes[i] =
         binaryString.charCodeAt(i)
     }
@@ -131,114 +138,209 @@ export default function PrintBarcodePage() {
     return bytes
   }
 
-  function createBarcodeTextbox(
-    item: any,
-    imageData: Uint8Array,
-    index: number
+  function createProductCell(
+    item: any
   ) {
-    const cols = 3
-    const boxWidthPt = 145
-    const boxHeightPt = 210
-    const gapPt = 12
-    const marginPt = 24
-    const col = index % cols
-    const row = Math.floor(index / cols)
+    const qrBase64 =
+      qrCodes[item.id]
 
-    return new Textbox({
-      alignment: AlignmentType.CENTER,
+    if (!qrBase64) {
+      return new TableCell({
+        children: [
+          new Paragraph('No QR'),
+        ],
+      })
+    }
+
+    const imageData =
+      base64ToUint8Array(qrBase64)
+
+    return new TableCell({
+      width: {
+        size: 33,
+        type: WidthType.PERCENTAGE,
+      },
+
+      margins: {
+        top: 120,
+        bottom: 120,
+        left: 120,
+        right: 120,
+      },
+
+      borders: {
+        top: {
+          style: BorderStyle.SINGLE,
+          size: 1,
+          color: '000000',
+        },
+        bottom: {
+          style: BorderStyle.SINGLE,
+          size: 1,
+          color: '000000',
+        },
+        left: {
+          style: BorderStyle.SINGLE,
+          size: 1,
+          color: '000000',
+        },
+        right: {
+          style: BorderStyle.SINGLE,
+          size: 1,
+          color: '000000',
+        },
+      },
+
       children: [
-        new ImageRun({
-          type: 'png',
-          data: imageData,
-          transformation: {
-            width: 90,
-            height: 90,
+        new Paragraph({
+          alignment:
+            AlignmentType.CENTER,
+
+          children: [
+            new ImageRun({
+              data: imageData,
+              transformation: {
+                width: 100,
+                height: 100,
+              },
+              type: 'png',
+            }),
+          ],
+        }),
+
+        new Paragraph({
+          alignment:
+            AlignmentType.CENTER,
+
+          spacing: {
+            after: 80,
           },
+
+          children: [
+            new TextRun({
+              text:
+                item.name || '-',
+              bold: true,
+              size: 20,
+            }),
+          ],
         }),
-        new TextRun({
-          text: item.name || '-',
-          bold: true,
-          size: 22,
-          break: 1,
+
+        new Paragraph({
+          alignment:
+            AlignmentType.CENTER,
+
+          children: [
+            new TextRun({
+              text: `SKU : ${
+                item.sku || '-'
+              }`,
+              size: 18,
+            }),
+          ],
         }),
-        new TextRun({
-          text: `SKU : ${item.sku || '-'}`,
-          size: 18,
-          break: 1,
+
+        new Paragraph({
+          alignment:
+            AlignmentType.CENTER,
+
+          children: [
+            new TextRun({
+              text: `COLOR : ${
+                item.color || '-'
+              }`,
+              size: 18,
+            }),
+          ],
         }),
-        new TextRun({
-          text: `COLOR : ${item.color || '-'}`,
-          size: 18,
-          break: 1,
-        }),
-        new TextRun({
-          text: item.barcode || '-',
-          bold: true,
-          size: 20,
-          break: 1,
+
+        new Paragraph({
+          alignment:
+            AlignmentType.CENTER,
+
+          spacing: {
+            before: 60,
+          },
+
+          children: [
+            new TextRun({
+              text:
+                item.barcode ||
+                '-',
+              bold: true,
+              size: 20,
+            }),
+          ],
         }),
       ],
-      style: {
-        width: `${boxWidthPt}pt`,
-        height: 'auto',
-        position: 'absolute',
-        left: `${marginPt + col * (boxWidthPt + gapPt)}pt`,
-        top: `${marginPt + row * (boxHeightPt + gapPt)}pt`,
-        wrapStyle: 'none',
-      },
     })
   }
 
-  // DOWNLOAD WORD
   async function downloadWord() {
-    if (selectedProducts.length === 0) {
-      alert('Pilih minimal 1 produk untuk didownload.')
+    if (
+      selectedProducts.length === 0
+    ) {
+      alert(
+        'Pilih minimal 1 produk.'
+      )
       return
     }
 
     setLoading(true)
 
-    const children: Textbox[] = []
-    let boxIndex = 0
+    const rows: TableRow[] = []
 
-    for (const item of selectedProducts) {
-      const qrBase64 =
-        qrCodes[item.id]
-
-      if (!qrBase64) continue
-
-      const imageData =
-        base64ToUint8Array(
-          qrBase64
+    for (
+      let i = 0;
+      i < selectedProducts.length;
+      i += 3
+    ) {
+      const chunk =
+        selectedProducts.slice(
+          i,
+          i + 3
         )
 
-      children.push(
-        createBarcodeTextbox(
-          item,
-          imageData,
-          boxIndex
-        )
+      while (chunk.length < 3) {
+        chunk.push(null)
+      }
+
+      rows.push(
+        new TableRow({
+          children: chunk.map(
+            (item) => {
+              if (!item) {
+                return new TableCell({
+                  children: [
+                    new Paragraph(
+                      ''
+                    ),
+                  ],
+                })
+              }
+
+              return createProductCell(
+                item
+              )
+            }
+          ),
+        })
       )
-
-      boxIndex += 1
     }
 
-    const lastRow = Math.ceil(children.length / 3)
-    const pageHeightPt =
-      24 + lastRow * 222
+    const table = new Table({
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE,
+      },
+
+      rows,
+    })
 
     const doc = new Document({
       sections: [
         {
-          properties: {
-            page: {
-              size: {
-                height: `${Math.max(pageHeightPt, 842)}pt`,
-              },
-            },
-          },
-
-          children,
+          children: [table],
         },
       ],
     })
@@ -246,23 +348,9 @@ export default function PrintBarcodePage() {
     const blob =
       await Packer.toBlob(doc)
 
-    const url =
-      window.URL.createObjectURL(
-        blob
-      )
-
-    const a =
-      document.createElement('a')
-
-    a.href = url
-
-    a.download =
+    saveAs(
+      blob,
       'BARCODE-PRODUCTS.docx'
-
-    a.click()
-
-    window.URL.revokeObjectURL(
-      url
     )
 
     setLoading(false)
@@ -270,125 +358,116 @@ export default function PrintBarcodePage() {
 
   return (
     <main className="min-h-screen bg-white p-6">
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 print:hidden">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold">
             Print Barcode
           </h1>
 
           <p className="text-gray-500 mt-2">
-            Cetak dan download
-            barcode produk
+            Download barcode ke Word
           </p>
         </div>
 
-        <div className="flex flex-col items-start md:items-end gap-3">
-          <p className="text-sm text-gray-600">
-            {selectedIds.size} dari {products.length} produk dipilih
-          </p>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={selectAll}
+            className="border px-4 py-3 rounded-xl"
+          >
+            Pilih Semua
+          </button>
 
-          <div className="flex gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={selectAll}
-              className="border border-gray-300 text-gray-700 px-4 py-3 rounded-2xl hover:bg-gray-50"
-            >
-              Pilih Semua
-            </button>
+          <button
+            onClick={deselectAll}
+            className="border px-4 py-3 rounded-xl"
+          >
+            Batal Semua
+          </button>
 
-            <button
-              type="button"
-              onClick={deselectAll}
-              className="border border-gray-300 text-gray-700 px-4 py-3 rounded-2xl hover:bg-gray-50"
-            >
-              Batal Semua
-            </button>
+          <button
+            onClick={printPage}
+            className="bg-black text-white px-5 py-3 rounded-xl"
+          >
+            Print
+          </button>
 
-            <button
-              onClick={printPage}
-              disabled={selectedIds.size === 0}
-              className="bg-black text-white px-6 py-3 rounded-2xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Print Barcode
-            </button>
-
-            <button
-              onClick={downloadWord}
-              disabled={selectedIds.size === 0}
-              className="bg-blue-600 text-white px-6 py-3 rounded-2xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Download Word
-            </button>
-          </div>
+          <button
+            onClick={downloadWord}
+            className="bg-blue-600 text-white px-5 py-3 rounded-xl"
+          >
+            Download Word
+          </button>
         </div>
       </div>
 
-      {/* LOADING */}
       {loading && (
-        <div className="mb-5 bg-blue-50 text-blue-700 border border-blue-200 rounded-2xl p-4 font-semibold">
+        <div className="mb-5 bg-blue-50 border border-blue-200 p-4 rounded-xl">
           Processing...
         </div>
       )}
 
-      {/* GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5">
         {products.map((item) => {
-          const isSelected = selectedIds.has(String(item.id))
+          const isSelected =
+            selectedIds.has(
+              String(item.id)
+            )
 
           return (
-          <div
-            key={item.id}
-            className={`border rounded-2xl p-4 flex flex-col items-center text-center bg-white transition-colors ${
-              isSelected
-                ? 'border-blue-500 ring-2 ring-blue-100'
-                : 'border-gray-200 opacity-60 print:hidden'
-            }`}
-          >
-            <label className="w-full flex items-center gap-2 mb-3 cursor-pointer print:hidden">
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggleSelect(item.id)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-xs font-medium text-gray-600">
-                {isSelected ? 'Dipilih' : 'Tidak dipilih'}
-              </span>
-            </label>
+            <div
+              key={item.id}
+              className={`border rounded-2xl p-4 text-center transition ${
+                isSelected
+                  ? 'border-blue-500'
+                  : 'opacity-40'
+              }`}
+            >
+              <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={
+                    isSelected
+                  }
+                  onChange={() =>
+                    toggleSelect(
+                      item.id
+                    )
+                  }
+                />
 
-            {/* QR */}
-            {qrCodes[item.id] && (
-              <img
-                src={
-                  qrCodes[item.id]
-                }
-                alt="QR"
-                className="w-32 h-32"
-              />
-            )}
+                <span className="text-sm">
+                  Pilih
+                </span>
+              </label>
 
-            {/* PRODUCT */}
-            <h2 className="font-bold text-sm mt-3 text-gray-900">
-              {item.name}
-            </h2>
+              {qrCodes[item.id] && (
+                <img
+                  src={
+                    qrCodes[item.id]
+                  }
+                  alt="QR"
+                  className="w-28 h-28 mx-auto"
+                />
+              )}
 
-            {/* SKU */}
-            <p className="text-xs text-gray-500 mt-1">
-              {item.sku}
-            </p>
+              <h2 className="font-bold mt-3 text-sm">
+                {item.name}
+              </h2>
 
-            {/* COLOR */}
-            <p className="text-xs text-gray-500">
-              {item.color}
-            </p>
+              <p className="text-xs text-gray-500">
+                {item.sku}
+              </p>
 
-            {/* BARCODE */}
-            <div className="mt-2 text-xs font-semibold break-all text-gray-900">
-              {item.barcode}
+              <p className="text-xs text-gray-500">
+                {item.color}
+              </p>
+
+              <div className="mt-2 text-xs font-semibold break-all">
+                {item.barcode}
+              </div>
             </div>
-          </div>
-        )})}
+          )
+        })}
       </div>
     </main>
   )
