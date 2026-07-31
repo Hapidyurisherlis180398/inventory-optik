@@ -4,7 +4,13 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 
-type SortKey = 'name' | 'sku' | 'color' | 'stock' | 'updated_at'
+type SortKey =
+  | 'name'
+  | 'sku'
+  | 'live_code'
+  | 'color'
+  | 'stock'
+  | 'updated_at'
 type SortDir = 'asc' | 'desc'
 
 export default function Home() {
@@ -163,6 +169,14 @@ export default function Home() {
               </th>
 
               <th
+                className="border p-2 text-left"
+                onClick={() => toggleSort('live_code')}
+              >
+                Kode Live ↕
+              </th>
+              
+
+              <th
                 className="border p-2 cursor-pointer text-left font-bold"
                 onClick={() => toggleSort('sku')}
               >
@@ -218,6 +232,33 @@ export default function Home() {
                   <td className="border p-2 font-bold">
                     {item.sku}
                   </td>
+
+                  {/* LIVE CODE */}
+                  <td className="border p-2">
+                  {editingId === item.id ? (
+                   <div className="flex gap-2">
+                    <input
+                      value={liveCode}
+                      onChange={(e) => setLiveCode(e.target.value)}
+                      className="border px-2 py-1 rounded w-28"
+                    />
+
+                    <button
+                      onClick={() => saveLiveCode(item.id)}
+                      className="bg-green-600 text-white px-2 rounded"
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => editLiveCode(item)}
+                    className="cursor-pointer font-bold text-blue-600 hover:underline"
+                  >
+                    {item.live_code || '+ Tambah'}
+                  </div>
+                )}
+                
 
                   {/* COLOR (smooth badge style) */}
                   <td className="border p-2">
