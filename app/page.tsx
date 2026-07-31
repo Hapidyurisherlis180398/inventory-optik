@@ -229,7 +229,7 @@ export default function Home() {
                   </td>
 
                   {/* LIVE CODE */}
-                  <td className="border p-2 text">
+                  <td className="border p-2 text-center">
                     {editingId === item.id ? (
                       <div className="flex gap-2 justify-center">
                         <input
@@ -250,7 +250,7 @@ export default function Home() {
                     ) : (
                       <div
                         onClick={() => editLiveCode(item)}
-                        className="cursor-pointer font-bold text-blue-600 hover:underline"
+                        className="cursor-pointer font-bold text-blue-600 hover:underline text-center"
                       >
                         {item.live_code || '+ Tambah'}
                       </div>
