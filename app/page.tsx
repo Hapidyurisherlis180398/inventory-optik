@@ -169,7 +169,7 @@ export default function Home() {
               </th>
 
               <th
-                className="border p-2 text-left"
+                className="border p-2 cursor-pointer text-left"
                 onClick={() => toggleSort('live_code')}
               >
                 Kode Live ↕
@@ -228,37 +228,36 @@ export default function Home() {
                     {item.name}
                   </td>
 
+                  {/* LIVE CODE */}
+                  <td className="border p-2">
+                    {editingId === item.id ? (
+                      <div className="flex gap-2">
+                        <input
+                          value={liveCode}
+                          onChange={(e) => setLiveCode(e.target.value)}
+                          className="border px-2 py-1 rounded w-28"
+                        />
+                        <button
+                          onClick={() => saveLiveCode(item.id)}
+                          className="bg-green-600 text-white px-2 rounded"
+                        >
+                          Simpan
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => editLiveCode(item)}
+                        className="cursor-pointer font-bold text-blue-600 hover:underline"
+                      >
+                        {item.live_code || '+ Tambah'}
+                      </div>
+                    )}
+                  </td>
+
                   {/* SKU BOLD */}
                   <td className="border p-2 font-bold">
                     {item.sku}
                   </td>
-
-                  {/* LIVE CODE */}
-                  <td className="border p-2">
-                  {editingId === item.id ? (
-                   <div className="flex gap-2">
-                    <input
-                      value={liveCode}
-                      onChange={(e) => setLiveCode(e.target.value)}
-                      className="border px-2 py-1 rounded w-28"
-                    />
-
-                    <button
-                      onClick={() => saveLiveCode(item.id)}
-                      className="bg-green-600 text-white px-2 rounded"
-                    >
-                      Simpan
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => editLiveCode(item)}
-                    className="cursor-pointer font-bold text-blue-600 hover:underline"
-                  >
-                    {item.live_code || '+ Tambah'}
-                  </div>
-                )}
-                
 
                   {/* COLOR (smooth badge style) */}
                   <td className="border p-2">
