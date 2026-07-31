@@ -44,9 +44,9 @@ const menus = [
     icon: "🎥",
   },
   {
-    title: "Live A-Cape",
-    description: "Monitoring stok live A-Cape",
-    url: "https://inventory-optik-ten.vercel.app/live/a-cape",
+    title: "Live A-Yuska",
+    description: "Monitoring stok live A-Yuska",
+    url: "https://inventory-optik-ten.vercel.app/live/a-yuska",
     icon: "📺",
   },
   {
