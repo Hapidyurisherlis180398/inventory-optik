@@ -170,7 +170,7 @@ export default function Home() {
               </th>
 
               <th
-                className="border p-2 cursor-pointer text-left"
+                className="border p-2 cursor-pointer text-center"
                 onClick={() => toggleSort('live_code')}
               >
                 Kode Live ↕
@@ -229,9 +229,9 @@ export default function Home() {
                   </td>
 
                   {/* LIVE CODE */}
-                  <td className="border p-2">
+                  <td className="border p-2 text">
                     {editingId === item.id ? (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 justify-center">
                         <input
                           value={liveCode}
                           onChange={(e) => setLiveCode(e.target.value)}
