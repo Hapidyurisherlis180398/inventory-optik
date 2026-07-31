@@ -56,6 +56,12 @@ const menus = [
     icon: "🎬",
   },
   {
+    title: "Live A-Paruk",
+    description: "Monitoring stok live A-Paruk",
+    url: "https://inventory-optik-ten.vercel.app/live/a-paruk",
+    icon: "🎬",
+  },
+  {
     title: "Scanner",
     description: "Scan Barcode Frame",
     url: "https://inventory-optik-ten.vercel.app/scan",
