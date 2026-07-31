@@ -229,32 +229,34 @@ export default function Home() {
                   </td>
 
                   {/* LIVE CODE */}
-                  <td className="border p-2 text-center">
-                    {editingId === item.id ? (
-                      <div className="flex gap-2 justify-center">
-                        <input
-                          value={liveCode}
-                          onChange={(e) => setLiveCode(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveLiveCode(item.id)
-                          }}
-                          className="border px-2 py-1 rounded w-28"
-                        />
-                        <button
-                          onClick={() => saveLiveCode(item.id)}
-                          className="bg-green-600 text-white px-2 rounded"
+                  <td className="border p-2">
+                    <div className="flex justify-center items-center">
+                      {editingId === item.id ? (
+                        <div className="flex gap-2">
+                          <input
+                            value={liveCode}
+                            onChange={(e) => setLiveCode(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveLiveCode(item.id)
+                            }}
+                            className="border px-2 py-1 rounded w-28 text-center"
+                          />
+                          <button
+                            onClick={() => saveLiveCode(item.id)}
+                            className="bg-green-600 text-white px-2 rounded"
+                          >
+                            Simpan
+                          </button>
+                        </div>
+                      ) : (
+                        <span
+                          onClick={() => editLiveCode(item)}
+                          className="cursor-pointer font-bold text-blue-600 hover:underline"
                         >
-                          Simpan
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => editLiveCode(item)}
-                        className="cursor-pointer font-bold text-blue-600 hover:underline text-center"
-                      >
-                        {item.live_code || '+ Tambah'}
-                      </div>
-                    )}
+                          {item.live_code || '+ Tambah'}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* SKU */}
