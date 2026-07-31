@@ -24,7 +24,7 @@ export default function AUsupPage() {
 
     const { data, error } =
       await supabase
-        .from('live_reports_a_cape')
+        .from('live_reports_a_yuska')
         .select('*')
         .order('id', {
           ascending: true,
@@ -251,7 +251,7 @@ export default function AUsupPage() {
         data: existing,
       } = await supabase
         .from(
-          'live_reports_a_cape'
+          'live_reports_a_yuska'
         )
         .select('id')
         .eq('order_id', orderId)
@@ -264,7 +264,7 @@ export default function AUsupPage() {
       // INSERT
       await supabase
         .from(
-          'live_reports_a_cape'
+          'live_reports_a_yuska'
         )
         .insert([
           {
@@ -317,7 +317,7 @@ export default function AUsupPage() {
     const { data: rows } =
       await supabase
         .from(
-          'live_reports_a_cape'
+          'live_reports_a_yuska'
         )
         .select('*')
         .eq('status', waktu)
@@ -332,7 +332,7 @@ export default function AUsupPage() {
 
     await supabase
       .from(
-        'live_reports_a_cape'
+        'live_reports_a_yuska'
       )
       .delete()
       .eq('status', waktu)
@@ -356,7 +356,7 @@ export default function AUsupPage() {
               </p>
 
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                HASIL LIVE A CAPE
+                HASIL LIVE A YUSKA
               </h1>
 
               <p className="text-gray-500 mt-3 text-sm md:text-base">
