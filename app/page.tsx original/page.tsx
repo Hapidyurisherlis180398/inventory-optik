@@ -9,8 +9,6 @@ type SortDir = 'asc' | 'desc'
 
 export default function Home() {
   const [products, setProducts] = useState<any[]>([])
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [liveCode, setLiveCode] = useState('')
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('sku')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -77,34 +75,6 @@ export default function Home() {
     XLSX.writeFile(wb, 'stok.xlsx')
   }
 
-  async function editLiveCode(item: any) {
-    const password = prompt('Masukkan Password Admin')
-  
-    if (password !== '000') {
-      alert('Password salah')
-      return
-    }
-  
-    setEditingId(item.id)
-    setLiveCode(item.live_code || '')
-  }
-  
-  async function saveLiveCode(id: string) {
-    const { error } = await supabase
-      .from('products')
-      .update({
-        live_code: liveCode,
-      })
-      .eq('id', id)
-  
-    if (error) {
-      alert('Gagal menyimpan')
-      return
-    }
-  
-    setEditingId(null)
-    getProducts()
-  }
   return (
     <main className="min-h-screen bg-white text-black p-6">
 
