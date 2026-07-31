@@ -20,6 +20,12 @@ const menus = [
     icon: "💰",
   },
   {
+    title: "Tambah Stok",
+    description: "Menambah stok barang",
+    url: "https://inventory-optik-ten.vercel.app/tambah-stok",
+    icon: "📦",
+  },
+  {
     title: "Kurangi Stok",
     description: "Mengurangi stok barang",
     url: "https://inventory-optik-ten.vercel.app/kurangi-stok",
@@ -30,12 +36,6 @@ const menus = [
     description: "Laporan stok dan transaksi",
     url: "https://inventory-optik-ten.vercel.app/laporan",
     icon: "📊",
-  },
-  {
-    title: "Tambah Stok",
-    description: "Menambah stok barang",
-    url: "https://inventory-optik-ten.vercel.app/tambah-stok",
-    icon: "📦",
   },
   {
     title: "Live A-Usup",
@@ -66,6 +66,12 @@ const menus = [
     description: "Scan Barcode Frame",
     url: "https://inventory-optik-ten.vercel.app/scan",
     icon: "📷",
+  },
+  {
+    title: "Print Barcode Frame",
+    description: "Print Barcode Frame",
+    url: "https://inventory-optik-ten.vercel.app/print-barcode",
+    icon: "🖨️",
   },
   {
     title: "Finance Tracker",
