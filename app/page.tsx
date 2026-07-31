@@ -85,16 +85,16 @@ export default function Home() {
 
   async function editLiveCode(item: any) {
     const password = prompt('Masukkan Password Admin')
-  
+
     if (password !== '000') {
       alert('Password salah')
       return
     }
-  
+
     setEditingId(item.id)
     setLiveCode(item.live_code || '')
   }
-  
+
   async function saveLiveCode(id: string) {
     const { error } = await supabase
       .from('products')
@@ -102,15 +102,16 @@ export default function Home() {
         live_code: liveCode,
       })
       .eq('id', id)
-  
+
     if (error) {
       alert('Gagal menyimpan')
       return
     }
-  
+
     setEditingId(null)
     getProducts()
   }
+
   return (
     <main className="min-h-screen bg-white text-black p-6">
 
@@ -174,7 +175,6 @@ export default function Home() {
               >
                 Kode Live ↕
               </th>
-              
 
               <th
                 className="border p-2 cursor-pointer text-left font-bold"
@@ -218,7 +218,7 @@ export default function Home() {
                   className="hover:bg-gray-50 transition-all duration-200"
                 >
 
-                  {/* NO CENTER */}
+                  {/* NO */}
                   <td className="border p-2 text-center">
                     {i + 1}
                   </td>
@@ -235,6 +235,9 @@ export default function Home() {
                         <input
                           value={liveCode}
                           onChange={(e) => setLiveCode(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveLiveCode(item.id)
+                          }}
                           className="border px-2 py-1 rounded w-28"
                         />
                         <button
@@ -254,19 +257,19 @@ export default function Home() {
                     )}
                   </td>
 
-                  {/* SKU BOLD */}
+                  {/* SKU */}
                   <td className="border p-2 font-bold">
                     {item.sku}
                   </td>
 
-                  {/* COLOR (smooth badge style) */}
+                  {/* COLOR */}
                   <td className="border p-2">
                     <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition">
                       {item.color}
                     </span>
                   </td>
 
-                  {/* STOCK BADGE CENTER */}
+                  {/* STOCK */}
                   <td className="border p-2 text-center">
                     <span
                       className={`px-2 py-1 rounded-md text-xs font-bold ${
@@ -281,7 +284,7 @@ export default function Home() {
                     </span>
                   </td>
 
-                  {/* UPDATE CENTER */}
+                  {/* UPDATE */}
                   <td className="border p-2 text-center text-xs text-gray-600">
                     {new Date(item.updated_at).toLocaleString('id-ID')}
                   </td>
