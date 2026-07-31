@@ -163,14 +163,14 @@ export default function Home() {
               <th className="border p-2 text-center">No</th>
 
               <th
-                className="border p-2 cursor-pointer text-left"
+                className="border p-2 cursor-pointer text-center"
                 onClick={() => toggleSort('name')}
               >
                 Nama Frame ↕
               </th>
 
               <th
-                className="border p-2 cursor-pointer text-left"
+                className="border p-2 cursor-pointer text-center"
                 onClick={() => toggleSort('live_code')}
               >
                 Kode Live ↕
@@ -229,9 +229,9 @@ export default function Home() {
                   </td>
 
                   {/* LIVE CODE */}
-                  <td className="border p-2">
+                  <td className="border p-2 text-center">
                     {editingId === item.id ? (
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 justify-center">
                         <input
                           value={liveCode}
                           onChange={(e) => setLiveCode(e.target.value)}
@@ -263,7 +263,7 @@ export default function Home() {
                   </td>
 
                   {/* COLOR */}
-                  <td className="border p-2">
+                  <td className="border p-2 text-center">
                     <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition">
                       {item.color}
                     </span>
