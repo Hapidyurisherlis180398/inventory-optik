@@ -24,6 +24,9 @@ export default function IncomePage() {
     setTotalTerbayarReport,
   ] = useState(0)
 
+  // TAMBAHAN: State untuk menyimpan mapping sumber berdasarkan order_id
+  const [liveReportsMap, setLiveReportsMap] = useState<Record<string, string>>({})
+
   async function getData() {
     setLoading(true)
 
@@ -82,37 +85,47 @@ export default function IncomePage() {
 
     let totalReport = 0
 
-    // A USUP
+    // A USUP (Ditambahkan order_id pada select)
     const { data: aUsup } =
       await supabase
         .from('live_reports_a_usup')
         .select(
-          'total_pendapatan,status'
+          'order_id,total_pendapatan,status'
         )
 
-    // A AGIL
+    // AGIL (Ditambahkan order_id pada select)
     const { data: aAgil } =
       await supabase
         .from('live_reports_a_agil')
         .select(
-          'total_pendapatan,status'
+          'order_id,total_pendapatan,status'
         )
 
-    // A PARUK
+    // A PARUK (Ditambahkan order_id pada select)
     const { data: aParuk } =
       await supabase
         .from('live_reports_a_paruk')
         .select(
-          'total_pendapatan,status'
+          'order_id,total_pendapatan,status'
         )
 
-    // A YUSKA
+    // A YUSKA (Ditambahkan order_id pada select)
     const { data: aYuska } =
       await supabase
         .from('live_reports_a_yuska')
         .select(
-          'total_pendapatan,status'
+          'order_id,total_pendapatan,status'
         )
+
+    // TAMBAHAN: Proses mapping untuk menentukan order_id ini dari sumber mana
+    const tempMap: Record<string, string> = {}
+    if (aUsup) aUsup.forEach((item) => { if (item.order_id) tempMap[item.order_id] = 'A Usup' })
+    if (aAgil) aAgil.forEach((item) => { if (item.order_id) tempMap[item.order_id] = 'A Agil' })
+    if (aParuk) aParuk.forEach((item) => { if (item.order_id) tempMap[item.order_id] = 'A Paruk' })
+    if (aYuska) aYuska.forEach((item) => { if (item.order_id) tempMap[item.order_id] = 'A Yuska' })
+    
+    // Simpan ke state
+    setLiveReportsMap(tempMap)
 
     const semuaReport = [
       ...(aUsup || []),
@@ -480,14 +493,20 @@ export default function IncomePage() {
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
                     Total Pendapatan
                   </th>
+                  
+                  {/* TAMBAHAN: Kolom Header Ket Hasil Live */}
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
+                    Ket Hasil Live
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
+                    {/* Dirubah menjadi colSpan 5 karena nambah 1 kolom */}
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="text-center p-12 text-gray-500"
                     >
                       Loading...
@@ -496,8 +515,9 @@ export default function IncomePage() {
                 ) : data.length ===
                   0 ? (
                   <tr>
+                    {/* Dirubah menjadi colSpan 5 karena nambah 1 kolom */}
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="text-center p-12 text-gray-500"
                     >
                       Belum ada data
@@ -539,6 +559,13 @@ export default function IncomePage() {
                             {
                               item.total_pendapatan
                             }
+                          </span>
+                        </td>
+                        
+                        {/* TAMBAHAN: Menampilkan nama sumber live_reports atau default ke Hasil Live Hapid */}
+                        <td className="p-5">
+                          <span className="inline-flex px-3 py-1 bg-purple-50 text-purple-700 font-semibold text-xs rounded-full border border-purple-200">
+                            {liveReportsMap[item.order_id] || 'Hasil Live Hapid'}
                           </span>
                         </td>
                       </tr>
