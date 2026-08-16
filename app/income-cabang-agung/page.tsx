@@ -304,10 +304,13 @@ export default function IncomePage() {
 
               {/* SINKRON */}
               <button
-                onClick={
-                  sinkronkanIncome
-                }
-                className="bg-green-600 hover:bg-green-700 transition-all text-white px-6 py-4 rounded-2xl font-semibold shadow-sm"
+                onClick={sinkronkanIncome}
+                disabled={!isIncomeUpdated}
+                className={`transition-all px-6 py-4 rounded-2xl font-semibold shadow-sm ${
+                  !isIncomeUpdated
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
               >
                 Sinkronkan Income
               </button>
