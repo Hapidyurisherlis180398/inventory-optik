@@ -368,9 +368,7 @@ export default function IncomePage() {
             </div>
 
             <p className="text-sm text-gray-500 mb-2">
-              Total Uang Sudah
-              Terbayar dari Semua
-              Report
+              Total Omset Cabang Agung
             </p>
 
             <h2 className="text-3xl font-bold text-yellow-600">
@@ -416,7 +414,7 @@ export default function IncomePage() {
                   </th>
 
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    Total Pendapatan
+                    Total Semua Omset Toko
                   </th>
                 </tr>
               </thead>
