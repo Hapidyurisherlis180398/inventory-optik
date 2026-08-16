@@ -8,7 +8,7 @@ export default function IncomePage() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] =
     useState(false)
-
+  const [isIncomeUpdated, setIsIncomeUpdated] = useState(false)
   const [
     totalPembayaran,
     setTotalPembayaran,
@@ -121,6 +121,7 @@ export default function IncomePage() {
       ...(aYuska || []),
     ]
 
+
     semuaReport.forEach((item) => {
       if (
         item.status &&
@@ -222,10 +223,8 @@ export default function IncomePage() {
         ])
     }
 
-    alert(
-      'Income terbaru berhasil diperbarui'
-    )
-
+    alert('Income terbaru berhasil diperbarui')
+    setIsIncomeUpdated(true)
     getData()
 
     setLoading(false)
@@ -271,60 +270,62 @@ export default function IncomePage() {
           waktuIndonesia,
       }
 
-      // UPDATE A USUP
+      /// UPDATE A USUP
       await supabase
-        .from(
-          'live_reports_a_usup'
-        )
-        .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
+      .from(
+        'live_reports_a_usup'
+      )
+      .update(updateData)
+      .eq(
+        'order_id',
+        orderId
+      )
 
-      // UPDATE A AGIL
-      await supabase
-        .from(
-          'live_reports_a_agil'
-        )
-        .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
+    // UPDATE A AGIL
+    await supabase
+      .from(
+        'live_reports_a_agil'
+      )
+      .update(updateData)
+      .eq(
+        'order_id',
+        orderId
+      )
 
-      // UPDATE A PARUK
-      await supabase
-        .from(
-          'live_reports_a_paruk'
-        )
-        .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
+    // UPDATE A PARUK
+    await supabase
+      .from(
+        'live_reports_a_paruk'
+      )
+      .update(updateData)
+      .eq(
+        'order_id',
+        orderId
+      )
 
-      // UPDATE A YUSKA
-      await supabase
-        .from(
-          'live_reports_a_yuska'
-        )
-        .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
+    // UPDATE A YUSKA
+    await supabase
+      .from(
+        'live_reports_a_yuska'
+      )
+      .update(updateData)
+      .eq(
+        'order_id',
+        orderId
+      )
     }
 
     alert(
-      'Sinkronisasi income berhasil'
+      'Sinkronisasi income berhasil dilakukan'
     )
-
+    setIsIncomeUpdated(false)
     getData()
 
     setLoading(false)
   }
-
+  // KALKULASI TOTAL OMSET CABANG HAPID
+  const totalOmsetHapid = totalPendapatan - totalTerbayarReport;
+  
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -342,7 +343,7 @@ export default function IncomePage() {
 
               <p className="text-gray-500 mt-3">
                 Monitoring income dan
-                sinkronisasi pembayaran
+                sinkronisasi pembayaran cabang agung
                 realtime
               </p>
             </div>
@@ -364,10 +365,13 @@ export default function IncomePage() {
 
               {/* SINKRON */}
               <button
-                onClick={
-                  sinkronkanIncome
-                }
-                className="bg-green-600 hover:bg-green-700 transition-all text-white px-6 py-4 rounded-2xl font-semibold shadow-sm"
+                onClick={sinkronkanIncome}
+                disabled={!isIncomeUpdated}
+                className={`transition-all px-6 py-4 rounded-2xl font-semibold shadow-sm ${
+                  !isIncomeUpdated
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
               >
                 Sinkronkan Income
               </button>
@@ -384,23 +388,18 @@ export default function IncomePage() {
         )}
 
         {/* TOTAL */}
-        <div className="grid md:grid-cols-3 gap-5 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          
           {/* TOTAL PEMBAYARAN */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
               💳
             </div>
-
             <p className="text-sm text-gray-500 mb-2">
-              Total Jumlah
-              Penyelesaian
-              Pembayaran
+              Total Hasil Narik Toko
             </p>
-
             <h2 className="text-3xl font-bold text-gray-900">
-              {formatRupiah(
-                totalPembayaran
-              )}
+              {formatRupiah(totalPembayaran)}
             </h2>
           </div>
 
@@ -409,34 +408,37 @@ export default function IncomePage() {
             <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center mb-4">
               📈
             </div>
-
             <p className="text-sm text-gray-500 mb-2">
-              Total Pendapatan
+              Total Omset Toko
             </p>
-
             <h2 className="text-3xl font-bold text-green-700">
-              {formatRupiah(
-                totalPendapatan
-              )}
+              {formatRupiah(totalPendapatan)}
             </h2>
           </div>
 
-          {/* TOTAL TERBAYAR */}
+          {/* TOTAL TERBAYAR (CABANG HAPID) */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center mb-4">
               🏆
             </div>
-
             <p className="text-sm text-gray-500 mb-2">
-              Total Uang Sudah
-              Terbayar dari Semua
-              Report
+              Total Omset Live Cabang Hapid
             </p>
-
             <h2 className="text-3xl font-bold text-yellow-600">
-              {formatRupiah(
-                totalTerbayarReport
-              )}
+              {formatRupiah(totalTerbayarReport)}
+            </h2>
+          </div>
+
+          {/* TOTAL OMSET CABANG HAPID (BARU) */}
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-4">
+              🏪
+            </div>
+            <p className="text-sm text-gray-500 mb-2">
+              Total Omset Hapid 
+            </p>
+            <h2 className="text-3xl font-bold text-purple-700">
+              {formatRupiah(totalOmsetHapid)}
             </h2>
           </div>
         </div>
@@ -450,8 +452,8 @@ export default function IncomePage() {
             </h2>
 
             <p className="text-gray-500 text-sm mt-2">
-              Daftar seluruh data
-              income terbaru
+              Daftar seluruh data income
+              income terbaru 
             </p>
           </div>
 
