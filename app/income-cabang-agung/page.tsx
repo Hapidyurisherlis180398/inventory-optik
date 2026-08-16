@@ -32,7 +32,7 @@ export default function IncomePage() {
     // =========================
     const { data, error } =
       await supabase
-        .from('income')
+        .from('income-cabang-agung')
         .select('*')
         .order('id', {
           ascending: false,
@@ -82,43 +82,16 @@ export default function IncomePage() {
 
     let totalReport = 0
 
-    // A USUP
-    const { data: aUsup } =
+    // CABANG AGUNG
+    const { data: agung } =
       await supabase
-        .from('live_reports_a_usup')
-        .select(
-          'total_pendapatan,status'
-        )
-
-    // A AGIL
-    const { data: aAgil } =
-      await supabase
-        .from('live_reports_a_agil')
-        .select(
-          'total_pendapatan,status'
-        )
-
-    // A PARUK
-    const { data: aParuk } =
-      await supabase
-        .from('live_reports_a_paruk')
-        .select(
-          'total_pendapatan,status'
-        )
-
-    // A YUSKA
-    const { data: aYuska } =
-      await supabase
-        .from('live_reports_a_yuska')
+        .from('live_reports_agung')
         .select(
           'total_pendapatan,status'
         )
 
     const semuaReport = [
-      ...(aUsup || []),
-      ...(aAgil || []),
-      ...(aParuk || []),
-      ...(aYuska || []),
+      ...(agung || []),
     ]
 
     semuaReport.forEach((item) => {
@@ -173,7 +146,7 @@ export default function IncomePage() {
 
     // HAPUS DATA LAMA
     await supabase
-      .from('income')
+      .from('income-cabang-agung')
       .delete()
       .neq('id', 0)
 
@@ -204,7 +177,7 @@ export default function IncomePage() {
       if (!orderId) continue
 
       await supabase
-        .from('income')
+        .from('income-cabang-agung')
         .insert([
           {
             order_id: orderId,
@@ -247,11 +220,11 @@ export default function IncomePage() {
 
     const { data: incomes } =
       await supabase
-        .from('income')
+        .from('income-cabang-agung')
         .select('*')
 
     if (!incomes) {
-      alert('Data income kosong')
+      alert('Data income cabang agung kosong')
 
       setLoading(false)
 
@@ -271,43 +244,10 @@ export default function IncomePage() {
           waktuIndonesia,
       }
 
-      // UPDATE A USUP
+      // UPDATE CABANG AGUNG
       await supabase
         .from(
-          'live_reports_a_usup'
-        )
-        .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
-
-      // UPDATE A AGIL
-      await supabase
-        .from(
-          'live_reports_a_agil'
-        )
-        .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
-
-      // UPDATE A PARUK
-      await supabase
-        .from(
-          'live_reports_a_paruk'
-        )
-        .update(updateData)
-        .eq(
-          'order_id',
-          orderId
-        )
-
-      // UPDATE A YUSKA
-      await supabase
-        .from(
-          'live_reports_a_yuska'
+          'live_reports_agung'
         )
         .update(updateData)
         .eq(
@@ -317,7 +257,7 @@ export default function IncomePage() {
     }
 
     alert(
-      'Sinkronisasi income berhasil'
+      'Sinkronisasi income cabang agung berhasil dilakukan'
     )
 
     getData()
@@ -337,12 +277,12 @@ export default function IncomePage() {
               </p>
 
               <h1 className="text-4xl font-bold text-gray-900">
-                DATA INCOME
+                DATA INCOME-CABANG-AGUNG
               </h1>
 
               <p className="text-gray-500 mt-3">
-                Monitoring income dan
-                sinkronisasi pembayaran
+                Monitoring income cabang agung dan
+                sinkronisasi pembayaran cabang agung
                 realtime
               </p>
             </div>
@@ -450,8 +390,8 @@ export default function IncomePage() {
             </h2>
 
             <p className="text-gray-500 text-sm mt-2">
-              Daftar seluruh data
-              income terbaru
+              Daftar seluruh data income cabang agung
+              income cabang agung terbaru 
             </p>
           </div>
 

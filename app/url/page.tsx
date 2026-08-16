@@ -20,6 +20,12 @@ const menus = [
     icon: "💰",
   },
   {
+    title: "Income-cabang-agung",
+    description: "Monitoring pemasukan",
+    url: "https://inventory-optik-ten.vercel.app/income-cabang-agung",
+    icon: "💰",
+  },
+  {
     title: "Tambah Stok",
     description: "Menambah stok barang",
     url: "https://inventory-optik-ten.vercel.app/tambah-stok",
