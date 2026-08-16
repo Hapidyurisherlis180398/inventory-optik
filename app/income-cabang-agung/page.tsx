@@ -32,7 +32,7 @@ export default function IncomePage() {
     // =========================
     const { data, error } =
       await supabase
-        .from('income-cabang-agung')
+        .from('income_cabang_agung')
         .select('*')
         .order('id', {
           ascending: false,
@@ -146,7 +146,7 @@ export default function IncomePage() {
 
     // HAPUS DATA LAMA
     await supabase
-      .from('income-cabang-agung')
+      .from('income_cabang_agung')
       .delete()
       .neq('id', 0)
 
@@ -177,7 +177,7 @@ export default function IncomePage() {
       if (!orderId) continue
 
       await supabase
-        .from('income-cabang-agung')
+        .from('income_cabang_agung')
         .insert([
           {
             order_id: orderId,
@@ -220,7 +220,7 @@ export default function IncomePage() {
 
     const { data: incomes } =
       await supabase
-        .from('income-cabang-agung')
+        .from('income_cabang_agung')
         .select('*')
 
     if (!incomes) {
