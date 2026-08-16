@@ -351,7 +351,7 @@ export default function IncomePage() {
             </div>
 
             <p className="text-sm text-gray-500 mb-2">
-              Total Pendapatan
+              Total Pendapatan Hasil Narik Omset Toko
             </p>
 
             <h2 className="text-3xl font-bold text-green-700">
