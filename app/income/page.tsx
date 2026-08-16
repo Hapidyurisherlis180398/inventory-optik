@@ -205,6 +205,15 @@ export default function IncomePage() {
     setLoading(false)
   }
 
+  // Persiapan data untuk Tabel Keterangan Live
+  const dataKetLive = [
+    { id: 1, nama: 'A Usup', total: totalUsup },
+    { id: 2, nama: 'A Agil', total: totalAgil },
+    { id: 3, nama: 'A Paruk', total: totalParuk },
+    { id: 4, nama: 'A Yuska', total: totalYuska },
+  ]
+  const grandTotalLive = totalUsup + totalAgil + totalParuk + totalYuska
+
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -256,10 +265,8 @@ export default function IncomePage() {
           </div>
         )}
 
-        {/* TOTAL CARDS */}
-        {/* Diubah menjadi 3 kolom agar 6 card terlihat proporsional dan rapi */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-          
+        {/* TOTAL CARDS (RINGKASAN UTAMA) */}
+        <div className="grid md:grid-cols-2 gap-5 mb-8">
           {/* TOTAL PEMBAYARAN */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-4">
@@ -281,55 +288,57 @@ export default function IncomePage() {
               {formatRupiah(totalPendapatan)}
             </h2>
           </div>
+        </div>
 
-          {/* TOTAL A USUP */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center mb-4">
-              👤
-            </div>
-            <p className="text-sm text-gray-500 mb-2">Total Terbayar A Usup</p>
-            <h2 className="text-3xl font-bold text-yellow-600">
-              {formatRupiah(totalUsup)}
-            </h2>
+        {/* TABEL KETERANGAN LIVE (TOTAL TERBAYAR PER ORANG) */}
+        <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm mb-8">
+          <div className="p-6 border-b border-gray-100 bg-gray-50">
+            <h2 className="text-2xl font-bold text-gray-900">Keterangan Live (Terbayar)</h2>
+            <p className="text-gray-500 text-sm mt-2">
+              Rincian pendapatan live yang sudah berstatus terbayar untuk masing-masing orang
+            </p>
           </div>
-
-          {/* TOTAL A AGIL */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center mb-4">
-              👤
-            </div>
-            <p className="text-sm text-gray-500 mb-2">Total Terbayar A Agil</p>
-            <h2 className="text-3xl font-bold text-orange-600">
-              {formatRupiah(totalAgil)}
-            </h2>
-          </div>
-
-          {/* TOTAL A PARUK */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
-              👤
-            </div>
-            <p className="text-sm text-gray-500 mb-2">Total Terbayar A Paruk</p>
-            <h2 className="text-3xl font-bold text-red-600">
-              {formatRupiah(totalParuk)}
-            </h2>
-          </div>
-
-          {/* TOTAL A YUSKA */}
-          <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-4">
-              👤
-            </div>
-            <p className="text-sm text-gray-500 mb-2">Total Terbayar A Yuska</p>
-            <h2 className="text-3xl font-bold text-purple-600">
-              {formatRupiah(totalYuska)}
-            </h2>
+          <div className="overflow-auto">
+            <table className="w-full min-w-[600px]">
+              <thead className="bg-white border-b border-gray-100">
+                <tr>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
+                    No
+                  </th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
+                    Nama Host
+                  </th>
+                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase">
+                    Total Terbayar
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {dataKetLive.map((item, index) => (
+                  <tr key={item.id} className="hover:bg-gray-50 transition-all">
+                    <td className="p-5 font-medium text-gray-700">{index + 1}</td>
+                    <td className="p-5 font-semibold text-gray-900">{item.nama}</td>
+                    <td className="p-5 text-right font-semibold text-green-700">
+                      {formatRupiah(item.total)}
+                    </td>
+                  </tr>
+                ))}
+                {/* BARIS TOTAL KESELURUHAN */}
+                <tr className="bg-gray-50">
+                  <td colSpan={2} className="p-5 font-bold text-right text-gray-900 uppercase">
+                    Total Keseluruhan Terbayar
+                  </td>
+                  <td className="p-5 text-right font-bold text-xl text-green-700">
+                    {formatRupiah(grandTotalLive)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* TABLE */}
+        {/* TABEL DATA INCOME (TETAP ADA) */}
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-          {/* HEADER TABLE */}
           <div className="p-6 border-b border-gray-100">
             <h2 className="text-2xl font-bold text-gray-900">Data Income</h2>
             <p className="text-gray-500 text-sm mt-2">
@@ -337,7 +346,6 @@ export default function IncomePage() {
             </p>
           </div>
 
-          {/* TABLE CONTENT */}
           <div className="overflow-auto">
             <table className="w-full min-w-[900px]">
               <thead className="bg-gray-50">
@@ -360,19 +368,13 @@ export default function IncomePage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan={4}
-                      className="text-center p-12 text-gray-500"
-                    >
+                    <td colSpan={4} className="text-center p-12 text-gray-500">
                       Loading...
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={4}
-                      className="text-center p-12 text-gray-500"
-                    >
+                    <td colSpan={4} className="text-center p-12 text-gray-500">
                       Belum ada data
                     </td>
                   </tr>
