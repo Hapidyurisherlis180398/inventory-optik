@@ -284,10 +284,21 @@ export default function IncomePage() {
           orderId
         )
 
-      // UPDATE A CAPE
+      // UPDATE A PARUK
       await supabase
         .from(
-          'live_reports_a_cape'
+          'live_reports_a_paruk'
+        )
+        .update(updateData)
+        .eq(
+          'order_id',
+          orderId
+        )
+
+      // UPDATE A YUSKA
+      await supabase
+        .from(
+          'live_reports_a_yuska'
         )
         .update(updateData)
         .eq(
