@@ -62,6 +62,12 @@ const menus = [
     icon: "🎬",
   },
   {
+    title: "Live Cabang Agung",
+    description: "Monitoring stok live A-Paruk",
+    url: "https://inventory-optik-ten.vercel.app/live/agung",
+    icon: "🎬",
+  },
+  {
     title: "Scanner",
     description: "Scan Barcode Frame",
     url: "https://inventory-optik-ten.vercel.app/scan",
