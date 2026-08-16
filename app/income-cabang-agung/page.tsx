@@ -24,6 +24,9 @@ export default function IncomePage() {
     setTotalTerbayarReport,
   ] = useState(0)
 
+  // STATE BARU UNTUK MENYIMPAN MAPPING SUMBER LIVE REPORTS
+  const [liveReportsMap, setLiveReportsMap] = useState<Record<string, string>>({})
+
   async function getData() {
     setLoading(true)
 
@@ -86,15 +89,23 @@ export default function IncomePage() {
     const { data: agung } =
       await supabase
         .from('live_reports_agung')
-        .select(
-          'total_pendapatan,status'
-        )
+        // DIUBAH MENJADI '*' AGAR ORDER_ID & SUMBER IKUT TERAMBIL UNTUK DICOCOKKAN
+        .select('*')
 
     const semuaReport = [
       ...(agung || []),
     ]
 
+    const tempMap: Record<string, string> = {}
+
     semuaReport.forEach((item) => {
+      // TAMBAHAN: Menyimpan mapping sumber siapa berdasarkan order_id
+      if (item.order_id) {
+        // Jika di database Anda ada kolom 'sumber' atau 'nama', itu akan ditampilkan.
+        // Jika tidak, default-nya akan menampilkan 'Cabang Agung'
+        tempMap[item.order_id] = item.sumber || 'Cabang Agung'
+      }
+
       if (
         item.status &&
         item.status.includes(
@@ -114,6 +125,9 @@ export default function IncomePage() {
     setTotalTerbayarReport(
       totalReport
     )
+    
+    // MENYIMPAN DATA PENCARIAN SUMBER KE STATE
+    setLiveReportsMap(tempMap)
 
     setLoading(false)
   }
@@ -419,14 +433,20 @@ export default function IncomePage() {
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
                     Total Pendapatan
                   </th>
+                  
+                  {/* TAMBAHAN HEADER BARU */}
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
+                    Ket Hasil Live
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
+                    {/* COLSPAN DIRUBAH JADI 5 */}
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="text-center p-12 text-gray-500"
                     >
                       Loading...
@@ -435,8 +455,9 @@ export default function IncomePage() {
                 ) : data.length ===
                   0 ? (
                   <tr>
+                    {/* COLSPAN DIRUBAH JADI 5 */}
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="text-center p-12 text-gray-500"
                     >
                       Belum ada data
@@ -479,6 +500,19 @@ export default function IncomePage() {
                               item.total_pendapatan
                             }
                           </span>
+                        </td>
+
+                        {/* TAMBAHAN KOLOM DATA BARU */}
+                        <td className="p-5">
+                          {liveReportsMap[item.order_id] ? (
+                            <span className="inline-flex px-3 py-1 bg-purple-50 text-purple-700 font-semibold text-xs rounded-full border border-purple-200">
+                              {liveReportsMap[item.order_id]}
+                            </span>
+                          ) : (
+                            <span className="inline-flex px-3 py-1 bg-gray-50 text-gray-500 font-semibold text-xs rounded-full border border-gray-200">
+                              -
+                            </span>
+                          )}
                         </td>
                       </tr>
                     )
