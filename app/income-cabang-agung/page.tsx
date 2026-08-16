@@ -8,7 +8,7 @@ export default function IncomePage() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] =
     useState(false)
-
+  const [isIncomeUpdated, setIsIncomeUpdated] = useState(false)
   const [
     totalPembayaran,
     setTotalPembayaran,
@@ -195,10 +195,8 @@ export default function IncomePage() {
         ])
     }
 
-    alert(
-      'Income terbaru berhasil diperbarui'
-    )
-
+    alert('Income terbaru berhasil diperbarui')
+    setIsIncomeUpdated(true)
     getData()
 
     setLoading(false)
@@ -259,7 +257,7 @@ export default function IncomePage() {
     alert(
       'Sinkronisasi income cabang agung berhasil dilakukan'
     )
-
+    setIsIncomeUpdated(false)
     getData()
 
     setLoading(false)
@@ -334,7 +332,7 @@ export default function IncomePage() {
               💳
             </div>
             <p className="text-sm text-gray-500 mb-2">
-              Total Jumlah Penyelesaian Pembayaran
+              Total Hasil Narik Toko
             </p>
             <h2 className="text-3xl font-bold text-gray-900">
               {formatRupiah(totalPembayaran)}
@@ -347,7 +345,7 @@ export default function IncomePage() {
               📈
             </div>
             <p className="text-sm text-gray-500 mb-2">
-              Total Pendapatan Hasil Narik Omset Toko
+              Total Omset Toko
             </p>
             <h2 className="text-3xl font-bold text-green-700">
               {formatRupiah(totalPendapatan)}
@@ -416,7 +414,7 @@ export default function IncomePage() {
                   </th>
 
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    Total Semua Omset Toko
+                    Total Pendapatan
                   </th>
                 </tr>
               </thead>
