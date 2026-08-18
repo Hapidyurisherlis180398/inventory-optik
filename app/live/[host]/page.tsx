@@ -501,14 +501,14 @@ export default function DynamicLiveReportPage() {
               </p>
             </div>
             
-            {/* AREA INPUT PENCARIAN */}
+            {/* AREA INPUT PENCARIAN (SUDAH DIUBAH PLACEHOLDER-NYA) */}
             <div className="relative w-full md:w-72">
               <input
                 type="text"
-                placeholder="Cari ID Pesanan..."
+                placeholder="Search Id Pesanan"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
               />
               {searchQuery && (
                 <button 
