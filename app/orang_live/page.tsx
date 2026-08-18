@@ -6,10 +6,11 @@ import { useState } from 'react'
 // DAFTAR ORANG LIVE
 const daftarHostLive = [
   { nama: 'A-Usup', slug: 'a_usup', icon: '🎥', color: 'from-blue-500 to-cyan-400' },
-  { nama: 'A-Yuska', slug: 'a_yuska', icon: '📺', color: 'from-purple-500 to-pink-400' },
-  { nama: 'Agil', slug: 'agil', icon: '🎬', color: 'from-orange-500 to-yellow-400' },
-  { nama: 'A-Paruk', slug: 'a_paruk', icon: '✨', color: 'from-emerald-500 to-teal-400' },
-  { nama: 'Cabang Agung', slug: 'agung', icon: '🏢', color: 'from-rose-500 to-red-400' },
+  { nama: 'A-Yuska', slug: 'a_yuska', icon: '🎥', color: 'from-purple-500 to-pink-400' },
+  { nama: 'Agil', slug: 'agil', icon: '🎥', color: 'from-orange-500 to-yellow-400' },
+  { nama: 'A-Paruk', slug: 'a_paruk', icon: '🎥', color: 'from-emerald-500 to-teal-400' },
+  { nama: 'Hapid', slug: 'hapid', icon: '🎥', color: 'from-rose-500 to-red-400' },
+  { nama: 'Cabang Agung', slug: 'agung', icon: '🎥', color: 'from-rose-500 to-red-400' },
   // { nama: 'Suparman', slug: 'suparman', icon: '😎', color: 'from-indigo-500 to-blue-400' },
 ]
 
