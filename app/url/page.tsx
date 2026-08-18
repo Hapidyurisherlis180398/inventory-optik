@@ -62,6 +62,12 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/finance",
     icon: "💳",
   },
+  {
+    title: 'Daftar Orang Live',
+    description: 'Monitoring hasil live seluruh tim',
+    url: "https://inventory-optik-ten.vercel.app/orang_live", 
+    icon: '🔴',
+  },
 ];
 
 export default function HomePage() {
