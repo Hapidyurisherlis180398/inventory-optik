@@ -133,7 +133,7 @@ export default function IncomePage() {
       if (omsetHapid > 0) {
         tempDataKetLive.push({
           id: 'hapid',
-          nama: '🚀 Live Hapid (Tidak terdaftar)',
+          nama: '🚀 Live Hapid',
           totalTerbayar: 0, // Hapid tidak punya database
           totalOmset: omsetHapid
         })
