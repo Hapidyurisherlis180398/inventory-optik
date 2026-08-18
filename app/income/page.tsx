@@ -34,24 +34,22 @@ export default function IncomePage() {
       .order('id', { ascending: true })
 
     let tempPelacakHost: Record<string, string> = {}
-    let tempDataKetLive = []
+    let tempDataKetLive: any[] = []
     let tempGrandTerbayar = 0
     let tempGrandOmset = 0
 
     if (hosts) {
       setDaftarHost(hosts) 
       
-      // Looping ke semua tabel host
+      // Looping ke semua tabel host untuk melacak ID & Hitung yang SUDAH TERBAYAR
       for (const host of hosts) {
         const tableName = `live_reports_${host.slug}`
         
-        // Ambil SEMUA order_id, total_pendapatan, dan status dari tabel ini
         const { data: hostData } = await supabase
           .from(tableName)
           .select('order_id, total_pendapatan, status')
         
         let terbayarHost = 0
-        let omsetHost = 0
 
         if (hostData) {
           hostData.forEach((row) => {
@@ -60,69 +58,93 @@ export default function IncomePage() {
               tempPelacakHost[row.order_id] = host.nama
             }
 
-            // B. Hitung Angka Pendapatan
-            const angka = Number(row.total_pendapatan?.toString().replace(/[^\d-]/g, '')) || 0
-            
-            // Tambahkan ke Total Omset (Semua status dihitung)
-            omsetHost += angka
-
-            // Tambahkan ke Total Terbayar (Hanya yang berstatus TERBAYAR)
+            // B. Hitung Total Terbayar dari Database (Hanya yang berstatus TERBAYAR)
             if (row.status && row.status.includes('TERBAYAR')) {
+              const angka = Number(row.total_pendapatan?.toString().replace(/[^\d-]/g, '')) || 0
               terbayarHost += angka
             }
           })
         }
 
-        // Simpan data kalkulasi orang ini
+        // Simpan data host (totalOmset kita isi 0 dulu, nanti dihitung dari Excel)
         tempDataKetLive.push({
           id: host.id,
           nama: host.nama,
           totalTerbayar: terbayarHost,
-          totalOmset: omsetHost
+          totalOmset: 0 
         })
 
-        // Tambahkan ke Grand Total
+        // Tambahkan ke Grand Total Terbayar
         tempGrandTerbayar += terbayarHost
-        tempGrandOmset += omsetHost
       }
-
-      setDataKetLive(tempDataKetLive)
-      setGrandTotalTerbayar(tempGrandTerbayar)
-      setGrandTotalOmset(tempGrandOmset)
-      setPelacakHost(tempPelacakHost) // Simpan kamus pelacak ke state
     }
 
     // ==========================================
-    // 2. AMBIL DATA INCOME GLOBAL
+    // 2. AMBIL DATA INCOME GLOBAL (FILE EXCEL)
     // ==========================================
     const { data: incomeData, error: incomeError } = await supabase
       .from('income')
       .select('*')
-      .order('id', {
-        ascending: false,
-      })
+      .order('id', { ascending: false })
 
     if (!incomeError && incomeData) {
       setData(incomeData)
 
-      // TOTAL PEMBAYARAN
+      // TOTAL PEMBAYARAN (Keseluruhan dari Excel)
       const totalBayar = incomeData.reduce((sum, item) => {
-        const angka = Number(
-          item.jumlah_pembayaran?.toString().replace(/[^\d-]/g, '')
-        )
+        const angka = Number(item.jumlah_pembayaran?.toString().replace(/[^\d-]/g, ''))
         return sum + (angka || 0)
       }, 0)
 
-      // TOTAL PENDAPATAN
+      // TOTAL PENDAPATAN (Keseluruhan dari Excel)
       const totalIncome = incomeData.reduce((sum, item) => {
-        const angka = Number(
-          item.total_pendapatan?.toString().replace(/[^\d-]/g, '')
-        )
+        const angka = Number(item.total_pendapatan?.toString().replace(/[^\d-]/g, ''))
         return sum + (angka || 0)
       }, 0)
 
       setTotalPembayaran(totalBayar)
       setTotalPendapatan(totalIncome)
+
+      // ==========================================
+      // 3. MENGHITUNG OMSET MASING-MASING ORANG DARI FILE EXCEL SAJA
+      // ==========================================
+      let omsetPerHost: Record<string, number> = {}
+
+      incomeData.forEach(item => {
+        // Cari tahu ID Pesanan ini milik siapa dari Kamus Pelacakan
+        const hostName = tempPelacakHost[item.order_id] || 'Live Hapid'
+        const angka = Number(item.total_pendapatan?.toString().replace(/[^\d-]/g, '')) || 0
+        
+        // Jumlahkan omset milik orang tersebut
+        omsetPerHost[hostName] = (omsetPerHost[hostName] || 0) + angka
+      })
+
+      // ==========================================
+      // 4. MASUKKAN HASIL PERHITUNGAN EXCEL KE TABEL KETERANGAN LIVE
+      // ==========================================
+      tempDataKetLive = tempDataKetLive.map(host => {
+        const omsetDariExcel = omsetPerHost[host.nama] || 0
+        tempGrandOmset += omsetDariExcel // Tambahkan ke Grand Total Omset
+        return { ...host, totalOmset: omsetDariExcel }
+      })
+
+      // KHUSUS LIVE HAPID: Tambahkan ke tabel jika ada pesanan miliknya di Excel
+      const omsetHapid = omsetPerHost['Live Hapid'] || 0
+      if (omsetHapid > 0) {
+        tempDataKetLive.push({
+          id: 'hapid',
+          nama: '🚀 Live Hapid (Tidak terdaftar)',
+          totalTerbayar: 0, // Hapid tidak punya database
+          totalOmset: omsetHapid
+        })
+        tempGrandOmset += omsetHapid
+      }
+
+      // Update semua State
+      setDataKetLive(tempDataKetLive)
+      setGrandTotalTerbayar(tempGrandTerbayar)
+      setGrandTotalOmset(tempGrandOmset)
+      setPelacakHost(tempPelacakHost)
     }
 
     setLoading(false)
@@ -302,12 +324,12 @@ export default function IncomePage() {
           </div>
         </div>
 
-        {/* TABEL KETERANGAN LIVE (TERBAYAR & TOTAL OMSET) */}
+        {/* TABEL KETERANGAN LIVE (TERBAYAR & TOTAL OMSET EXCEL) */}
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm mb-8">
           <div className="p-6 border-b border-gray-100 bg-gray-50">
             <h2 className="text-2xl font-bold text-gray-900">Ringkasan Performa Cabang</h2>
             <p className="text-gray-500 text-sm mt-2">
-              Perbandingan total yang sudah terbayar dengan total keseluruhan omset yang dihasilkan host.
+              Rincian omset masing-masing host berdasarkan <span className="font-bold">file Excel Income yang baru saja diupload</span>, dibandingkan dengan total yang sudah berstatus terbayar di database.
             </p>
           </div>
           <div className="overflow-auto">
@@ -316,8 +338,8 @@ export default function IncomePage() {
                 <tr>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Nama Host / Cabang</th>
-                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase text-blue-600">Total Omset Keseluruhan</th>
-                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase text-green-600">Total Sudah Terbayar</th>
+                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase text-blue-600">Omset Dari File Excel (Income)</th>
+                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase text-green-600">Total Sudah Terbayar (Di Database)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
