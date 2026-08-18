@@ -1,23 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase' // Sesuaikan dengan lokasi supabase kamu
-import * as XLSX from 'xlsx' // <-- TAMBAHAN UNTUK BACA EXCEL
-
-// DAFTAR HOST UNTUK PILIHAN TUJUAN DATABASE
-const daftarHostLive = [
-  { nama: 'A-Usup', slug: 'a_usup' },
-  { nama: 'A-Yuska', slug: 'a_yuska' },
-  { nama: 'Agil', slug: 'agil' },
-  { nama: 'A-Paruk', slug: 'a_paruk' },
-  { nama: 'Hapid', slug: 'hapid' },
-  { nama: 'Cabang Agung', slug: 'agung' },
-]
+import * as XLSX from 'xlsx'
 
 // GENERATE OTOMATIS TOKO 1 SAMPAI TOKO 50
 const daftarToko = Array.from({ length: 50 }, (_, i) => `TOKO ${i + 1}`)
 
 export default function InputPesananPage() {
+  // --- STATE UNTUK MENAMPUNG DAFTAR HOST DARI DATABASE ---
+  const [daftarHostLive, setDaftarHostLive] = useState<any[]>([])
+
   // --- STATE PENGATURAN UTAMA ---
   const [targetHost, setTargetHost] = useState('') 
   const [globalToko, setGlobalToko] = useState('TOKO 1') 
@@ -30,7 +23,22 @@ export default function InputPesananPage() {
   const [showPinModal, setShowPinModal] = useState(false)
   const [pinInput, setPinInput] = useState('')
 
-  // 1. FUNGSI KETIKA MENGETIK DI KOLOM ID PESANAN
+  // 1. MENGAMBIL DAFTAR HOST DARI SUPABASE SAAT HALAMAN DIBUKA
+  useEffect(() => {
+    async function fetchHostDariDatabase() {
+      const { data, error } = await supabase
+        .from('daftar_host_live')
+        .select('*')
+        .order('id', { ascending: true })
+      
+      if (data && !error) {
+        setDaftarHostLive(data)
+      }
+    }
+    fetchHostDariDatabase()
+  }, [])
+
+  // 2. FUNGSI KETIKA MENGETIK DI KOLOM ID PESANAN
   const handleInputChange = (index: number, value: string) => {
     const newRows = [...rows]
     newRows[index].idPesanan = value
@@ -42,7 +50,7 @@ export default function InputPesananPage() {
     }
   }
 
-  // 2. FUNGSI UNTUK MENGHAPUS BARIS JIKA SALAH
+  // 3. FUNGSI UNTUK MENGHAPUS BARIS JIKA SALAH
   const hapusBaris = (index: number) => {
     if (rows.length === 1) {
       setRows([{ idPesanan: '' }])
@@ -52,7 +60,7 @@ export default function InputPesananPage() {
     setRows(newRows)
   }
 
-  // 3. FUNGSI UNTUK MEMBACA EXCEL LALU DIMASUKKAN KE TABEL LAYAR
+  // 4. FUNGSI UNTUK MEMBACA EXCEL LALU DIMASUKKAN KE TABEL LAYAR
   const handleUploadExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -86,7 +94,7 @@ export default function InputPesananPage() {
     event.target.value = '' // Reset input file
   }
 
-  // 4. FUNGSI KETIKA TOMBOL "KIRIM DATA" DIKLIK (HANYA MEMUNCULKAN MODAL)
+  // 5. FUNGSI KETIKA TOMBOL "KIRIM DATA" DIKLIK (HANYA MEMUNCULKAN MODAL)
   const klikTombolKirim = () => {
     if (!targetHost) {
       alert('Tolong pilih Host (Tujuan Data) terlebih dahulu!')
@@ -103,7 +111,7 @@ export default function InputPesananPage() {
     setShowPinModal(true)
   }
 
-  // 5. FUNGSI EKSEKUSI KIRIM KE SUPABASE (SETELAH PIN BENAR)
+  // 6. FUNGSI EKSEKUSI KIRIM KE SUPABASE (SETELAH PIN BENAR)
   const prosesKirimData = async () => {
     // Cek PIN
     if (pinInput !== '!@#$%') {
@@ -217,7 +225,7 @@ export default function InputPesananPage() {
           <p className="text-gray-500 mb-8">Masukkan data pesanan secara manual atau upload via Excel.</p>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* DROPDOWN PILIH HOST */}
+            {/* DROPDOWN PILIH HOST (DINAMIS DARI DATABASE) */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
                 Tujuan Data (Host) <span className="text-red-500">*</span>
