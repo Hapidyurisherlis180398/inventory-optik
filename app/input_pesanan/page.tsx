@@ -10,6 +10,7 @@ const daftarHostLive = [
   { nama: 'A-Yuska', slug: 'a_yuska' },
   { nama: 'Agil', slug: 'agil' },
   { nama: 'A-Paruk', slug: 'a_paruk' },
+  { nama: 'Hapid', slug: 'hapid' },
   { nama: 'Cabang Agung', slug: 'agung' },
 ]
 
