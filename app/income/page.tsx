@@ -80,7 +80,7 @@ export default function IncomePage() {
 
     // A AGIL
     const { data: aAgil } = await supabase
-      .from('live_reports_a_agil')
+      .from('live_reports_agil')
       .select('total_pendapatan,status')
     setTotalAgil(hitungTotalTerbayar(aAgil || []))
 
@@ -181,7 +181,7 @@ export default function IncomePage() {
 
       // UPDATE A AGIL
       await supabase
-        .from('live_reports_a_agil')
+        .from('live_reports_agil')
         .update(updateData)
         .eq('order_id', orderId)
 

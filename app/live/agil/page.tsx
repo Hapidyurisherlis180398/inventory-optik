@@ -24,7 +24,7 @@ export default function AUsupPage() {
 
     const { data, error } =
       await supabase
-        .from('live_reports_a_agil')
+        .from('live_reports_agil')
         .select('*')
         .order('id', {
           ascending: true,
@@ -251,7 +251,7 @@ export default function AUsupPage() {
         data: existing,
       } = await supabase
         .from(
-          'live_reports_a_agil'
+          'live_reports_agil'
         )
         .select('id')
         .eq('order_id', orderId)
@@ -264,7 +264,7 @@ export default function AUsupPage() {
       // INSERT
       await supabase
         .from(
-          'live_reports_a_agil'
+          'live_reports_agil'
         )
         .insert([
           {
@@ -317,7 +317,7 @@ export default function AUsupPage() {
     const { data: rows } =
       await supabase
         .from(
-          'live_reports_a_agil'
+          'live_reports_agil'
         )
         .select('*')
         .eq('status', waktu)
@@ -332,7 +332,7 @@ export default function AUsupPage() {
 
     await supabase
       .from(
-        'live_reports_a_agil'
+        'live_reports_agil'
       )
       .delete()
       .eq('status', waktu)
