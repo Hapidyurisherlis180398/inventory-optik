@@ -1,29 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase' // Sesuaikan dengan lokasi supabase kamu
+import { supabase } from '../../lib/supabase' 
 import * as XLSX from 'xlsx'
 
-// GENERATE OTOMATIS TOKO 1 SAMPAI TOKO 50
 const daftarToko = Array.from({ length: 50 }, (_, i) => `TOKO ${i + 1}`)
 
 export default function InputPesananPage() {
-  // --- STATE UNTUK MENAMPUNG DAFTAR HOST DARI DATABASE ---
   const [daftarHostLive, setDaftarHostLive] = useState<any[]>([])
 
-  // --- STATE PENGATURAN UTAMA ---
   const [targetHost, setTargetHost] = useState('') 
   const [globalToko, setGlobalToko] = useState('TOKO 1') 
   const [loading, setLoading] = useState(false)
 
-  // --- STATE UNTUK BARIS INPUT ---
-  const [rows, setRows] = useState([{ idPesanan: '' }])
+  // --- STATE ROWS (Sekarang menampung tokoCustom untuk data dari Excel) ---
+  const [rows, setRows] = useState<{ idPesanan: string, tokoCustom?: string }[]>([
+    { idPesanan: '' }
+  ])
 
-  // --- STATE UNTUK MODAL PIN ---
   const [showPinModal, setShowPinModal] = useState(false)
   const [pinInput, setPinInput] = useState('')
 
-  // 1. MENGAMBIL DAFTAR HOST DARI SUPABASE SAAT HALAMAN DIBUKA
+  // 1. MENGAMBIL DAFTAR HOST
   useEffect(() => {
     async function fetchHostDariDatabase() {
       const { data, error } = await supabase
@@ -38,19 +36,18 @@ export default function InputPesananPage() {
     fetchHostDariDatabase()
   }, [])
 
-  // 2. FUNGSI KETIKA MENGETIK DI KOLOM ID PESANAN
+  // 2. KETIK MANUAL
   const handleInputChange = (index: number, value: string) => {
     const newRows = [...rows]
     newRows[index].idPesanan = value
     setRows(newRows)
 
-    // Fitur Magic: Jika ngetik di baris paling bawah, otomatis bikin baris kosong baru!
     if (index === rows.length - 1 && value.trim() !== '') {
       setRows([...newRows, { idPesanan: '' }])
     }
   }
 
-  // 3. FUNGSI UNTUK MENGHAPUS BARIS JIKA SALAH
+  // 3. HAPUS BARIS
   const hapusBaris = (index: number) => {
     if (rows.length === 1) {
       setRows([{ idPesanan: '' }])
@@ -60,7 +57,7 @@ export default function InputPesananPage() {
     setRows(newRows)
   }
 
-  // 4. FUNGSI UNTUK MEMBACA EXCEL LALU DIMASUKKAN KE TABEL LAYAR
+  // 4. UPLOAD EXCEL (Mengambil Toko dari Excel)
   const handleUploadExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -70,13 +67,13 @@ export default function InputPesananPage() {
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const jsonData: any[] = XLSX.utils.sheet_to_json(sheet)
 
-    // Ekstrak ID Pesanan dari Excel
     const dataDariExcel = jsonData
       .map((item) => ({
-        // Coba baca kolom 'ID Pesanan/Penyesuaian' atau 'ID Pesanan'
-        idPesanan: (item['ID Pesanan/Penyesuaian'] || item['ID Pesanan'] || '')?.toString().trim()
+        idPesanan: (item['ID Pesanan/Penyesuaian'] || item['ID Pesanan'] || '')?.toString().trim(),
+        // Ambil data toko langsung dari excel (jika kolomnya bernama TOKO, Toko, atau toko)
+        tokoCustom: (item['TOKO'] || item['Toko'] || item['toko'] || '')?.toString().trim()
       }))
-      .filter((item) => item.idPesanan !== '') // Buang yang kosong
+      .filter((item) => item.idPesanan !== '') 
 
     if (dataDariExcel.length === 0) {
       alert('Tidak ditemukan data pada kolom "ID Pesanan" di file Excel.')
@@ -84,17 +81,16 @@ export default function InputPesananPage() {
       return
     }
 
-    // Gabungkan data lama yang sudah diketik dengan data baru dari Excel
     const barisLamaValid = rows.filter((r) => r.idPesanan.trim() !== '')
     
-    // Tambahkan 1 baris kosong di bagian paling bawah untuk pancingan ngetik manual selanjutnya
+    // Gabungkan data lama + data excel + 1 baris kosong pancingan
     setRows([...barisLamaValid, ...dataDariExcel, { idPesanan: '' }])
     
     alert(`Berhasil memuat ${dataDariExcel.length} data dari Excel ke dalam tabel.`)
-    event.target.value = '' // Reset input file
+    event.target.value = '' 
   }
 
-  // 5. FUNGSI KETIKA TOMBOL "KIRIM DATA" DIKLIK (HANYA MEMUNCULKAN MODAL)
+  // 5. TOMBOL KIRIM
   const klikTombolKirim = () => {
     if (!targetHost) {
       alert('Tolong pilih Host (Tujuan Data) terlebih dahulu!')
@@ -107,53 +103,65 @@ export default function InputPesananPage() {
       return
     }
 
-    // Jika aman, munculkan modal PIN
     setShowPinModal(true)
   }
 
-  // 6. FUNGSI EKSEKUSI KIRIM KE SUPABASE (SETELAH PIN BENAR)
+  // 6. PROSES KIRIM & CEK DUPLICATE DI SEMUA TABEL
   const prosesKirimData = async () => {
-    // Cek PIN
     if (pinInput !== '!@#$%') {
       alert('PIN salah!')
       setPinInput('')
       return
     }
 
-    // Jika PIN benar, tutup modal
     setShowPinModal(false)
     setPinInput('')
     setLoading(true)
 
     const tableName = `live_reports_${targetHost}`
     const validRows = rows.filter((row) => row.idPesanan.trim() !== '')
+    
     let successCount = 0
     let duplicateCount = 0
 
-    // Loop data untuk dimasukkan ke database satu per satu
+    // Looping data yang akan dimasukkan
     for (let i = 0; i < validRows.length; i++) {
       const orderId = validRows[i].idPesanan.trim()
+      // Jika dari excel ada tokoCustom, pakai itu. Jika tidak ada/manual, pakai globalToko.
+      const tokoValue = validRows[i].tokoCustom || globalToko
 
-      // Cek duplicate
-      const { data: existing } = await supabase
-        .from(tableName)
-        .select('id')
-        .eq('order_id', orderId)
-        .maybeSingle()
+      let isDuplicate = false
 
-      if (existing) {
+      // PELACAKAN GLOBAL: Cek ID Pesanan ini ke SEMUA tabel host yang ada di database
+      for (const host of daftarHostLive) {
+        const cekTabel = `live_reports_${host.slug}`
+        
+        const { data: existing } = await supabase
+          .from(cekTabel)
+          .select('id')
+          .eq('order_id', orderId)
+          .maybeSingle()
+
+        if (existing) {
+          isDuplicate = true
+          break // Langsung berhenti ngecek tabel lain kalau udah ketemu 1 yang kembar
+        }
+      }
+
+      // Jika ketemu duplikat di tabel manapun, lewati baris ini
+      if (isDuplicate) {
         duplicateCount++
         continue
       }
 
-      // Insert ke Database
+      // Jika aman, masukkan ke tabel tujuan
       await supabase.from(tableName).insert([
         {
-          nomor: (i + 1).toString(), // Nomor berurutan
+          nomor: (i + 1).toString(),
           order_id: orderId,
-          toko: globalToko, // Otomatis mengikuti pilihan Toko dari dropdown atas
-          total_pendapatan: '', // Dikosongkan untuk diisi nanti
-          status: 'BELUM DIBAYAR', // Default Status
+          toko: tokoValue, // Ini akan menggunakan Toko dari Excel ATAU dari Dropdown
+          total_pendapatan: '', 
+          status: 'BELUM DIBAYAR', 
         },
       ])
       
@@ -162,19 +170,16 @@ export default function InputPesananPage() {
 
     setLoading(false)
     alert(
-      `Selesai!\nBerhasil terkirim: ${successCount} pesanan.\nData ganda (dilewati): ${duplicateCount}`
+      `Pengiriman Selesai!\n✅ Berhasil terkirim: ${successCount} pesanan.\n⚠️ Data ganda (ditolak karena sudah ada di database host lain/sama): ${duplicateCount}`
     )
     
-    // Reset form ke awal
     setRows([{ idPesanan: '' }])
   }
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] py-10 px-4 md:px-8 relative">
       
-      {/* ========================================== */}
-      {/* MODAL POP-UP PIN (UNTUK KIRIM DATA) */}
-      {/* ========================================== */}
+      {/* MODAL POP-UP PIN */}
       {showPinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-sm shadow-xl border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
@@ -214,18 +219,14 @@ export default function InputPesananPage() {
           </div>
         </div>
       )}
-      {/* ========================================== */}
 
 
       <div className="max-w-4xl mx-auto">
-        
-        {/* HEADER & PENGATURAN GLOBAL */}
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 mb-8">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Input Pesanan Baru</h1>
           <p className="text-gray-500 mb-8">Masukkan data pesanan secara manual atau upload via Excel.</p>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* DROPDOWN PILIH HOST (DINAMIS DARI DATABASE) */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
                 Tujuan Data (Host) <span className="text-red-500">*</span>
@@ -244,10 +245,9 @@ export default function InputPesananPage() {
               </select>
             </div>
 
-            {/* DROPDOWN PILIH TOKO */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                Pilih Toko (Terapkan ke Semua)
+                Pilih Toko (Terapkan ke Input Manual)
               </label>
               <select
                 value={globalToko}
@@ -264,7 +264,6 @@ export default function InputPesananPage() {
           </div>
         </div>
 
-        {/* AREA TABEL INPUT */}
         <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -274,7 +273,6 @@ export default function InputPesananPage() {
               </div>
             </div>
 
-            {/* TOMBOL UPLOAD EXCEL */}
             <label className="bg-white border-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 transition-all px-5 py-2.5 rounded-xl cursor-pointer font-semibold shadow-sm inline-flex items-center gap-2">
               <span className="text-lg">📁</span> Ambil dari Excel
               <input
@@ -300,6 +298,9 @@ export default function InputPesananPage() {
                 {rows.map((row, index) => {
                   const isKosong = row.idPesanan.trim() === ''
                   
+                  // Menentukan teks toko (Dari Excel jika ada, jika tidak pakai Global)
+                  const teksToko = row.tokoCustom ? row.tokoCustom : globalToko
+                  
                   return (
                     <tr key={index} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="py-3 px-6 text-center font-bold text-gray-400">
@@ -318,7 +319,7 @@ export default function InputPesananPage() {
 
                       <td className="py-3 px-6">
                         <span className={`inline-flex px-3 py-1 rounded-lg text-sm font-semibold ${isKosong ? 'bg-gray-100 text-gray-400' : 'bg-blue-100 text-blue-700'}`}>
-                          {globalToko}
+                          {teksToko}
                         </span>
                       </td>
 
@@ -338,7 +339,6 @@ export default function InputPesananPage() {
             </table>
           </div>
 
-          {/* AREA TOMBOL KIRIM DATA */}
           <div className="p-6 bg-white border-t border-gray-100 flex justify-end">
             <button
               onClick={klikTombolKirim}
@@ -349,7 +349,7 @@ export default function InputPesananPage() {
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:-translate-y-1'
               }`}
             >
-              {loading ? 'Memproses...' : '🚀 Kirim Data ke Database'}
+              {loading ? 'Sedang Memeriksa & Menyimpan...' : '🚀 Kirim Data ke Database'}
             </button>
           </div>
         </div>
