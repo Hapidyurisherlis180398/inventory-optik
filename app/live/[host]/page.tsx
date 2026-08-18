@@ -110,17 +110,30 @@ export default function DynamicLiveReportPage() {
     }).format(angka)
   }
 
-  function formatTanggal(isoString: string) {
-    if (!isoString) return '-'
-    const date = new Date(isoString)
+  function formatTanggal(rawString: string) {
+    if (!rawString) return '-';
+
+    // 1. Ubah spasi menjadi 'T' agar sesuai standar format tanggal web (ISO)
+    let validString = rawString.replace(' ', 'T');
+
+    // 2. Tambahkan huruf 'Z' di paling belakang agar dibaca sebagai UTC
+    if (!validString.includes('Z') && !validString.includes('+')) {
+      validString += 'Z';
+    }
+
+    // Sekarang "2026-08-18 10:03:07.582388" sudah berubah 
+    // menjadi "2026-08-18T10:03:07.582388Z"
+
+    const date = new Date(validString);
+
     return new Intl.DateTimeFormat('id-ID', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'Asia/Jakarta'
-    }).format(date)
+      timeZone: 'Asia/Jakarta', 
+    }).format(date);
   }
 
   // EXPORT BELUM TERBAYAR
