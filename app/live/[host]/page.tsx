@@ -32,6 +32,9 @@ export default function DynamicLiveReportPage() {
   const [pinLunasi, setPinLunasi] = useState('')
   const [tempWaktu, setTempWaktu] = useState<string>('')
 
+  // --- STATE UNTUK PENCARIAN ID PESANAN ---
+  const [searchQuery, setSearchQuery] = useState('')
+
   async function getData() {
     setLoading(true)
 
@@ -264,6 +267,12 @@ export default function DynamicLiveReportPage() {
     getData()
   }
 
+  // --- FUNGSI FILTER DATA UNTUK PENCARIAN ---
+  const filteredData = data.filter((item) => {
+    if (searchQuery === '') return true
+    return item.order_id?.toLowerCase().includes(searchQuery.toLowerCase())
+  })
+
   // JIKA HOST BELUM TERBACA DARI URL, TAMPILKAN LOADING PUTIH
   if (!host) return <div className="min-h-screen bg-white" />
 
@@ -484,11 +493,32 @@ export default function DynamicLiveReportPage() {
 
         {/* TABLE */}
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900">Data Pesanan</h2>
-            <p className="text-gray-500 text-sm mt-2">
-              Daftar seluruh hasil live
-            </p>
+          <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Data Pesanan</h2>
+              <p className="text-gray-500 text-sm mt-2">
+                Daftar seluruh hasil live
+              </p>
+            </div>
+            
+            {/* AREA INPUT PENCARIAN */}
+            <div className="relative w-full md:w-72">
+              <input
+                type="text"
+                placeholder="Cari ID Pesanan..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="overflow-auto">
@@ -511,14 +541,14 @@ export default function DynamicLiveReportPage() {
                       Loading...
                     </td>
                   </tr>
-                ) : data.length === 0 ? (
+                ) : filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center p-12 text-gray-500">
-                      Belum ada data
+                      {searchQuery ? 'Data pesanan tidak ditemukan' : 'Belum ada data'}
                     </td>
                   </tr>
                 ) : (
-                  data.map((item, index) => (
+                  filteredData.map((item, index) => (
                     <tr
                       key={item.id}
                       className="border-t border-gray-100 hover:bg-gray-50 transition-all"
@@ -534,12 +564,13 @@ export default function DynamicLiveReportPage() {
                         {item.total_pendapatan}
                       </td>
                       <td className="p-5">
-                        {item.status ? (
+                        {item.status && item.status.includes('TERBAYAR') ? (
                           <span className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-2 rounded-full text-xs font-semibold">
                             ● {item.status}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-xs font-semibold">
+                          // Mengubah warna teks BELUM DIBAYAR menjadi text-red-700
+                          <span className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-xs font-bold">
                             ● BELUM DIBAYAR
                           </span>
                         )}
