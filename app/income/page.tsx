@@ -12,31 +12,89 @@ export default function IncomePage() {
   const [totalPembayaran, setTotalPembayaran] = useState(0)
   const [totalPendapatan, setTotalPendapatan] = useState(0)
 
-  // --- STATE BARU UNTUK DATA DINAMIS ---
+  // --- STATE UNTUK DATA DINAMIS & PELACAKAN ---
   const [daftarHost, setDaftarHost] = useState<any[]>([])
   const [dataKetLive, setDataKetLive] = useState<any[]>([])
-  const [grandTotalLive, setGrandTotalLive] = useState(0)
-
-  // Fungsi pembantu untuk menghitung total terbayar per orang
-  const hitungTotalTerbayar = (dataOrang: any[]) => {
-    if (!dataOrang) return 0;
-    return dataOrang.reduce((sum, item) => {
-      if (item.status && item.status.includes('TERBAYAR')) {
-        const angka = Number(
-          item.total_pendapatan?.toString().replace(/[^\d-]/g, '')
-        )
-        return sum + (angka || 0)
-      }
-      return sum
-    }, 0)
-  }
+  
+  const [grandTotalTerbayar, setGrandTotalTerbayar] = useState(0)
+  const [grandTotalOmset, setGrandTotalOmset] = useState(0)
+  
+  // State untuk menyimpan "Kamus Pelacakan" (Order ID -> Nama Host)
+  const [pelacakHost, setPelacakHost] = useState<Record<string, string>>({})
 
   async function getData() {
     setLoading(true)
 
-    // =========================
-    // 1. AMBIL DATA INCOME GLOBAL
-    // =========================
+    // ==========================================
+    // 1. AMBIL DAFTAR HOST & BANGUN KAMUS PELACAKAN
+    // ==========================================
+    const { data: hosts } = await supabase
+      .from('daftar_host_live')
+      .select('*')
+      .order('id', { ascending: true })
+
+    let tempPelacakHost: Record<string, string> = {}
+    let tempDataKetLive = []
+    let tempGrandTerbayar = 0
+    let tempGrandOmset = 0
+
+    if (hosts) {
+      setDaftarHost(hosts) 
+      
+      // Looping ke semua tabel host
+      for (const host of hosts) {
+        const tableName = `live_reports_${host.slug}`
+        
+        // Ambil SEMUA order_id, total_pendapatan, dan status dari tabel ini
+        const { data: hostData } = await supabase
+          .from(tableName)
+          .select('order_id, total_pendapatan, status')
+        
+        let terbayarHost = 0
+        let omsetHost = 0
+
+        if (hostData) {
+          hostData.forEach((row) => {
+            // A. Masukkan order_id ini ke "Kamus Pelacakan"
+            if (row.order_id) {
+              tempPelacakHost[row.order_id] = host.nama
+            }
+
+            // B. Hitung Angka Pendapatan
+            const angka = Number(row.total_pendapatan?.toString().replace(/[^\d-]/g, '')) || 0
+            
+            // Tambahkan ke Total Omset (Semua status dihitung)
+            omsetHost += angka
+
+            // Tambahkan ke Total Terbayar (Hanya yang berstatus TERBAYAR)
+            if (row.status && row.status.includes('TERBAYAR')) {
+              terbayarHost += angka
+            }
+          })
+        }
+
+        // Simpan data kalkulasi orang ini
+        tempDataKetLive.push({
+          id: host.id,
+          nama: host.nama,
+          totalTerbayar: terbayarHost,
+          totalOmset: omsetHost
+        })
+
+        // Tambahkan ke Grand Total
+        tempGrandTerbayar += terbayarHost
+        tempGrandOmset += omsetHost
+      }
+
+      setDataKetLive(tempDataKetLive)
+      setGrandTotalTerbayar(tempGrandTerbayar)
+      setGrandTotalOmset(tempGrandOmset)
+      setPelacakHost(tempPelacakHost) // Simpan kamus pelacak ke state
+    }
+
+    // ==========================================
+    // 2. AMBIL DATA INCOME GLOBAL
+    // ==========================================
     const { data: incomeData, error: incomeError } = await supabase
       .from('income')
       .select('*')
@@ -67,47 +125,6 @@ export default function IncomePage() {
       setTotalPendapatan(totalIncome)
     }
 
-    // =========================
-    // 2. AMBIL DAFTAR HOST & HITUNG TOTAL PER ORANG SECARA DINAMIS
-    // =========================
-    const { data: hosts } = await supabase
-      .from('daftar_host_live')
-      .select('*')
-      .order('id', { ascending: true })
-
-    if (hosts) {
-      setDaftarHost(hosts) // Simpan daftar host untuk dipakai saat Sinkronisasi nanti
-      
-      let tempDataKetLive = []
-      let tempGrandTotal = 0
-
-      // Looping ke semua tabel host yang ada di database
-      for (const host of hosts) {
-        const tableName = `live_reports_${host.slug}`
-        
-        // Ambil data total pendapatan dan status dari masing-masing tabel host
-        const { data: hostData } = await supabase
-          .from(tableName)
-          .select('total_pendapatan,status')
-        
-        // Hitung total uang terbayarnya
-        const totalTerbayarHost = hitungTotalTerbayar(hostData || [])
-        
-        // Masukkan ke dalam array untuk ditampilkan di Tabel Keterangan Live
-        tempDataKetLive.push({
-          id: host.id,
-          nama: host.nama,
-          total: totalTerbayarHost
-        })
-
-        // Tambahkan ke Grand Total Keseluruhan
-        tempGrandTotal += totalTerbayarHost
-      }
-
-      setDataKetLive(tempDataKetLive)
-      setGrandTotalLive(tempGrandTotal)
-    }
-
     setLoading(false)
   }
 
@@ -124,7 +141,6 @@ export default function IncomePage() {
 
   async function uploadExcel(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
-
     if (!file) return
 
     setLoading(true)
@@ -161,7 +177,7 @@ export default function IncomePage() {
   }
 
   // =========================
-  // SINKRONISASI INCOME (SUDAH DINAMIS)
+  // SINKRONISASI INCOME
   // =========================
   async function sinkronkanIncome() {
     setLoading(true)
@@ -186,7 +202,6 @@ export default function IncomePage() {
       return
     }
 
-    // Proses sinkronisasi untuk setiap baris di tabel Income
     for (const income of incomes) {
       const orderId = income.order_id
 
@@ -195,8 +210,6 @@ export default function IncomePage() {
         status: 'TERBAYAR • ' + waktuIndonesia,
       }
 
-      // Looping ke SEMUA tabel host yang ada di daftar_host_live
-      // Jika orderId-nya cocok, maka datanya akan di-update otomatis!
       for (const host of daftarHost) {
         const tableName = `live_reports_${host.slug}`
         
@@ -217,6 +230,7 @@ export default function IncomePage() {
   return (
     <main className="min-h-screen bg-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        
         {/* HEADER */}
         <div className="bg-white border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
@@ -261,13 +275,12 @@ export default function IncomePage() {
         {/* LOADING */}
         {loading && (
           <div className="mb-6 bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 font-medium animate-pulse">
-            Sedang mensinkronisasi data ke database cabang...
+            Sedang memproses dan melacak pesanan ke seluruh cabang...
           </div>
         )}
 
-        {/* TOTAL CARDS (RINGKASAN UTAMA) */}
+        {/* TOTAL CARDS */}
         <div className="grid md:grid-cols-2 gap-5 mb-8">
-          {/* TOTAL PEMBAYARAN */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-4 text-2xl">
               💳
@@ -278,7 +291,6 @@ export default function IncomePage() {
             </h2>
           </div>
 
-          {/* TOTAL PENDAPATAN */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center mb-4 text-2xl">
               📈
@@ -290,33 +302,28 @@ export default function IncomePage() {
           </div>
         </div>
 
-        {/* TABEL KETERANGAN LIVE (TOTAL TERBAYAR PER ORANG) */}
+        {/* TABEL KETERANGAN LIVE (TERBAYAR & TOTAL OMSET) */}
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm mb-8">
           <div className="p-6 border-b border-gray-100 bg-gray-50">
-            <h2 className="text-2xl font-bold text-gray-900">Keterangan Live (Terbayar)</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Ringkasan Performa Cabang</h2>
             <p className="text-gray-500 text-sm mt-2">
-              Rincian pendapatan live yang sudah berstatus terbayar untuk masing-masing host
+              Perbandingan total yang sudah terbayar dengan total keseluruhan omset yang dihasilkan host.
             </p>
           </div>
           <div className="overflow-auto">
-            <table className="w-full min-w-[600px]">
+            <table className="w-full min-w-[700px]">
               <thead className="bg-white border-b border-gray-100">
                 <tr>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    No
-                  </th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    Nama Host / Cabang
-                  </th>
-                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase">
-                    Total Terbayar
-                  </th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Nama Host / Cabang</th>
+                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase text-blue-600">Total Omset Keseluruhan</th>
+                  <th className="p-5 text-right text-xs font-bold text-gray-500 uppercase text-green-600">Total Sudah Terbayar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {dataKetLive.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="p-8 text-center text-gray-500">
+                    <td colSpan={4} className="p-8 text-center text-gray-500">
                       Memuat data host...
                     </td>
                   </tr>
@@ -324,21 +331,27 @@ export default function IncomePage() {
                   dataKetLive.map((item, index) => (
                     <tr key={item.id} className="hover:bg-gray-50 transition-all">
                       <td className="p-5 font-medium text-gray-700">{index + 1}</td>
-                      <td className="p-5 font-semibold text-gray-900">{item.nama}</td>
-                      <td className="p-5 text-right font-semibold text-green-700">
-                        {formatRupiah(item.total)}
+                      <td className="p-5 font-bold text-gray-900">{item.nama}</td>
+                      <td className="p-5 text-right font-bold text-blue-600 bg-blue-50/30">
+                        {formatRupiah(item.totalOmset)}
+                      </td>
+                      <td className="p-5 text-right font-bold text-green-600">
+                        {formatRupiah(item.totalTerbayar)}
                       </td>
                     </tr>
                   ))
                 )}
                 
                 {/* BARIS TOTAL KESELURUHAN */}
-                <tr className="bg-gray-50">
+                <tr className="bg-gray-50 border-t-2 border-gray-200">
                   <td colSpan={2} className="p-5 font-bold text-right text-gray-900 uppercase">
-                    Total Keseluruhan Terbayar
+                    GRAND TOTAL
+                  </td>
+                  <td className="p-5 text-right font-bold text-xl text-blue-700">
+                    {formatRupiah(grandTotalOmset)}
                   </td>
                   <td className="p-5 text-right font-bold text-xl text-green-700">
-                    {formatRupiah(grandTotalLive)}
+                    {formatRupiah(grandTotalTerbayar)}
                   </td>
                 </tr>
               </tbody>
@@ -346,71 +359,75 @@ export default function IncomePage() {
           </div>
         </div>
 
-        {/* TABEL DATA INCOME (TETAP ADA) */}
+        {/* TABEL DATA INCOME (DENGAN PELACAKAN HOST) */}
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900">Data Income</h2>
-            <p className="text-gray-500 text-sm mt-2">
-              Daftar seluruh data income terbaru
-            </p>
+          <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between md:items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Data Income & Pelacakan</h2>
+              <p className="text-gray-500 text-sm mt-2">
+                Daftar seluruh data income beserta sumber host-nya.
+              </p>
+            </div>
+            
+            <div className="mt-4 md:mt-0 px-4 py-2 bg-purple-50 text-purple-700 text-sm font-bold rounded-xl border border-purple-100">
+              🔍 Sistem Pelacak Aktif
+            </div>
           </div>
 
           <div className="overflow-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[1000px]">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    No
-                  </th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    ID Pesanan / Penyesuaian
-                  </th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    Jumlah Penyelesaian Pembayaran
-                  </th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
-                    Total Pendapatan
-                  </th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">ID Pesanan / Penyesuaian</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Jumlah Pembayaran</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Total Pendapatan</th>
+                  
+                  {/* KOLOM BARU: KET. LIVE */}
+                  <th className="p-5 text-left text-xs font-bold text-purple-600 uppercase">Ket. Live (Sumber)</th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="text-center p-12 text-gray-500">
+                    <td colSpan={5} className="text-center p-12 text-gray-500">
                       Loading...
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center p-12 text-gray-500">
+                    <td colSpan={5} className="text-center p-12 text-gray-500">
                       Belum ada data
                     </td>
                   </tr>
                 ) : (
-                  data.map((item, index) => (
-                    <tr
-                      key={item.id}
-                      className="border-t border-gray-100 hover:bg-gray-50 transition-all"
-                    >
-                      <td className="p-5 font-medium text-gray-700">
-                        {index + 1}
-                      </td>
-                      <td className="p-5 font-semibold text-gray-900">
-                        {item.order_id}
-                      </td>
-                      <td className="p-5">
-                        <span className="font-semibold text-blue-700">
-                          {item.jumlah_pembayaran}
-                        </span>
-                      </td>
-                      <td className="p-5">
-                        <span className="font-semibold text-green-700">
-                          {item.total_pendapatan}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  data.map((item, index) => {
+                    // MENGAMBIL NAMA HOST DARI KAMUS PELACAK
+                    // Jika tidak ditemukan di database cabang manapun, pakai "Live Hapid"
+                    const ketLiveHost = pelacakHost[item.order_id] || 'Live Hapid'
+                    const isHapid = ketLiveHost === 'Live Hapid'
+
+                    return (
+                      <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50 transition-all">
+                        <td className="p-5 font-medium text-gray-700">{index + 1}</td>
+                        <td className="p-5 font-semibold text-gray-900">{item.order_id}</td>
+                        <td className="p-5"><span className="font-semibold text-blue-700">{item.jumlah_pembayaran}</span></td>
+                        <td className="p-5"><span className="font-semibold text-green-700">{item.total_pendapatan}</span></td>
+                        
+                        {/* TAMPILAN KOLOM KET LIVE */}
+                        <td className="p-5">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${
+                            isHapid 
+                              ? 'bg-rose-100 text-rose-700 border border-rose-200' 
+                              : 'bg-purple-100 text-purple-700 border border-purple-200'
+                          }`}>
+                            {isHapid ? '🚀' : '👤'} {ketLiveHost}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
