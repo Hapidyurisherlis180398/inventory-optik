@@ -1,19 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase' // Sesuaikan path supabase kamu!
 
-// DAFTAR ORANG LIVE
-const daftarHostLive = [
-  { nama: 'A-Usup', slug: 'a_usup', icon: '🎥', color: 'from-blue-500 to-cyan-400' },
-  { nama: 'A-Yuska', slug: 'a_yuska', icon: '🎥', color: 'from-purple-500 to-pink-400' },
-  { nama: 'Agil', slug: 'agil', icon: '🎥', color: 'from-orange-500 to-yellow-400' },
-  { nama: 'A-Paruk', slug: 'a_paruk', icon: '🎥', color: 'from-emerald-500 to-teal-400' },
-  { nama: 'Hapid', slug: 'hapid', icon: '🎥', color: 'from-rose-500 to-red-400' },
-  { nama: 'Cabang Agung', slug: 'agung', icon: '🎥', color: 'from-rose-500 to-red-400' },
-  // { nama: 'Suparman', slug: 'suparman', icon: '😎', color: 'from-indigo-500 to-blue-400' },
-]
-
+// DAFTAR MENU UTAMA
 const menus = [
   {
     title: 'Daftar Orang Live',
@@ -21,10 +12,41 @@ const menus = [
     url: '#modal-live', 
     icon: '🔴',
   },
+  // Kamu bisa menambahkan menu lain di bawah ini jika diperlukan
+]
+
+// Array warna untuk mempercantik ikon (dipilih secara acak / bergantian nanti)
+const pilihanWarna = [
+  'from-blue-500 to-cyan-400',
+  'from-purple-500 to-pink-400',
+  'from-orange-500 to-yellow-400',
+  'from-emerald-500 to-teal-400',
+  'from-rose-500 to-red-400',
+  'from-indigo-500 to-blue-400'
 ]
 
 export default function HomePage() {
   const [showLiveModal, setShowLiveModal] = useState(false)
+  const [daftarHostLive, setDaftarHostLive] = useState<any[]>([])
+  const [loadingHost, setLoadingHost] = useState(false)
+
+  // MENGAMBIL DATA HOST DARI SUPABASE
+  useEffect(() => {
+    async function fetchHost() {
+      setLoadingHost(true)
+      const { data, error } = await supabase
+        .from('daftar_host_live')
+        .select('*')
+        .order('id', { ascending: true })
+      
+      if (data && !error) {
+        setDaftarHostLive(data)
+      }
+      setLoadingHost(false)
+    }
+    
+    fetchHost()
+  }, [])
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] relative selection:bg-blue-200 selection:text-blue-900">
@@ -61,28 +83,44 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* DAFTAR HOST (GRID) DENGAN EFEK GLOW & GRADIENT */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 max-h-[60vh] overflow-y-auto pb-4 px-2 custom-scrollbar">
-              {daftarHostLive.map((host) => (
-                <Link
-                  key={host.slug}
-                  href={`/live/${host.slug}`}
-                  className="relative group bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-                >
-                  {/* Efek gradient melayang di background saat dihover */}
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 bg-gradient-to-br ${host.color}`}></div>
-                  
-                  <div className="flex flex-col items-center justify-center relative z-10">
-                    <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-2xl bg-gray-50 group-hover:bg-white group-hover:scale-110 shadow-inner group-hover:shadow-md transition-all duration-300 text-3xl">
-                      {host.icon}
-                    </div>
-                    <span className="font-bold text-gray-700 group-hover:text-gray-900 text-center text-lg">
-                      {host.nama}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            {/* DAFTAR HOST (GRID) DARI SUPABASE */}
+            {loadingHost ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-pulse text-gray-400 font-medium">Memuat data host...</div>
+              </div>
+            ) : daftarHostLive.length === 0 ? (
+              <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-2xl border border-dashed">
+                Belum ada host yang didaftarkan.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-5 max-h-[60vh] overflow-y-auto pb-4 px-2 custom-scrollbar">
+                {daftarHostLive.map((host, index) => {
+                  // Memilih warna secara bergantian dari array pilihanWarna
+                  const warnaCard = pilihanWarna[index % pilihanWarna.length]
+
+                  return (
+                    <Link
+                      key={host.id}
+                      href={`/live/${host.slug}`}
+                      className="relative group bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                    >
+                      {/* Efek gradient melayang di background saat dihover */}
+                      <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 bg-gradient-to-br ${warnaCard}`}></div>
+                      
+                      <div className="flex flex-col items-center justify-center relative z-10">
+                        <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-2xl bg-gray-50 group-hover:bg-white group-hover:scale-110 shadow-inner group-hover:shadow-md transition-all duration-300 text-3xl">
+                          {/* Jika di Supabase belum ada kolom Icon, kita pakai default 🎥 */}
+                          {host.icon || '🎥'}
+                        </div>
+                        <span className="font-bold text-gray-700 group-hover:text-gray-900 text-center text-lg">
+                          {host.nama}
+                        </span>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -90,7 +128,6 @@ export default function HomePage() {
 
       {/* HEADER / HERO SECTION YANG MODERN */}
       <div className="relative bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
-        {/* Dekorasi Background Halus */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-[100px] -right-[100px] w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
           <div className="absolute -bottom-[100px] -left-[100px] w-96 h-96 bg-purple-50 rounded-full blur-3xl opacity-50"></div>
@@ -112,8 +149,6 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-0">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {menus.map((menu) => {
-            
-            // TAMPILAN JIKA MENU ADALAH TOMBOL POP-UP
             if (menu.url === '#modal-live') {
               return (
                 <button
@@ -121,7 +156,6 @@ export default function HomePage() {
                   onClick={() => setShowLiveModal(true)}
                   className="group relative overflow-hidden bg-white rounded-[2rem] p-8 border border-gray-200 hover:border-transparent shadow-sm hover:shadow-2xl transition-all duration-500 text-left hover:-translate-y-2"
                 >
-                  {/* Border Gradient saat hover */}
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
                   <div className="absolute inset-[2px] bg-white rounded-[calc(2rem-2px)] z-0"></div>
                   
@@ -146,7 +180,6 @@ export default function HomePage() {
               )
             }
 
-            // TAMPILAN MENU NORMAL (Bisa dipakai kalau ada menu link lain)
             return (
               <Link
                 key={menu.title}

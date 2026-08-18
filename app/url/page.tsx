@@ -68,6 +68,18 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/orang_live", 
     icon: '🔴',
   },
+  {
+    title: 'Atur Host Live',
+    description: 'Menambahkan host live ke database',
+    url: "https://inventory-optik-ten.vercel.app/atur_host", 
+    icon: '⚙️',
+  },
+  {
+    title: 'Input Pesanan Live',
+    description: 'Menambahkan Id Pesanan ke database',
+    url: "https://inventory-optik-ten.vercel.app/input_pesanan", 
+    icon: '📝',
+  },
 ];
 
 export default function HomePage() {
