@@ -593,6 +593,11 @@ export default function AUsupPage() {
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
                     Status
                   </th>
+
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">
+                    Waktu Live
+                  </th>
+
                 </tr>
               </thead>
 
@@ -600,7 +605,7 @@ export default function AUsupPage() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="text-center p-12 text-gray-500"
                     >
                       Loading...
@@ -610,7 +615,7 @@ export default function AUsupPage() {
                   0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="text-center p-12 text-gray-500"
                     >
                       Belum ada
@@ -666,6 +671,12 @@ export default function AUsupPage() {
                               DIBAYAR
                             </span>
                           )}
+                        </td>
+
+                        <td className="p-5 font-semibold text-red-700">
+                          {
+                            item.created_at
+                          }
                         </td>
                       </tr>
                     )
