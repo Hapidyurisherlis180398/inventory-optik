@@ -25,7 +25,7 @@ export default function InputPesananPage() {
   useEffect(() => {
     async function fetchHostDariDatabase() {
       const { data, error } = await supabase
-        .from('daftar_host_live_agung')
+        .from('daftar_host_live')
         .select('*')
         .order('id', { ascending: true })
       
