@@ -69,6 +69,12 @@ const menus = [
     icon: '⚙️',
   },
   {
+    title: 'Atur Host Live Agung',
+    description: 'Menambahkan host live ke database',
+    url: "https://inventory-optik-ten.vercel.app/atur_host_agung", 
+    icon: '⚙️',
+  },
+  {
     title: 'Input Pesanan Live',
     description: 'Menambahkan Id Pesanan ke database',
     url: "https://inventory-optik-ten.vercel.app/input_pesanan", 
