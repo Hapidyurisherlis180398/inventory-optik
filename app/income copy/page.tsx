@@ -28,32 +28,21 @@ export default function IncomePage() {
     // ==========================================
     // 1. AMBIL DAFTAR HOST & BANGUN KAMUS PELACAKAN
     // ==========================================
-    
-    // Ambil dari tabel pertama
-    const { data: hostsLive } = await supabase
+    const { data: hosts } = await supabase
       .from('daftar_host_live')
       .select('*')
       .order('id', { ascending: true })
-
-    // Ambil dari tabel kedua
-    const { data: hostsAgung } = await supabase
-      .from('daftar_host_live_agung')
-      .select('*')
-      .order('id', { ascending: true })
-
-    // Gabungkan kedua data host
-    const allHosts = [...(hostsLive || []), ...(hostsAgung || [])]
 
     let tempPelacakHost: Record<string, string> = {}
     let tempDataKetLive: any[] = []
     let tempGrandTerbayar = 0
     let tempGrandOmset = 0
 
-    if (allHosts.length > 0) {
-      setDaftarHost(allHosts) 
+    if (hosts) {
+      setDaftarHost(hosts) 
       
-      // Looping ke semua tabel host (dari kedua tabel) untuk melacak ID & Hitung
-      for (const host of allHosts) {
+      // Looping ke semua tabel host untuk melacak ID & Hitung yang SUDAH TERBAYAR
+      for (const host of hosts) {
         const tableName = `live_reports_${host.slug}`
         
         const { data: hostData } = await supabase
@@ -77,9 +66,9 @@ export default function IncomePage() {
           })
         }
 
-        // Simpan data host (gunakan slug sebagai ID agar tidak bentrok antar tabel)
+        // Simpan data host (totalOmset kita isi 0 dulu, nanti dihitung dari Excel)
         tempDataKetLive.push({
-          id: host.slug || host.nama, 
+          id: host.id,
           nama: host.nama,
           totalTerbayar: terbayarHost,
           totalOmset: 0 
@@ -243,7 +232,6 @@ export default function IncomePage() {
         status: 'TERBAYAR • ' + waktuIndonesia,
       }
 
-      // Sinkron ke seluruh host yang tergabung
       for (const host of daftarHost) {
         const tableName = `live_reports_${host.slug}`
         
