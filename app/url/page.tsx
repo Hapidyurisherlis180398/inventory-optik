@@ -83,7 +83,7 @@ const menus = [
   {
     title: 'Akses Cabang Agung',
     description: 'Menambahkan Id Pesanan ke database',
-    url: "https://inventory-optik-ten.vercel.app/url_agung", 
+    url: "https://inventory-optik-ten.vercel.app/link_agung", 
     icon: '🏢',
   },
 ];
