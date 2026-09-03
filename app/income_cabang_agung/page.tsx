@@ -29,7 +29,7 @@ export default function IncomePage() {
     // 1. AMBIL DAFTAR HOST & BANGUN KAMUS PELACAKAN
     // ==========================================
     const { data: hosts } = await supabase
-      .from('daftar_host_live')
+      .from('daftar_host_live_agung')
       .select('*')
       .order('id', { ascending: true })
 
