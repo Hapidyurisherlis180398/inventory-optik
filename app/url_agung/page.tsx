@@ -11,7 +11,7 @@ const menus = [
   {
     title: 'Input Pesanan Live',
     description: 'Menambahkan Id Pesanan ke database',
-    url: "https://inventory-optik-ten.vercel.app/input_pesanan", 
+    url: "https://inventory-optik-ten.vercel.app/input_pesanan_agung", 
     icon: '📝',
   },
 ];
