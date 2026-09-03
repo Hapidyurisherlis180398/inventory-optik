@@ -5,7 +5,7 @@ const menus = [
   {
     title: 'Daftar Orang Live',
     description: 'Monitoring hasil live seluruh tim',
-    url: "https://inventory-optik-ten.vercel.app/orang_live", 
+    url: "https://inventory-optik-ten.vercel.app/orang_live_agung", 
     icon: '🔴',
   },
   {
