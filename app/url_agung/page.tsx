@@ -23,10 +23,10 @@ export default function HomePage() {
       <div className="border-b bg-white sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <h1 className="text-3xl font-bold text-gray-900">
-            Inventory Optik
+            Inventory Optik Cabang Agung
           </h1>
           <p className="text-gray-500 mt-1">
-            Pusat Navigasi Sistem Inventory & Monitoring Stok
+            Pusat Navigasi Sistem Inventory
           </p>
         </div>
       </div>

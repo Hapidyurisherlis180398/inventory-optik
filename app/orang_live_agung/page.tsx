@@ -139,7 +139,7 @@ export default function HomePage() {
               Inventory <span className="text-blue-600">Optik</span>
             </h1>
             <p className="text-gray-500 mt-2 font-medium">
-              Pusat Navigasi Sistem Inventory & Monitoring Stok
+              Pusat Navigasi Sistem Inventory 
             </p>
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function HomePage() {
       {/* FOOTER */}
       <footer className="border-t border-gray-200 mt-auto bg-white/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between text-sm font-medium text-gray-500">
-          <p>© {new Date().getFullYear()} Inventory Optik. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Inventory Optik Cabang Agung. All rights reserved.</p>
           <div className="mt-2 md:mt-0 flex items-center gap-2">
             Built by <span className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">Teammyhappyd</span>
           </div>
