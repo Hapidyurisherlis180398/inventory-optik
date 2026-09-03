@@ -25,7 +25,7 @@ export default function InputPesananPage() {
   useEffect(() => {
     async function fetchHostDariDatabase() {
       const { data, error } = await supabase
-        .from('daftar_host_live')
+        .from('daftar_host_live_agung')
         .select('*')
         .order('id', { ascending: true })
       
@@ -108,7 +108,7 @@ export default function InputPesananPage() {
 
   // 6. PROSES KIRIM & CEK DUPLICATE DI SEMUA TABEL
   const prosesKirimData = async () => {
-    if (pinInput !== '!@#$%') {
+    if (pinInput !== '123') {
       alert('PIN salah!')
       setPinInput('')
       return
