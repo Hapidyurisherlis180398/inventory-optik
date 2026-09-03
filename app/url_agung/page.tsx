@@ -14,6 +14,12 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/input_pesanan", 
     icon: '📝',
   },
+  {
+    title: "Income_cabang_agung",
+    description: "Monitoring pemasukan",
+    url: "https://inventory-optik-ten.vercel.app/income",
+    icon: "💰",
+  },
 ];
 
 export default function HomePage() {
