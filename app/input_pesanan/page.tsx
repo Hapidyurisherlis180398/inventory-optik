@@ -108,7 +108,7 @@ export default function InputPesananPage() {
 
   // 6. PROSES KIRIM & CEK DUPLICATE DI SEMUA TABEL
   const prosesKirimData = async () => {
-    if (pinInput !== '123') {
+    if (pinInput !== '!@#$%') {
       alert('PIN salah!')
       setPinInput('')
       return
