@@ -28,7 +28,6 @@ export default function DataPengirimanPage() {
       setData(pengirimanData)
       setTotalPesanan(pengirimanData.length)
       
-      // Hitung Total Order Amount (Omset)
       const total = pengirimanData.reduce((sum, item) => {
         return sum + (Number(item.order_amount) || 0)
       }, 0)
@@ -83,23 +82,31 @@ export default function DataPengirimanPage() {
         return
       }
 
-      // Format Data, Cek Duplikat Internal, & Cegah Error Timestamp
       const orderIdsInExcel = new Set<string>()
       const formattedData: any[] = []
       let duplikatInternal = 0
       
-      // Kolom-kolom yang harus diformat sebagai tanggal
+      // Daftar kolom waktu (timestamp)
       const timeColumns = [
         'created_time', 'paid_time', 'rts_time', 
         'shipped_time', 'delivered_time', 'cancelled_time'
       ]
 
+      // Daftar kolom angka (numeric)
+      const numericColumns = [
+        'quantity', 'sku_quantity_of_return', 'sku_unit_original_price', 
+        'sku_subtotal_before_discount', 'sku_platform_discount', 'sku_seller_discount', 
+        'sku_subtotal_after_discount', 'shipping_fee_after_discount', 'original_shipping_fee', 
+        'shipping_fee_seller_discount', 'shipping_fee_platform_discount', 'distance_shipping_fee', 
+        'distance_fee', 'order_refund_amount', 'payment_platform_discount', 'buyer_service_fee', 
+        'handling_fee', 'shipping_insurance', 'item_insurance', 'order_amount', 'weight_kg'
+      ]
+
       for (const row of jsonData) {
         const orderIdValue = row['Order ID']?.toString()
         
-        // LEWATI BARIS DESKRIPSI (Baris ke-2 dari export marketplace)
-        // Ciri baris deskripsi: ID terlalu panjang atau berupa kalimat petunjuk
-        if (!orderIdValue || orderIdValue.length > 40 || orderIdValue.includes('identifier') || orderIdValue.includes('The time')) {
+        // LEWATI BARIS DESKRIPSI / PETUNJUK EXCEL
+        if (!orderIdValue || orderIdValue.length > 40 || orderIdValue.includes('identifier') || orderIdValue.includes('The time') || orderIdValue.includes('Total distance fee')) {
           continue; 
         }
 
@@ -116,12 +123,24 @@ export default function DataPengirimanPage() {
           const formattedKey = formatColumnName(key)
           let value = row[key]
           
-          if (value === '') value = null
+          if (value === '' || value === undefined) {
+            value = null
+          }
 
-          // CEGAH ERROR TIMESTAMP (WAKTU): 
+          // CEGAH ERROR TIMESTAMP: Jika bukan format tanggal yang sah, jadikan null
           if (timeColumns.includes(formattedKey) && typeof value === 'string') {
             if (isNaN(Date.parse(value))) {
-              value = null // Buang kalimat penjelas, ganti jadi null
+              value = null 
+            }
+          }
+
+          // CEGAH ERROR NUMERIC: Jika kolom angka berisi teks/kalimat deskripsi, jadikan null
+          if (numericColumns.includes(formattedKey) && value !== null) {
+            const parsedNum = Number(value)
+            if (isNaN(parsedNum)) {
+              value = null
+            } else {
+              value = parsedNum
             }
           }
 
@@ -142,7 +161,6 @@ export default function DataPengirimanPage() {
       const newDataToInsert = formattedData.filter(row => !existingOrderIds.has(row.order_id))
       const duplikatDatabase = formattedData.length - newDataToInsert.length
 
-      // Konfirmasi Hasil
       if (newDataToInsert.length === 0) {
         alert(`Upload dibatalkan.\nSemua data pesanan sudah ada di database!`)
         setLoading(false)
@@ -169,8 +187,6 @@ export default function DataPengirimanPage() {
       if (insertError) throw insertError;
 
       alert(`Berhasil! ${newDataToInsert.length} data pesanan baru telah ditambahkan.`)
-      
-      // Refresh Data Tabel
       getData()
 
     } catch (err: any) {
@@ -203,7 +219,6 @@ export default function DataPengirimanPage() {
             </div>
 
             <div className="flex gap-3 flex-wrap">
-              {/* UPLOAD TOMBOL */}
               <label className={`transition-all px-6 py-4 rounded-2xl cursor-pointer font-semibold shadow-sm flex items-center gap-2 ${
                   loading ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-black hover:bg-gray-800 text-white'
                 }`}>
