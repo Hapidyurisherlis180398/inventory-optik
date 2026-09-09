@@ -28,7 +28,10 @@ export default function HitungHppPage() {
       const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
       const sheetName = workbook.SheetNames[0]
       const worksheet = workbook.Sheets[sheetName]
-      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet)
+      
+      // PERBAIKAN PENTING: { raw: false } memaksa xlsx membaca semua cell sebagai string/teks.
+      // Ini MENCEGAH angka 18 digit ID pesanan dibulatkan oleh sistem Javascript.
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { raw: false })
 
       if (jsonData.length === 0) {
         alert("File Excel Income kosong!")
@@ -40,9 +43,9 @@ export default function HitungHppPage() {
       const orderIdsDariExcel = new Set<string>()
       
       jsonData.forEach((row) => {
-        // Nama kolom di file TikTok Shop Income biasanya "ID Pesanan/Penyesuaian"
         const orderIdValue = row['ID Pesanan/Penyesuaian'] || row['ID pesanan terkait'] || row['Order ID']
         if (orderIdValue) {
+          // Hilangkan spasi dan pastikan formatnya murni teks
           orderIdsDariExcel.add(String(orderIdValue).trim())
         }
       })
@@ -56,8 +59,6 @@ export default function HitungHppPage() {
       }
 
       // 2. Tarik data variasi dari Supabase (berdasarkan ID dari Excel)
-      // Karena batas .in() di Supabase biasanya 1000, jika data lebih dari 1000, 
-      // bisa dipisah (chunking), tapi untuk data normal kita jalankan langsung:
       const { data: dbData, error } = await supabase
         .from('data_pengiriman')
         .select('order_id, variation')
@@ -71,6 +72,16 @@ export default function HitungHppPage() {
         variationMap.set(item.order_id, item.variation || 'Variasi Kosong')
       })
 
+      // Fungsi bantu untuk membaca angka uang jika diformat sebagai string oleh { raw: false }
+      const parseNumber = (val: any) => {
+        if (!val) return 0;
+        if (typeof val === 'string') {
+          // Hapus koma pemisah ribuan agar bisa dijumlahkan
+          return Number(val.replace(/,/g, '')) || 0;
+        }
+        return Number(val) || 0;
+      }
+
       // 4. Gabungkan (Merge) data Excel dengan Variasi dari Supabase
       let totalDitemukanCounter = 0
       let totalSettlementCounter = 0
@@ -78,14 +89,14 @@ export default function HitungHppPage() {
       const mergedData = jsonData.map((row) => {
         const orderId = String(row['ID Pesanan/Penyesuaian'] || row['ID pesanan terkait']).trim()
         
-        // Cari variasi di Map yang sudah kita buat dari Database
+        // Cari variasi di Map
         const matchedVariation = variationMap.get(orderId)
         if (matchedVariation) totalDitemukanCounter++
 
-        // Ambil nilai keuangan dari file Income
-        const pendapatan = Number(row['Total Pendapatan']) || 0
-        const biaya = Number(row['Total Biaya']) || 0
-        const settlement = Number(row['Jumlah penyelesaian pembayaran']) || 0
+        // Ambil nilai keuangan dengan parser yang aman
+        const pendapatan = parseNumber(row['Total Pendapatan'])
+        const biaya = parseNumber(row['Total Biaya'])
+        const settlement = parseNumber(row['Jumlah penyelesaian pembayaran'])
 
         totalSettlementCounter += settlement
 
@@ -106,7 +117,7 @@ export default function HitungHppPage() {
       setTotalDitemukan(totalDitemukanCounter)
       setTotalSettlement(totalSettlementCounter)
 
-      alert(`Pemrosesan selesai! ${totalDitemukanCounter} dari ${mergedData.length} pesanan berhasil dicocokkan dengan Database.`)
+      alert(`Pemrosesan selesai!\n\n${totalDitemukanCounter} pesanan berhasil dicocokkan.\n${mergedData.length - totalDitemukanCounter} pesanan tidak ditemukan di database.`)
 
     } catch (err: any) {
       console.error("Error Processing Income:", err)
@@ -133,7 +144,7 @@ export default function HitungHppPage() {
     if (dateStr instanceof Date) {
       return dateStr.toLocaleDateString('id-ID')
     }
-    return String(dateStr).split(' ')[0] // Ambil tanggalnya saja
+    return String(dateStr).split(' ')[0]
   }
 
   // ==========================================
@@ -237,7 +248,6 @@ export default function HitungHppPage() {
                       <td className="p-4 font-medium text-gray-700">{index + 1}</td>
                       <td className="p-4 font-semibold text-gray-900">{item.order_id}</td>
                       
-                      {/* Highlight kolom variasi agar terlihat jelas hasilnya */}
                       <td className={`p-4 font-medium ${item.status_match === 'Ditemukan' ? 'text-purple-700 bg-purple-50/30' : 'text-red-500 bg-red-50/50'}`}>
                         {item.variation}
                       </td>
