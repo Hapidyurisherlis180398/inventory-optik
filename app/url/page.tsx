@@ -92,6 +92,12 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/data_pengiriman", 
     icon: '',
   },
+  {
+    title: 'hitung HPP',
+    description: 'Hitung HPP dari data pengiriman',
+    url: "inventory-optik-ten.vercel.app/hitung_hpp", 
+    icon: '',
+  },
 ];
 
 export default function HomePage() {
