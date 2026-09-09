@@ -59,10 +59,7 @@ export default function DataPengirimanPage() {
     }).format(angka)
   }
 
-  // Fungsi format tanggal super aman dengan fallback multi-format & debug console
   function formatTanggal(dateString: any) {
-    console.log("Input formatTanggal:", dateString, typeof dateString)
-
     if (!dateString || dateString === '-') return '-'
     
     try {
@@ -129,7 +126,16 @@ export default function DataPengirimanPage() {
       for (const row of jsonData) {
         const orderIdValue = row['Order ID']?.toString()
         
-        if (!orderIdValue || orderIdValue.length > 40 || orderIdValue.includes('identifier') || orderIdValue.includes('The time') || orderIdValue.includes('Total distance fee')) {
+        // Filter ketat: Abaikan baris kosong, header deskripsi, atau baris penjelasan TikTok/Shopee
+        if (
+          !orderIdValue || 
+          orderIdValue.length > 40 || 
+          orderIdValue.includes('identifier') || 
+          orderIdValue.includes('The time') || 
+          orderIdValue.includes('Total distance fee') ||
+          orderIdValue.toLowerCase().includes('status') ||
+          orderIdValue.toLowerCase().includes('changes')
+        ) {
           continue; 
         }
 
@@ -141,6 +147,8 @@ export default function DataPengirimanPage() {
         orderIdsInExcel.add(orderIdValue)
 
         const newRow: any = {}
+        let isValidRow = true
+
         Object.keys(row).forEach((key) => {
           const formattedKey = formatColumnName(key)
           let value = row[key]
@@ -149,11 +157,18 @@ export default function DataPengirimanPage() {
             value = null
           }
 
+          // Validasi kolom waktu: pastikan isinya benar-benar format tanggal, bukan teks keterangan
           if (timeColumns.includes(formattedKey)) {
             if (value instanceof Date) {
               value = value.toISOString()
-            } else if (value !== null && value !== undefined && String(value).trim() !== '') {
-              value = String(value).trim()
+            } else if (value !== null && typeof value === 'string') {
+              const trimmedVal = value.trim()
+              // Jika teks mengandung kalimat penjelasan (bukan format tanggal YYYY-MM-DD), set jadi null
+              if (!trimmedVal.match(/^\d{4}-\d{2}-\d{2}/) && !trimmedVal.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
+                value = null
+              } else {
+                value = trimmedVal
+              }
             } else {
               value = null
             }
@@ -170,7 +185,17 @@ export default function DataPengirimanPage() {
 
           newRow[formattedKey] = value
         })
-        formattedData.push(newRow)
+
+        if (isValidRow) {
+          formattedData.push(newRow)
+        }
+      }
+
+      if (formattedData.length === 0) {
+        alert("Tidak ada data valid yang ditemukan untuk diupload. Pastikan format file Excel sesuai.")
+        setLoading(false)
+        event.target.value = ''
+        return
       }
 
       const { data: existingData, error: fetchError } = await supabase
@@ -336,12 +361,10 @@ export default function DataPengirimanPage() {
                       </td>
                       <td className="p-4 font-medium text-gray-800">{item.quantity ?? '-'}</td>
                       
-                      {/* Created Time dengan Fallback Multi-Key */}
                       <td className="p-4 text-gray-600 whitespace-nowrap">
                         {formatTanggal(item.created_time || item.createdTime || item['Created Time'])}
                       </td>
                       
-                      {/* Shipped Time dengan Fallback Multi-Key */}
                       <td className="p-4 text-gray-600 whitespace-nowrap">
                         {formatTanggal(item.shipped_time || item.shippedTime || item['Shipped Time'])}
                       </td>
