@@ -11,7 +11,9 @@ export default function DataPengirimanPage() {
   const [totalPesanan, setTotalPesanan] = useState(0)
   const [totalOmset, setTotalOmset] = useState(0)
 
-  // Mengambil data dari database saat halaman pertama kali dimuat
+  // ==========================================
+  // 1. MENGAMBIL DATA DARI DATABASE
+  // ==========================================
   async function getData() {
     setLoading(true)
     
@@ -40,7 +42,9 @@ export default function DataPengirimanPage() {
     getData()
   }, [])
 
-  // Fungsi mengubah header Excel ke nama kolom Supabase
+  // ==========================================
+  // 2. FUNGSI UTILITAS FORMATTING
+  // ==========================================
   const formatColumnName = (key: string) => {
     return key
       .replace(/[^a-zA-Z0-9]+/g, '_') 
@@ -56,7 +60,9 @@ export default function DataPengirimanPage() {
     }).format(angka)
   }
 
-  // FUNGSI UPLOAD & PELACAKAN DUPLIKAT EXCEL
+  // ==========================================
+  // 3. FUNGSI UPLOAD & PELACAKAN EXCEL
+  // ==========================================
   async function uploadExcel(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
@@ -64,7 +70,7 @@ export default function DataPengirimanPage() {
     setLoading(true)
 
     try {
-      // 1. Baca File Excel
+      // Baca File Excel
       const buffer = await file.arrayBuffer()
       const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
       const sheetName = workbook.SheetNames[0]
@@ -77,18 +83,30 @@ export default function DataPengirimanPage() {
         return
       }
 
-      // 2. Format Data dan Cek Duplikat Internal (di dalam Excel itu sendiri)
+      // Format Data, Cek Duplikat Internal, & Cegah Error Timestamp
       const orderIdsInExcel = new Set<string>()
       const formattedData: any[] = []
       let duplikatInternal = 0
+      
+      // Kolom-kolom yang harus diformat sebagai tanggal
+      const timeColumns = [
+        'created_time', 'paid_time', 'rts_time', 
+        'shipped_time', 'delivered_time', 'cancelled_time'
+      ]
 
       for (const row of jsonData) {
         const orderIdValue = row['Order ID']?.toString()
-        if (!orderIdValue) continue; // Lewati jika tidak ada Order ID
+        
+        // LEWATI BARIS DESKRIPSI (Baris ke-2 dari export marketplace)
+        // Ciri baris deskripsi: ID terlalu panjang atau berupa kalimat petunjuk
+        if (!orderIdValue || orderIdValue.length > 40 || orderIdValue.includes('identifier') || orderIdValue.includes('The time')) {
+          continue; 
+        }
 
+        // LEWATI DUPLIKAT DI DALAM FILE
         if (orderIdsInExcel.has(orderIdValue)) {
           duplikatInternal++;
-          continue; // Lewati data duplikat di dalam file
+          continue; 
         }
         
         orderIdsInExcel.add(orderIdValue)
@@ -97,13 +115,22 @@ export default function DataPengirimanPage() {
         Object.keys(row).forEach((key) => {
           const formattedKey = formatColumnName(key)
           let value = row[key]
+          
           if (value === '') value = null
+
+          // CEGAH ERROR TIMESTAMP (WAKTU): 
+          if (timeColumns.includes(formattedKey) && typeof value === 'string') {
+            if (isNaN(Date.parse(value))) {
+              value = null // Buang kalimat penjelas, ganti jadi null
+            }
+          }
+
           newRow[formattedKey] = value
         })
         formattedData.push(newRow)
       }
 
-      // 3. Pelacakan Duplikat dengan Database (Supabase)
+      // Pelacakan Duplikat dengan Database (Supabase)
       const { data: existingData, error: fetchError } = await supabase
         .from('data_pengiriman')
         .select('order_id')
@@ -115,11 +142,11 @@ export default function DataPengirimanPage() {
       const newDataToInsert = formattedData.filter(row => !existingOrderIds.has(row.order_id))
       const duplikatDatabase = formattedData.length - newDataToInsert.length
 
-      // 4. Konfirmasi Hasil Pelacakan
+      // Konfirmasi Hasil
       if (newDataToInsert.length === 0) {
-        alert(`Upload dibatalkan.\nSemua data (${formattedData.length} pesanan) sudah ada di database!`)
+        alert(`Upload dibatalkan.\nSemua data pesanan sudah ada di database!`)
         setLoading(false)
-        event.target.value = '' // Reset input file
+        event.target.value = '' 
         return
       }
 
@@ -134,7 +161,7 @@ export default function DataPengirimanPage() {
         return
       }
 
-      // 5. Insert Data Baru ke Supabase
+      // Insert Data Baru
       const { error: insertError } = await supabase
         .from('data_pengiriman')
         .insert(newDataToInsert)
@@ -151,10 +178,13 @@ export default function DataPengirimanPage() {
       alert(`Terjadi kesalahan saat upload: ${err.message}`)
     } finally {
       setLoading(false)
-      event.target.value = '' // Selalu reset input file agar bisa upload file yang sama lagi jika perlu
+      event.target.value = '' 
     }
   }
 
+  // ==========================================
+  // 4. RENDER TAMPILAN HALAMAN (UI)
+  // ==========================================
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -226,7 +256,7 @@ export default function DataPengirimanPage() {
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Daftar Pengiriman</h2>
               <p className="text-gray-500 text-sm mt-2">
-                Menampilkan 100 data terbaru yang tersimpan di database.
+                Menampilkan maksimal 100 data terbaru yang tersimpan di database.
               </p>
             </div>
             
@@ -257,7 +287,6 @@ export default function DataPengirimanPage() {
                     </td>
                   </tr>
                 ) : (
-                  // Menampilkan maksimal 100 baris terbaru agar browser tidak berat
                   data.slice(0, 100).map((item, index) => (
                     <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50 transition-all">
                       <td className="p-5 font-medium text-gray-700">{index + 1}</td>

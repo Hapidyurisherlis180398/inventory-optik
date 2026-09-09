@@ -86,6 +86,12 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/link_agung", 
     icon: '🏢',
   },
+  {
+    title: 'Data Pengiriman',
+    description: 'Menambahkan data pengiriman ke database',
+    url: "https://inventory-optik-ten.vercel.app/data_pengiriman", 
+    icon: '',
+  },
 ];
 
 export default function HomePage() {
