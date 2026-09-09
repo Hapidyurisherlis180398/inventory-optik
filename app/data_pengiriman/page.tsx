@@ -157,17 +157,33 @@ export default function DataPengirimanPage() {
             value = null
           }
 
-          // Validasi kolom waktu: pastikan isinya benar-benar format tanggal, bukan teks keterangan
+          // Validasi dan konversi kolom waktu ke format standar database (YYYY-MM-DD)
           if (timeColumns.includes(formattedKey)) {
             if (value instanceof Date) {
               value = value.toISOString()
             } else if (value !== null && typeof value === 'string') {
               const trimmedVal = value.trim()
-              // Jika teks mengandung kalimat penjelasan (bukan format tanggal YYYY-MM-DD), set jadi null
-              if (!trimmedVal.match(/^\d{4}-\d{2}-\d{2}/) && !trimmedVal.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
-                value = null
-              } else {
+              
+              // 1. Cek jika formatnya DD/MM/YYYY (contoh: 31/08/2026 21:33:04)
+              const regexDDMMYYYY = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(.*))?/
+              const matchDDMM = trimmedVal.match(regexDDMMYYYY)
+              
+              if (matchDDMM) {
+                // Ubah posisi DD dan YYYY menjadi YYYY-MM-DD
+                const day = matchDDMM[1].padStart(2, '0')
+                const month = matchDDMM[2].padStart(2, '0')
+                const year = matchDDMM[3]
+                const time = matchDDMM[4] || '00:00:00'
+                
+                value = `${year}-${month}-${day} ${time}`
+              } 
+              // 2. Cek jika sudah berformat YYYY-MM-DD
+              else if (trimmedVal.match(/^\d{4}-\d{2}-\d{2}/)) {
                 value = trimmedVal
+              } 
+              // Jika format tidak dikenali, buang datanya (null) agar tidak error saat insert
+              else {
+                value = null
               }
             } else {
               value = null
