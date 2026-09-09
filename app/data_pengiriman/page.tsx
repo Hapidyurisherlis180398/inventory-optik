@@ -59,27 +59,30 @@ export default function DataPengirimanPage() {
     }).format(angka)
   }
 
-  // Fungsi format tanggal manual 100% aman untuk Supabase timestamp string
-  function formatTanggal(dateString: string) {
-    if (!dateString) return '-'
+  // Fungsi format tanggal super aman dengan fallback multi-format & debug console
+  function formatTanggal(dateString: any) {
+    console.log("Input formatTanggal:", dateString, typeof dateString)
+
+    if (!dateString || dateString === '-') return '-'
     
     try {
-      // Contoh input: "2026-09-09 15:53:29+00"
-      const cleaned = dateString.replace('T', ' ').replace(/\+.*/, '').trim()
-      const [datePart, timePart] = cleaned.split(' ')
+      const str = String(dateString).trim()
+      const cleaned = str.replace('T', ' ').replace(/\+.*/, '').trim()
+      const parts = cleaned.split(' ')
       
-      if (!datePart) return dateString
+      if (!parts[0] || !parts[0].includes('-')) return str
 
-      const [year, month, day] = datePart.split('-')
+      const [year, month, day] = parts[0].split('-')
+      const timePart = parts[1] || ''
       
       if (year && month && day) {
         const formattedDate = `${day}-${month}-${year}`
         return timePart ? `${formattedDate} ${timePart}` : formattedDate
       }
       
-      return dateString
+      return str
     } catch (e) {
-      return dateString
+      return String(dateString)
     }
   }
 
@@ -146,9 +149,13 @@ export default function DataPengirimanPage() {
             value = null
           }
 
-          if (timeColumns.includes(formattedKey) && typeof value === 'string') {
-            if (isNaN(Date.parse(value))) {
-              value = null 
+          if (timeColumns.includes(formattedKey)) {
+            if (value instanceof Date) {
+              value = value.toISOString()
+            } else if (value !== null && value !== undefined && String(value).trim() !== '') {
+              value = String(value).trim()
+            } else {
+              value = null
             }
           }
 
@@ -321,15 +328,24 @@ export default function DataPengirimanPage() {
                   </tr>
                 ) : (
                   data.map((item, index) => (
-                    <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50 transition-all text-sm">
+                    <tr key={item.id || index} className="border-t border-gray-100 hover:bg-gray-50 transition-all text-sm">
                       <td className="p-4 font-medium text-gray-700">{index + 1}</td>
                       <td className="p-4 font-semibold text-gray-900">{item.order_id}</td>
                       <td className="p-4 text-gray-600 max-w-[180px] truncate" title={item.variation}>
                         {item.variation || '-'}
                       </td>
                       <td className="p-4 font-medium text-gray-800">{item.quantity ?? '-'}</td>
-                      <td className="p-4 text-gray-600 whitespace-nowrap">{formatTanggal(item.created_time)}</td>
-                      <td className="p-4 text-gray-600 whitespace-nowrap">{formatTanggal(item.shipped_time)}</td>
+                      
+                      {/* Created Time dengan Fallback Multi-Key */}
+                      <td className="p-4 text-gray-600 whitespace-nowrap">
+                        {formatTanggal(item.created_time || item.createdTime || item['Created Time'])}
+                      </td>
+                      
+                      {/* Shipped Time dengan Fallback Multi-Key */}
+                      <td className="p-4 text-gray-600 whitespace-nowrap">
+                        {formatTanggal(item.shipped_time || item.shippedTime || item['Shipped Time'])}
+                      </td>
+
                       <td className="p-4 font-medium text-blue-600">{item.tracking_id || '-'}</td>
                       <td className="p-4 text-gray-700">{item.payment_method || '-'}</td>
                       <td className="p-4 text-gray-700">{item.order_channel || '-'}</td>
