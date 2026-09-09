@@ -108,6 +108,7 @@ export default function DataPengirimanPage() {
       const orderIdsInExcel = new Set<string>()
       const formattedData: any[] = []
       let duplikatInternal = 0
+      let barisDilewati = 0
       
       const timeColumns = [
         'created_time', 'paid_time', 'rts_time', 
@@ -126,16 +127,20 @@ export default function DataPengirimanPage() {
       for (const row of jsonData) {
         const orderIdValue = row['Order ID']?.toString()
         
-        // Filter ketat: Abaikan baris kosong, header deskripsi, atau baris penjelasan TikTok/Shopee
+        // Filter ketat: Abaikan baris kosong, teks deskripsi, atau baris penjelasan TikTok/Shopee
         if (
           !orderIdValue || 
-          orderIdValue.length > 40 || 
-          orderIdValue.includes('identifier') || 
-          orderIdValue.includes('The time') || 
-          orderIdValue.includes('Total distance fee') ||
+          orderIdValue.length > 50 || 
+          orderIdValue.toLowerCase().includes('identifier') || 
+          orderIdValue.toLowerCase().includes('platform unique order id') || 
+          orderIdValue.toLowerCase().includes('the time') || 
+          orderIdValue.toLowerCase().includes('total distance fee') ||
           orderIdValue.toLowerCase().includes('status') ||
-          orderIdValue.toLowerCase().includes('changes')
+          orderIdValue.toLowerCase().includes('changes') ||
+          orderIdValue.toLowerCase().includes('keterangan') ||
+          orderIdValue.toLowerCase().includes('catatan')
         ) {
+          barisDilewati++;
           continue; 
         }
 
@@ -214,6 +219,7 @@ export default function DataPengirimanPage() {
         return
       }
 
+      // Cek ke database apakah order_id sudah ada
       const { data: existingData, error: fetchError } = await supabase
         .from('data_pengiriman')
         .select('order_id')
@@ -232,9 +238,11 @@ export default function DataPengirimanPage() {
         return
       }
 
-      let pesanKonfirmasi = `Ditemukan ${formattedData.length} baris unik di Excel.\n`
-      if (duplikatInternal > 0) pesanKonfirmasi += `- Dihapus ${duplikatInternal} duplikat di dalam file Excel.\n`
-      if (duplikatDatabase > 0) pesanKonfirmasi += `- Dilewati ${duplikatDatabase} pesanan karena sudah ada di Database.\n`
+      // Pesan konfirmasi yang detail
+      let pesanKonfirmasi = `Ditemukan ${formattedData.length} baris pesanan valid di Excel.\n`
+      if (barisDilewati > 0) pesanKonfirmasi += `- Dibuang ${barisDilewati} baris keterangan/sampah dari platform.\n`
+      if (duplikatInternal > 0) pesanKonfirmasi += `- Dihapus ${duplikatInternal} pesanan ganda (duplikat) di dalam file Excel.\n`
+      if (duplikatDatabase > 0) pesanKonfirmasi += `- Dilewati ${duplikatDatabase} pesanan karena sudah pernah diupload ke Database.\n`
       pesanKonfirmasi += `\nAkan diupload ${newDataToInsert.length} pesanan baru. Lanjutkan?`
 
       if (!window.confirm(pesanKonfirmasi)) {
