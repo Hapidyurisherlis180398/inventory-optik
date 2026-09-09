@@ -59,6 +59,27 @@ export default function DataPengirimanPage() {
     }).format(angka)
   }
 
+  // Fungsi helper untuk memperbaiki format tanggal dari Supabase (mengganti spasi dengan 'T')
+  function formatTanggal(dateString: string) {
+    if (!dateString) return '-'
+    try {
+      // Ubah "YYYY-MM-DD HH:mm:ss+00" menjadi "YYYY-MM-DDTHH:mm:ss+00" agar dibaca sah oleh JS
+      const formattedString = dateString.includes(' ') && !dateString.includes('T') 
+        ? dateString.replace(' ', 'T') 
+        : dateString
+
+      const date = new Date(formattedString)
+      if (isNaN(date.getTime())) return dateString // Jika tetap gagal, tampilkan teks aslinya
+
+      return date.toLocaleString('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'medium'
+      })
+    } catch (e) {
+      return dateString
+    }
+  }
+
   // ==========================================
   // 3. FUNGSI UPLOAD & PELACAKAN EXCEL
   // ==========================================
@@ -304,8 +325,8 @@ export default function DataPengirimanPage() {
                         {item.variation || '-'}
                       </td>
                       <td className="p-4 font-medium text-gray-800">{item.quantity ?? '-'}</td>
-                      <td className="p-4 text-gray-600 whitespace-nowrap">{item.created_time ? new Date(item.created_time).toLocaleString('id-ID') : '-'}</td>
-                      <td className="p-4 text-gray-600 whitespace-nowrap">{item.shipped_time ? new Date(item.shipped_time).toLocaleString('id-ID') : '-'}</td>
+                      <td className="p-4 text-gray-600 whitespace-nowrap">{formatTanggal(item.created_time)}</td>
+                      <td className="p-4 text-gray-600 whitespace-nowrap">{formatTanggal(item.shipped_time)}</td>
                       <td className="p-4 font-medium text-blue-600">{item.tracking_id || '-'}</td>
                       <td className="p-4 text-gray-700">{item.payment_method || '-'}</td>
                       <td className="p-4 text-gray-700">{item.order_channel || '-'}</td>
