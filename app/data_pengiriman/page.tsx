@@ -42,7 +42,7 @@ export default function DataPengirimanPage() {
   }, [])
 
   // ==========================================
-  // 2. FUNGSI UTILITAS FORMATTING
+  // 2. FUNGSI UTILITAS FORMATTING & TANGGAL
   // ==========================================
   const formatColumnName = (key: string) => {
     return key
@@ -59,22 +59,25 @@ export default function DataPengirimanPage() {
     }).format(angka)
   }
 
-  // Fungsi helper untuk memperbaiki format tanggal dari Supabase (mengganti spasi dengan 'T')
+  // Fungsi format tanggal manual 100% aman untuk Supabase timestamp string
   function formatTanggal(dateString: string) {
     if (!dateString) return '-'
+    
     try {
-      // Ubah "YYYY-MM-DD HH:mm:ss+00" menjadi "YYYY-MM-DDTHH:mm:ss+00" agar dibaca sah oleh JS
-      const formattedString = dateString.includes(' ') && !dateString.includes('T') 
-        ? dateString.replace(' ', 'T') 
-        : dateString
+      // Contoh input: "2026-09-09 15:53:29+00"
+      const cleaned = dateString.replace('T', ' ').replace(/\+.*/, '').trim()
+      const [datePart, timePart] = cleaned.split(' ')
+      
+      if (!datePart) return dateString
 
-      const date = new Date(formattedString)
-      if (isNaN(date.getTime())) return dateString // Jika tetap gagal, tampilkan teks aslinya
-
-      return date.toLocaleString('id-ID', {
-        dateStyle: 'medium',
-        timeStyle: 'medium'
-      })
+      const [year, month, day] = datePart.split('-')
+      
+      if (year && month && day) {
+        const formattedDate = `${day}-${month}-${year}`
+        return timePart ? `${formattedDate} ${timePart}` : formattedDate
+      }
+      
+      return dateString
     } catch (e) {
       return dateString
     }
