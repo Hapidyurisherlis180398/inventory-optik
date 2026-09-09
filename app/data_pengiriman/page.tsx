@@ -155,7 +155,18 @@ export default function DataPengirimanPage() {
         let isValidRow = true
 
         Object.keys(row).forEach((key) => {
+          // Abaikan kolom yang tidak memiliki header di Excel (__EMPTY atau Unnamed)
+          if (key.includes('__EMPTY') || key.toLowerCase().includes('unnamed')) {
+            return;
+          }
+
           const formattedKey = formatColumnName(key)
+
+          // Abaikan juga jika setelah diformat hasilnya 'empty' atau string kosong
+          if (!formattedKey || formattedKey.includes('empty')) {
+            return;
+          }
+
           let value = row[key]
           
           if (value === '' || value === undefined) {
@@ -169,24 +180,19 @@ export default function DataPengirimanPage() {
             } else if (value !== null && typeof value === 'string') {
               const trimmedVal = value.trim()
               
-              // 1. Cek jika formatnya DD/MM/YYYY (contoh: 31/08/2026 21:33:04)
               const regexDDMMYYYY = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(.*))?/
               const matchDDMM = trimmedVal.match(regexDDMMYYYY)
               
               if (matchDDMM) {
-                // Ubah posisi DD dan YYYY menjadi YYYY-MM-DD
                 const day = matchDDMM[1].padStart(2, '0')
                 const month = matchDDMM[2].padStart(2, '0')
                 const year = matchDDMM[3]
                 const time = matchDDMM[4] || '00:00:00'
-                
                 value = `${year}-${month}-${day} ${time}`
               } 
-              // 2. Cek jika sudah berformat YYYY-MM-DD
               else if (trimmedVal.match(/^\d{4}-\d{2}-\d{2}/)) {
                 value = trimmedVal
               } 
-              // Jika format tidak dikenali, buang datanya (null) agar tidak error saat insert
               else {
                 value = null
               }
