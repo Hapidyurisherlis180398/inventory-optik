@@ -12,7 +12,7 @@ export default function DataPengirimanPage() {
   const [totalOmset, setTotalOmset] = useState(0)
 
   // ==========================================
-  // 1. MENGAMBIL DATA DARI DATABASE
+  // 1. MENGAMBIL SEMUA DATA DARI DATABASE
   // ==========================================
   async function getData() {
     setLoading(true)
@@ -69,7 +69,6 @@ export default function DataPengirimanPage() {
     setLoading(true)
 
     try {
-      // Baca File Excel
       const buffer = await file.arrayBuffer()
       const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
       const sheetName = workbook.SheetNames[0]
@@ -86,13 +85,11 @@ export default function DataPengirimanPage() {
       const formattedData: any[] = []
       let duplikatInternal = 0
       
-      // Daftar kolom waktu (timestamp)
       const timeColumns = [
         'created_time', 'paid_time', 'rts_time', 
         'shipped_time', 'delivered_time', 'cancelled_time'
       ]
 
-      // Daftar kolom angka (numeric)
       const numericColumns = [
         'quantity', 'sku_quantity_of_return', 'sku_unit_original_price', 
         'sku_subtotal_before_discount', 'sku_platform_discount', 'sku_seller_discount', 
@@ -105,12 +102,10 @@ export default function DataPengirimanPage() {
       for (const row of jsonData) {
         const orderIdValue = row['Order ID']?.toString()
         
-        // LEWATI BARIS DESKRIPSI / PETUNJUK EXCEL
         if (!orderIdValue || orderIdValue.length > 40 || orderIdValue.includes('identifier') || orderIdValue.includes('The time') || orderIdValue.includes('Total distance fee')) {
           continue; 
         }
 
-        // LEWATI DUPLIKAT DI DALAM FILE
         if (orderIdsInExcel.has(orderIdValue)) {
           duplikatInternal++;
           continue; 
@@ -127,14 +122,12 @@ export default function DataPengirimanPage() {
             value = null
           }
 
-          // CEGAH ERROR TIMESTAMP: Jika bukan format tanggal yang sah, jadikan null
           if (timeColumns.includes(formattedKey) && typeof value === 'string') {
             if (isNaN(Date.parse(value))) {
               value = null 
             }
           }
 
-          // CEGAH ERROR NUMERIC: Jika kolom angka berisi teks/kalimat deskripsi, jadikan null
           if (numericColumns.includes(formattedKey) && value !== null) {
             const parsedNum = Number(value)
             if (isNaN(parsedNum)) {
@@ -149,7 +142,6 @@ export default function DataPengirimanPage() {
         formattedData.push(newRow)
       }
 
-      // Pelacakan Duplikat dengan Database (Supabase)
       const { data: existingData, error: fetchError } = await supabase
         .from('data_pengiriman')
         .select('order_id')
@@ -179,7 +171,6 @@ export default function DataPengirimanPage() {
         return
       }
 
-      // Insert Data Baru
       const { error: insertError } = await supabase
         .from('data_pengiriman')
         .insert(newDataToInsert)
@@ -214,7 +205,7 @@ export default function DataPengirimanPage() {
               </p>
               <h1 className="text-4xl font-bold text-gray-900">DATA PENGIRIMAN</h1>
               <p className="text-gray-500 mt-3">
-                Upload dan kelola data pesanan dalam pengiriman dengan sistem anti-duplikasi otomatis.
+                Upload dan kelola seluruh data pesanan pengiriman tanpa batasan jumlah baris.
               </p>
             </div>
 
@@ -238,7 +229,7 @@ export default function DataPengirimanPage() {
         {/* LOADING INDICATOR */}
         {loading && (
           <div className="mb-6 bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl p-4 font-medium animate-pulse flex items-center gap-3">
-            <span className="text-xl">⏳</span> Sedang memproses dan melacak data, mohon tunggu...
+            <span className="text-xl">⏳</span> Sedang memproses dan memuat data, mohon tunggu...
           </div>
         )}
 
@@ -250,7 +241,7 @@ export default function DataPengirimanPage() {
             </div>
             <p className="text-sm text-gray-500 mb-2">Total Pesanan Tersimpan</p>
             <h2 className="text-3xl font-bold text-gray-900">
-              {totalPesanan} <span className="text-lg font-medium text-gray-500">Resi</span>
+              {totalPesanan.toLocaleString('id-ID')} <span className="text-lg font-medium text-gray-500">Resi</span>
             </h2>
           </div>
 
@@ -269,9 +260,9 @@ export default function DataPengirimanPage() {
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
           <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between md:items-center">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Daftar Pengiriman</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Daftar Semua Pengiriman</h2>
               <p className="text-gray-500 text-sm mt-2">
-                Menampilkan maksimal 100 data terbaru yang tersimpan di database.
+                Menampilkan kolom pilihan spesifik dari database.
               </p>
             </div>
             
@@ -281,48 +272,44 @@ export default function DataPengirimanPage() {
           </div>
 
           <div className="overflow-auto max-h-[600px]">
-            <table className="w-full min-w-[1200px]">
+            <table className="w-full min-w-[1400px]">
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Order ID</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Produk</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Nominal</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Pembeli</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Kurir</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">No</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Order ID</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Variation</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Quantity</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Created Time</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Shipped Time</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Tracking ID</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Payment Method</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Order Channel</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Creator Handle</th>
                 </tr>
               </thead>
 
               <tbody>
                 {data.length === 0 && !loading ? (
                   <tr>
-                    <td colSpan={7} className="text-center p-12 text-gray-500">
+                    <td colSpan={10} className="text-center p-12 text-gray-500">
                       Belum ada data pengiriman tersimpan. Silakan upload file Excel.
                     </td>
                   </tr>
                 ) : (
-                  data.slice(0, 100).map((item, index) => (
-                    <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50 transition-all">
-                      <td className="p-5 font-medium text-gray-700">{index + 1}</td>
-                      <td className="p-5 font-semibold text-gray-900">{item.order_id}</td>
-                      <td className="p-5">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200`}>
-                          {item.order_status || 'Diproses'}
-                        </span>
+                  data.map((item, index) => (
+                    <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50 transition-all text-sm">
+                      <td className="p-4 font-medium text-gray-700">{index + 1}</td>
+                      <td className="p-4 font-semibold text-gray-900">{item.order_id}</td>
+                      <td className="p-4 text-gray-600 max-w-[180px] truncate" title={item.variation}>
+                        {item.variation || '-'}
                       </td>
-                      <td className="p-5 text-sm text-gray-600 max-w-[200px] truncate" title={item.product_name}>
-                        {item.product_name}
-                      </td>
-                      <td className="p-5 font-semibold text-green-700">
-                        {item.order_amount ? formatRupiah(Number(item.order_amount)) : '-'}
-                      </td>
-                      <td className="p-5 text-sm font-medium text-gray-800">
-                        {item.buyer_username || item.recipient}
-                      </td>
-                      <td className="p-5 text-sm font-bold text-orange-600 uppercase">
-                        {item.shipping_provider_name || item.delivery_option}
-                      </td>
+                      <td className="p-4 font-medium text-gray-800">{item.quantity ?? '-'}</td>
+                      <td className="p-4 text-gray-600 whitespace-nowrap">{item.created_time ? new Date(item.created_time).toLocaleString('id-ID') : '-'}</td>
+                      <td className="p-4 text-gray-600 whitespace-nowrap">{item.shipped_time ? new Date(item.shipped_time).toLocaleString('id-ID') : '-'}</td>
+                      <td className="p-4 font-medium text-blue-600">{item.tracking_id || '-'}</td>
+                      <td className="p-4 text-gray-700">{item.payment_method || '-'}</td>
+                      <td className="p-4 text-gray-700">{item.order_channel || '-'}</td>
+                      <td className="p-4 font-medium text-purple-600">{item.creator_handle || '-'}</td>
                     </tr>
                   ))
                 )}
