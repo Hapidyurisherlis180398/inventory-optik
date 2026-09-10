@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
 import * as XLSX from 'xlsx'
 
@@ -8,13 +8,19 @@ export default function HitungHppPage() {
   const [dataHpp, setDataHpp] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   
-  // State untuk Ringkasan
+  // State untuk Data Upload & Pencocokan
   const [totalPesanan, setTotalPesanan] = useState(0)
   const [totalDitemukan, setTotalDitemukan] = useState(0)
-  const [totalSettlement, setTotalSettlement] = useState(0)
+
+  // State untuk Input Variabel HPP
+  const [costFrame, setCostFrame] = useState<number>(0)
+  const [costLensNormal, setCostLensNormal] = useState<number>(0)
+  const [costLensMinus, setCostLensMinus] = useState<number>(0)
+  const [costLensPlus, setCostLensPlus] = useState<number>(0)
+  const [costOther, setCostOther] = useState<number>(0)
 
   // ==========================================
-  // FUNGSI UPLOAD & PENCOCOKAN DATA (CROSS-REFERENCE)
+  // FUNGSI UPLOAD & PENCOCOKAN DATA
   // ==========================================
   async function uploadIncomeExcel(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -75,9 +81,8 @@ export default function HitungHppPage() {
       }
 
       let totalDitemukanCounter = 0
-      let totalSettlementCounter = 0
 
-      const mergedData = jsonData.map((row) => {
+      const rawMergedData = jsonData.map((row) => {
         const orderId = String(row['ID Pesanan/Penyesuaian'] || row['ID pesanan terkait']).trim()
         
         const matchedVariation = variationMap.get(orderId)
@@ -87,11 +92,9 @@ export default function HitungHppPage() {
         const biaya = parseNumber(row['Total Biaya'])
         const settlement = parseNumber(row['Jumlah penyelesaian pembayaran'])
 
-        totalSettlementCounter += settlement
-
         return {
           order_id: orderId,
-          variation: matchedVariation || 'Data Tidak Ditemukan di DB',
+          variation: matchedVariation || '',
           waktu: row['Waktu pemesanan'] || '-',
           pendapatan: pendapatan,
           biaya: biaya,
@@ -100,10 +103,9 @@ export default function HitungHppPage() {
         }
       })
 
-      setDataHpp(mergedData)
-      setTotalPesanan(mergedData.length)
+      setDataHpp(rawMergedData)
+      setTotalPesanan(rawMergedData.length)
       setTotalDitemukan(totalDitemukanCounter)
-      setTotalSettlement(totalSettlementCounter)
 
     } catch (err: any) {
       console.error("Error Processing Income:", err)
@@ -113,6 +115,50 @@ export default function HitungHppPage() {
       event.target.value = '' 
     }
   }
+
+  // ==========================================
+  // KALKULASI HPP DINAMIS (UseMemo)
+  // ==========================================
+  const processedData = useMemo(() => {
+    return dataHpp.map(item => {
+      let hppFrame = 0
+      let hppLens = 0
+      let hppOther = 0
+
+      if (item.status_match === 'Ditemukan' && item.variation) {
+        // Asumsi jika variasi ditemukan, otomatis ada Frame dan Biaya Lain
+        hppFrame = costFrame || 0
+        hppOther = costOther || 0
+
+        // Analisa kata kunci Lensa dari string variasi (case-insensitive)
+        const varLower = item.variation.toLowerCase()
+        if (varLower.includes('minus')) {
+          hppLens = costLensMinus || 0
+        } else if (varLower.includes('plus')) {
+          hppLens = costLensPlus || 0
+        } else if (varLower.includes('normal')) {
+          hppLens = costLensNormal || 0
+        }
+      }
+
+      const totalHpp = hppFrame + hppLens + hppOther
+      const profit = item.settlement - totalHpp
+
+      return {
+        ...item,
+        hppFrame,
+        hppLens,
+        hppOther,
+        totalHpp,
+        profit
+      }
+    })
+  }, [dataHpp, costFrame, costLensNormal, costLensMinus, costLensPlus, costOther])
+
+  // Kalkulasi Total Metrik Global
+  const globalSettlement = processedData.reduce((sum, item) => sum + item.settlement, 0)
+  const globalTotalHpp = processedData.reduce((sum, item) => sum + item.totalHpp, 0)
+  const globalProfit = processedData.reduce((sum, item) => sum + item.profit, 0)
 
   // ==========================================
   // FUNGSI UTILITAS FORMATTING
@@ -142,7 +188,6 @@ export default function HitungHppPage() {
         
         {/* HEADER SECTION */}
         <div className="relative overflow-hidden bg-[#121212] border border-gray-800 rounded-3xl p-8 md:p-10 shadow-2xl">
-          {/* Subtle Background Glow */}
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#5A125A] opacity-20 blur-[100px] rounded-full pointer-events-none"></div>
           
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
@@ -153,10 +198,10 @@ export default function HitungHppPage() {
                 </p>
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#F56600]">
-                Income & HPP Tracker
+                Income & Profit Tracker
               </h1>
               <p className="text-gray-400 max-w-2xl text-sm md:text-base leading-relaxed">
-                Sinkronisasi cerdas antara file <span className="text-white font-semibold">Income</span> dengan database pengiriman. Lacak variasi produk dan hitung profitabilitas secara otomatis.
+                Sinkronisasi file <span className="text-white font-semibold">Income</span> dengan database pengiriman. Tentukan HPP komponen produk untuk melihat estimasi profit bersih secara otomatis.
               </p>
             </div>
 
@@ -177,105 +222,146 @@ export default function HitungHppPage() {
                     <span>Upload Excel Income</span>
                   </>
                 )}
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={uploadIncomeExcel}
-                  disabled={loading}
-                  className="hidden"
-                />
+                <input type="file" accept=".xlsx,.xls" onChange={uploadIncomeExcel} disabled={loading} className="hidden" />
               </label>
             </div>
           </div>
         </div>
 
-        {/* METRIC CARDS */}
+        {/* SETUP HPP FORM (Hanya tampil jika ada data) */}
         {dataHpp.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
-            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg hover:border-gray-700 transition-colors relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gray-700 group-hover:bg-gray-500 transition-colors"></div>
-              <p className="text-sm text-gray-400 font-medium mb-1">Total Baris File Income</p>
-              <h2 className="text-4xl font-black text-white">{totalPesanan}</h2>
+          <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 md:p-8 shadow-2xl animate-fade-in-up">
+            <div className="flex items-center gap-3 mb-6">
+              <svg className="w-6 h-6 text-[#F56600]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+              <h2 className="text-xl font-bold text-white">Pengaturan HPP Dasar (Rp)</h2>
             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Harga Frame</label>
+                <input type="number" min="0" value={costFrame || ''} onChange={(e) => setCostFrame(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 60000" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Lensa Normal</label>
+                <input type="number" min="0" value={costLensNormal || ''} onChange={(e) => setCostLensNormal(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 70000" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Lensa Minus</label>
+                <input type="number" min="0" value={costLensMinus || ''} onChange={(e) => setCostLensMinus(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 75000" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Lensa Plus</label>
+                <input type="number" min="0" value={costLensPlus || ''} onChange={(e) => setCostLensPlus(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 80000" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Biaya Lain-lain</label>
+                <input type="number" min="0" value={costOther || ''} onChange={(e) => setCostOther(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 25000" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung ke dalam tabel di bawah setiap kali Anda merubah angka di atas.</p>
+          </div>
+        )}
 
-            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg hover:border-[#5A125A]/50 transition-colors relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-1 bg-[#5A125A] shadow-[0_0_10px_#5A125A]"></div>
-              <p className="text-sm text-gray-400 font-medium mb-1">Variasi Ditemukan</p>
+        {/* METRIC CARDS GLOBAL */}
+        {dataHpp.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gray-700"></div>
+              <p className="text-sm text-gray-400 font-medium mb-1">Total Pesanan</p>
               <div className="flex items-baseline gap-2">
-                <h2 className="text-4xl font-black text-white">{totalDitemukan}</h2>
-                <span className="text-sm font-medium text-[#FFD700]">/ {totalPesanan} Match</span>
+                <h2 className="text-3xl font-black text-white">{totalDitemukan}</h2>
+                <span className="text-xs font-medium text-gray-500">/ {totalPesanan} Match</span>
               </div>
             </div>
 
-            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg hover:border-[#F56600]/50 transition-colors relative overflow-hidden group">
+            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[#5A125A]"></div>
+              <p className="text-sm text-gray-400 font-medium mb-1">Global Settlement (Cair)</p>
+              <h2 className="text-2xl font-black text-white">{formatRupiah(globalSettlement)}</h2>
+            </div>
+
+            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[#9E2A00]"></div>
+              <p className="text-sm text-gray-400 font-medium mb-1">Total HPP Global</p>
+              <h2 className="text-2xl font-black text-[#FF8A8A]">{formatRupiah(globalTotalHpp)}</h2>
+            </div>
+
+            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#F56600] shadow-[0_0_10px_#F56600]"></div>
-              <p className="text-sm text-gray-400 font-medium mb-1">Total Settlement (Cair)</p>
-              <h2 className="text-3xl lg:text-4xl font-black text-[#FFD700] tracking-tight">
-                {formatRupiah(totalSettlement)}
+              <p className="text-sm text-gray-400 font-medium mb-1">Estimasi Profit Bersih</p>
+              <h2 className={`text-2xl font-black ${globalProfit >= 0 ? 'text-[#FFD700]' : 'text-red-500'}`}>
+                {formatRupiah(globalProfit)}
               </h2>
             </div>
           </div>
         )}
 
         {/* DATA TABLE */}
-        <div className="bg-[#121212] border border-gray-800 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="bg-[#121212] border border-gray-800 rounded-3xl overflow-hidden shadow-2xl animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-[#181818]">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <svg className="w-5 h-5 text-[#F56600]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
-              Hasil Sinkronisasi Data
+              <svg className="w-5 h-5 text-[#F56600]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Detail Perhitungan per Pesanan
             </h2>
           </div>
 
           <div className="overflow-x-auto max-h-[700px] custom-scrollbar">
-            <table className="w-full min-w-[1100px] text-left border-collapse">
+            <table className="w-full min-w-[1400px] text-left border-collapse">
               <thead className="bg-[#1A1A1A] sticky top-0 z-10 shadow-md">
                 <tr>
-                  <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">No</th>
-                  <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Order ID</th>
-                  <th className="p-5 text-xs font-bold text-[#FFD700] uppercase tracking-wider bg-[#5A125A]/10 border-b-2 border-[#5A125A]">Varian Produk (DB)</th>
-                  <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Tgl Pesan</th>
-                  <th className="p-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Gross Income</th>
-                  <th className="p-5 text-xs font-bold text-[#9E2A00] uppercase tracking-wider">Potongan / Biaya</th>
-                  <th className="p-5 text-xs font-bold text-[#F56600] uppercase tracking-wider">Net (Cair)</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">No</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Order ID</th>
+                  <th className="p-4 text-xs font-bold text-[#FFD700] uppercase tracking-wider bg-[#5A125A]/10">Variasi Produk</th>
+                  <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Net Cair</th>
+                  <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider border-l border-gray-800">HPP Frame</th>
+                  <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">HPP Lensa</th>
+                  <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Biaya Lain</th>
+                  <th className="p-4 text-xs font-bold text-[#9E2A00] uppercase tracking-wider bg-[#9E2A00]/10 border-r border-gray-800">Total HPP</th>
+                  <th className="p-4 text-xs font-bold text-[#F56600] uppercase tracking-wider">Profit Bersih</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-800/50">
-                {dataHpp.length === 0 && !loading ? (
+                {processedData.length === 0 && !loading ? (
                   <tr>
-                    <td colSpan={7} className="p-16 text-center">
+                    <td colSpan={9} className="p-16 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-600">
                         <svg className="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         <p className="text-lg font-medium text-gray-400">Belum ada data tersedia</p>
-                        <p className="text-sm mt-1">Upload file Income di atas untuk mulai menganalisa.</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  dataHpp.map((item, index) => (
+                  processedData.map((item, index) => (
                     <tr key={index} className="hover:bg-[#1A1A1A] transition-colors duration-200 group">
-                      <td className="p-5 text-sm text-gray-500 font-medium">{index + 1}</td>
-                      <td className="p-5 text-sm text-gray-300 font-mono">{item.order_id}</td>
+                      <td className="p-4 text-sm text-gray-500 font-medium">{index + 1}</td>
+                      <td className="p-4 text-sm text-gray-300 font-mono">{item.order_id}</td>
                       
-                      {/* Variation Badge Styling */}
-                      <td className="p-5 bg-[#5A125A]/5 group-hover:bg-[#5A125A]/10 transition-colors">
+                      <td className="p-4 bg-[#5A125A]/5 group-hover:bg-[#5A125A]/10">
                         {item.status_match === 'Ditemukan' ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-md bg-[#5A125A]/30 border border-[#5A125A]/50 text-[#FFD700] text-sm font-semibold shadow-sm">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700] mr-2"></span>
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-[#5A125A]/30 border border-[#5A125A]/50 text-[#FFD700] text-xs font-semibold leading-relaxed">
                             {item.variation}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-3 py-1 rounded-md bg-[#9E2A00]/20 border border-[#9E2A00]/40 text-[#F56600] text-sm font-medium">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#F56600] mr-2"></span>
+                          <span className="inline-flex items-center px-2 py-1 rounded bg-[#9E2A00]/20 text-[#F56600] text-xs font-medium">
                             Tidak Ditemukan
                           </span>
                         )}
                       </td>
                       
-                      <td className="p-5 text-sm text-gray-400">{formatTanggalSingkat(item.waktu)}</td>
-                      <td className="p-5 text-sm text-gray-300 font-medium">{formatRupiah(item.pendapatan)}</td>
-                      <td className="p-5 text-sm text-[#FF8A8A] font-medium">{formatRupiah(item.biaya)}</td>
-                      <td className="p-5 text-sm text-[#FFD700] font-bold bg-[#F56600]/5">{formatRupiah(item.settlement)}</td>
+                      <td className="p-4 text-sm text-gray-200 font-semibold">{formatRupiah(item.settlement)}</td>
+                      
+                      <td className="p-4 text-sm text-gray-400 border-l border-gray-800">{formatRupiah(item.hppFrame)}</td>
+                      <td className="p-4 text-sm text-gray-400">{formatRupiah(item.hppLens)}</td>
+                      <td className="p-4 text-sm text-gray-400">{formatRupiah(item.hppOther)}</td>
+                      
+                      <td className="p-4 text-sm text-[#FF8A8A] font-bold bg-[#9E2A00]/5 border-r border-gray-800">
+                        {formatRupiah(item.totalHpp)}
+                      </td>
+                      
+                      <td className={`p-4 text-sm font-bold ${item.profit >= 0 ? 'text-[#FFD700] bg-[#F56600]/5' : 'text-red-500 bg-red-900/10'}`}>
+                        {formatRupiah(item.profit)}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -285,7 +371,6 @@ export default function HitungHppPage() {
         </div>
       </div>
 
-      {/* Global Styles for Scrollbar & Animations inside the component */}
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #121212; }
@@ -296,7 +381,7 @@ export default function HitungHppPage() {
           to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in-up {
-          animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}} />
     </main>
