@@ -117,20 +117,19 @@ export default function HitungHppPage() {
   }
 
   // ==========================================
-  // KALKULASI HPP DINAMIS (UseMemo)
+  // KALKULASI HPP DINAMIS DENGAN ATURAN MINUS
   // ==========================================
   const processedData = useMemo(() => {
     return dataHpp.map(item => {
       let hppFrame = 0
       let hppLens = 0
       let hppOther = 0
+      let isReturMinus = false
 
       if (item.status_match === 'Ditemukan' && item.variation) {
-        // Asumsi jika variasi ditemukan, otomatis ada Frame dan Biaya Lain
         hppFrame = costFrame || 0
         hppOther = costOther || 0
 
-        // Analisa kata kunci Lensa dari string variasi (case-insensitive)
         const varLower = item.variation.toLowerCase()
         if (varLower.includes('minus')) {
           hppLens = costLensMinus || 0
@@ -139,6 +138,14 @@ export default function HitungHppPage() {
         } else if (varLower.includes('normal')) {
           hppLens = costLensNormal || 0
         }
+      }
+
+      // --- LOGIKA BARU: Jika Net Cair Minus (Pesanan Retur/Gagal) ---
+      if (item.settlement < 0) {
+        isReturMinus = true
+        hppFrame = 0             // Frame tidak dihitung (Rp 0)
+        hppLens = hppLens / 2    // Lensa dibagi 2
+        // hppOther tetap utuh (packing, dll sudah keluar)
       }
 
       const totalHpp = hppFrame + hppLens + hppOther
@@ -150,7 +157,8 @@ export default function HitungHppPage() {
         hppLens,
         hppOther,
         totalHpp,
-        profit
+        profit,
+        isReturMinus
       }
     })
   }, [dataHpp, costFrame, costLensNormal, costLensMinus, costLensPlus, costOther])
@@ -228,7 +236,7 @@ export default function HitungHppPage() {
           </div>
         </div>
 
-        {/* SETUP HPP FORM (Hanya tampil jika ada data) */}
+        {/* SETUP HPP FORM */}
         {dataHpp.length > 0 && (
           <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 md:p-8 shadow-2xl animate-fade-in-up">
             <div className="flex items-center gap-3 mb-6">
@@ -258,7 +266,7 @@ export default function HitungHppPage() {
                 <input type="number" min="0" value={costOther || ''} onChange={(e) => setCostOther(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 25000" />
               </div>
             </div>
-            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung ke dalam tabel di bawah setiap kali Anda merubah angka di atas.</p>
+            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung ke dalam tabel. Jika Net Cair bernilai Minus, Harga Frame dianggap 0 dan Lensa dibagi 2.</p>
           </div>
         )}
 
@@ -335,7 +343,14 @@ export default function HitungHppPage() {
                   processedData.map((item, index) => (
                     <tr key={index} className="hover:bg-[#1A1A1A] transition-colors duration-200 group">
                       <td className="p-4 text-sm text-gray-500 font-medium">{index + 1}</td>
-                      <td className="p-4 text-sm text-gray-300 font-mono">{item.order_id}</td>
+                      <td className="p-4 text-sm text-gray-300 font-mono">
+                        {item.order_id}
+                        {item.isReturMinus && (
+                          <span className="ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] bg-red-900/50 text-red-400 border border-red-800">
+                            RETUR
+                          </span>
+                        )}
+                      </td>
                       
                       <td className="p-4 bg-[#5A125A]/5 group-hover:bg-[#5A125A]/10">
                         {item.status_match === 'Ditemukan' ? (
@@ -349,10 +364,28 @@ export default function HitungHppPage() {
                         )}
                       </td>
                       
-                      <td className="p-4 text-sm text-gray-200 font-semibold">{formatRupiah(item.settlement)}</td>
+                      <td className={`p-4 text-sm font-semibold ${item.settlement < 0 ? 'text-red-400' : 'text-gray-200'}`}>
+                        {formatRupiah(item.settlement)}
+                      </td>
                       
-                      <td className="p-4 text-sm text-gray-400 border-l border-gray-800">{formatRupiah(item.hppFrame)}</td>
-                      <td className="p-4 text-sm text-gray-400">{formatRupiah(item.hppLens)}</td>
+                      <td className="p-4 text-sm text-gray-400 border-l border-gray-800 relative">
+                        {item.isReturMinus && item.status_match === 'Ditemukan' ? (
+                          <span className="text-gray-600 line-through mr-2 text-xs">{formatRupiah(costFrame)}</span>
+                        ) : null}
+                        {formatRupiah(item.hppFrame)}
+                      </td>
+                      
+                      <td className="p-4 text-sm text-gray-400">
+                        {item.isReturMinus && item.status_match === 'Ditemukan' ? (
+                          <span className="text-gray-600 line-through mr-2 text-xs">
+                            {formatRupiah(
+                              item.variation.toLowerCase().includes('minus') ? costLensMinus : 
+                              item.variation.toLowerCase().includes('plus') ? costLensPlus : costLensNormal
+                            )}
+                          </span>
+                        ) : null}
+                        {formatRupiah(item.hppLens)}
+                      </td>
                       <td className="p-4 text-sm text-gray-400">{formatRupiah(item.hppOther)}</td>
                       
                       <td className="p-4 text-sm text-[#FF8A8A] font-bold bg-[#9E2A00]/5 border-r border-gray-800">
