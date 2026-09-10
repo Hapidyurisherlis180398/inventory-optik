@@ -253,7 +253,7 @@ export default function HitungHppPage() {
     doc.setFontSize(10)
     doc.setTextColor(80, 80, 80)
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')} | Total Pesanan: ${processedData.length}`, 14, 30)
-    doc.text(`Global Settlement: ${formatRupiah(globalSettlement)} | KEUNTUNGAN BERSIH: ${formatRupiah(globalProfit)}`, 14, 36)
+    doc.text(`SALDO CAIR KE TOKO: ${formatRupiah(globalSettlement)} | PROFIT BERSIH GLOBAL: ${formatRupiah(globalProfit)}`, 14, 36)
 
     // Setup Data Tabel
     const tableColumn = ["No", "Order ID", "Variasi", "Net Cair", "HPP Frame", "HPP Lensa", "Biaya Lain", "Total HPP", "Profit Bersih"]
@@ -397,13 +397,13 @@ export default function HitungHppPage() {
 
             <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#9E2A00]"></div>
-              <p className="text-sm text-gray-400 font-medium mb-1">Total HPP Global (Tampil)</p>
+              <p className="text-sm text-gray-400 font-medium mb-1">TOTAL HPP GLOBAL(Tampil)</p>
               <h2 className="text-2xl font-black text-[#FF8A8A]">{formatRupiah(globalTotalHpp)}</h2>
             </div>
 
             <div className="bg-[#121212] border border-gray-800 rounded-3xl p-6 shadow-lg relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#F56600] shadow-[0_0_10px_#F56600]"></div>
-              <p className="text-sm text-gray-400 font-medium mb-1">Estimasi Profit (Tampil)</p>
+              <p className="text-sm text-gray-400 font-medium mb-1">PROFIT BERSIH GLOBAL (Tampil)</p>
               <h2 className={`text-2xl font-black ${globalProfit >= 0 ? 'text-[#FFD700]' : 'text-red-500'}`}>
                 {formatRupiah(globalProfit)}
               </h2>
