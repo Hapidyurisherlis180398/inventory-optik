@@ -46,16 +46,17 @@ export default function DynamicLiveReportPage() {
       const pengirimanMap = new Map()
 
       if (orderIds.length > 0) {
-        // PERUBAHAN: Memanggil paid_time (bukan created_time)
+        // PERUBAHAN: Memanggil KEDUANYA (created_time & paid_time)
         const { data: pengirimanData, error: errPengiriman } = await supabase
           .from('data_pengiriman')
-          .select('order_id, paid_time, variation, payment_method, creator_handle')
+          .select('order_id, created_time, paid_time, variation, payment_method, creator_handle')
           .in('order_id', orderIds)
 
         if (!errPengiriman && pengirimanData) {
           pengirimanData.forEach((p) => {
             pengirimanMap.set(p.order_id, {
-              paid_time: p.paid_time, // Menyimpan paid_time
+              created_time: p.created_time, 
+              paid_time: p.paid_time, 
               variation: p.variation,
               payment_method: p.payment_method,
               creator_handle: p.creator_handle,
@@ -66,10 +67,23 @@ export default function DynamicLiveReportPage() {
 
       const mergedData = data.map((item) => {
         const infoPengiriman = pengirimanMap.get(item.order_id)
+        
+        // PERUBAHAN LOGIKA COD: Cek payment method
+        let waktuDibuat = null;
+        if (infoPengiriman) {
+          const payMethod = infoPengiriman.payment_method || '';
+          // Jika metode pembayaran 'Bayar di tempat', gunakan created_time
+          if (payMethod.toLowerCase().includes('bayar di tempat')) {
+            waktuDibuat = infoPengiriman.created_time;
+          } else {
+            // Jika selain 'Bayar di tempat', gunakan paid_time
+            waktuDibuat = infoPengiriman.paid_time;
+          }
+        }
+
         return {
           ...item,
-          // PERUBAHAN: Mengambil dari paid_time
-          waktu_orderan_dibuat: infoPengiriman?.paid_time || null,
+          waktu_orderan_dibuat: waktuDibuat,
           variasi_produk: infoPengiriman?.variation || '-',
           payment_method: infoPengiriman?.payment_method || '-',
           creator_handle: infoPengiriman?.creator_handle || '-',
