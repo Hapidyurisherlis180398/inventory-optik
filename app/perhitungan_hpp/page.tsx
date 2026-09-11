@@ -134,6 +134,7 @@ export default function HitungHppPage() {
       let hppOther = 0
       let orderBadge = ''
 
+      // Tentukan nilai default jika variasi ditemukan
       if (item.status_match === 'Ditemukan' && item.variation) {
         hppFrame = costFrame || 0
         hppOther = costOther || 0
@@ -148,16 +149,16 @@ export default function HitungHppPage() {
         }
       }
 
-      // Penyesuaian label & pemotongan berdasarkan nilai settlement
+      // KONDISI MUTLAK: Penyesuaian pemotongan berdasarkan nilai settlement
       if (item.settlement === 0) {
-        orderBadge = 'RETUR'
+        orderBadge = 'DIBATALKAN'
         hppFrame = 0             
         hppLens = 0              
-        hppOther = 0             // Karena net cair 0, total HPP juga 0 (semua komponen = 0)
+        hppOther = 0 // Mutlak 0 karena pesanan Retur tidak dihitung HPP
       } else if (item.settlement < 0) {
         orderBadge = 'PENGEMBALIAN BARANG'
         hppFrame = 0             
-        hppLens = hppLens / 2    // Lensa dibagi 2, Biaya lain-lain tetap normal
+        hppLens = hppLens / 2 // Lensa dibagi 2, Biaya lain-lain tetap dihitung
       }
 
       const totalHpp = hppFrame + hppLens + hppOther
@@ -377,7 +378,7 @@ export default function HitungHppPage() {
                 <input type="number" min="0" value={costOther || ''} onChange={(e) => setCostOther(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 25000" />
               </div>
             </div>
-            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung ke dalam tabel. Jika Keterangan <strong className="text-red-400">PENGEMBALIAN BARANG</strong> (Cair Minus) Frame dianggap 0 & Lensa dibagi 2. Jika <strong className="text-red-400">RETUR</strong> (Cair 0) maka seluruh komponen HPP tidak dihitung (Rp 0).</p>
+            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung. Jika Keterangan <strong className="text-red-400">PENGEMBALIAN BARANG</strong> (Cair Minus) Frame = Rp 0 & Lensa dibagi 2. Jika <strong className="text-red-400">RETUR</strong> (Cair 0) maka Total HPP = Rp 0.</p>
           </div>
         )}
 
@@ -551,7 +552,7 @@ export default function HitungHppPage() {
                         {formatRupiah(item.hppLens)}
                       </td>
                       <td className="p-4 text-sm text-gray-400">
-                        {item.orderBadge === 'RETUR' && item.status_match === 'Ditemukan' ? (
+                        {item.orderBadge && item.status_match === 'Ditemukan' ? (
                           <span className="text-gray-600 line-through mr-2 text-xs">{formatRupiah(costOther)}</span>
                         ) : null}
                         {formatRupiah(item.hppOther)}
