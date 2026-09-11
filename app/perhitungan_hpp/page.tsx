@@ -153,7 +153,7 @@ export default function HitungHppPage() {
         orderBadge = 'RETUR'
         hppFrame = 0             
         hppLens = 0              // Lensa tidak dihitung (0)
-        hppOther = 10000         // Hanya biaya packing Rp 10.000
+        hppOther = 0        
       } else if (item.settlement < 0) {
         orderBadge = 'PENGEMBALIAN BARANG'
         hppFrame = 0             
