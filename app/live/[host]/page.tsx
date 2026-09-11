@@ -17,9 +17,6 @@ export default function DynamicLiveReportPage() {
 
   const [laporanWaktu, setLaporanWaktu] = useState<any[]>([])
   const [totalTerbayar, setTotalTerbayar] = useState(0)
-  
-  // STATE BARU UNTUK STATISTIK HARI INI, KEMARIN, MINGGU, BULAN
-  const [statsPeriode, setStatsPeriode] = useState({ today: 0, yesterday: 0, week: 0, month: 0 })
 
   // --- STATE UNTUK MODAL UPLOAD ---
   const [showModalUpload, setShowModalUpload] = useState(false)
@@ -49,6 +46,7 @@ export default function DynamicLiveReportPage() {
       const pengirimanMap = new Map()
 
       if (orderIds.length > 0) {
+        // PERUBAHAN: Memanggil KEDUANYA (created_time & paid_time)
         const { data: pengirimanData, error: errPengiriman } = await supabase
           .from('data_pengiriman')
           .select('order_id, created_time, paid_time, variation, payment_method, creator_handle')
@@ -70,12 +68,15 @@ export default function DynamicLiveReportPage() {
       const mergedData = data.map((item) => {
         const infoPengiriman = pengirimanMap.get(item.order_id)
         
+        // PERUBAHAN LOGIKA COD: Cek payment method
         let waktuDibuat = null;
         if (infoPengiriman) {
           const payMethod = infoPengiriman.payment_method || '';
+          // Jika metode pembayaran 'Bayar di tempat', gunakan created_time
           if (payMethod.toLowerCase().includes('bayar di tempat')) {
             waktuDibuat = infoPengiriman.created_time;
           } else {
+            // Jika selain 'Bayar di tempat', gunakan paid_time
             waktuDibuat = infoPengiriman.paid_time;
           }
         }
@@ -90,52 +91,6 @@ export default function DynamicLiveReportPage() {
       })
 
       setData(mergedData) 
-
-      // MENGHITUNG STATISTIK PERIODE (HARI INI, KEMARIN, MINGGU, BULAN)
-      let countToday = 0;
-      let countYesterday = 0;
-      let countWeek = 0;
-      let countMonth = 0;
-
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-
-      mergedData.forEach((item) => {
-        let dateToUse = item.waktu_orderan_dibuat || item.created_at;
-        if (!dateToUse) return;
-
-        let validString = String(dateToUse).replace(' ', 'T');
-        if (!validString.includes('Z') && !validString.includes('+')) {
-          validString += 'Z';
-        }
-        const d = new Date(validString);
-        if (isNaN(d.getTime())) return;
-
-        // Cek Hari Ini
-        if (d >= startOfToday) {
-          countToday++;
-        } 
-        // Cek Kemarin
-        else if (d >= startOfYesterday && d < startOfToday) {
-          countYesterday++;
-        }
-
-        // Cek 7 Hari
-        if (d >= startOfWeek) countWeek++;
-        
-        // Cek 30 Hari
-        if (d >= startOfMonth) countMonth++;
-      });
-
-      setStatsPeriode({
-        today: countToday,
-        yesterday: countYesterday,
-        week: countWeek,
-        month: countMonth
-      });
 
       const totalBayarSemua = mergedData.reduce((sum, item) => {
         if (item.status && item.status.includes('TERBAYAR')) {
@@ -341,7 +296,7 @@ export default function DynamicLiveReportPage() {
   if (!host) return <div className="min-h-screen bg-white" />
 
   return (
-    <main className="min-h-screen bg-gray-50 p-4 md:p-8 relative">
+    <main className="min-h-screen bg-white p-4 md:p-8 relative">
       
       {/* MODAL UPLOAD EXCEL */}
       {showModalUpload && (
@@ -459,71 +414,13 @@ export default function DynamicLiveReportPage() {
           </div>
         </div>
 
-        {/* BANNER MOTIVASI PERFORMA MINGGUAN / BULANAN (GRAFIK MINI) */}
-        {data.length > 0 && (
-          <div className="mb-8">
-            {(() => {
-              const diff = statsPeriode.today - statsPeriode.yesterday;
-              
-              let bgColor = "from-blue-500 to-indigo-600";
-              let title = "✨ PERFORMA STABIL!";
-              let icon = "🎯";
-              let desc = `Hari ini pesanan sama dengan kemarin. Push terus promonya biar grafiknya makin meroket!`;
-              
-              if (diff > 0) {
-                bgColor = "from-emerald-500 to-green-600";
-                title = "🔥 GAS TERUS! Performa Naik!";
-                icon = "🚀";
-                desc = `Hari ini naik ${diff} pesanan dibandingkan kemarin. Pertahankan energinya kalian luar biasa!`;
-              } else if (diff < 0) {
-                bgColor = "from-orange-500 to-red-500";
-                title = "💪 AYO SEMANGAT! Jangan Kendor!";
-                icon = "🔥";
-                desc = `Hari ini turun ${Math.abs(diff)} pesanan dibandingkan kemarin. Evaluasi strategi, semangat terus pasti bisa naik!`;
-              }
-
-              return (
-                <div className={`bg-gradient-to-r ${bgColor} rounded-3xl p-6 md:p-8 text-white shadow-lg transition-all`}>
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-                    <div>
-                      <h3 className="text-2xl md:text-3xl font-extrabold mb-2">{title}</h3>
-                      <p className="text-white/90 text-sm md:text-base">{desc}</p>
-                    </div>
-                    <div className={`text-5xl md:text-6xl ${diff > 0 ? 'animate-bounce' : ''}`}>{icon}</div>
-                  </div>
-
-                  {/* KARTU GRAFIK MINI (Hari Ini, Kemarin, Seminggu, Sebulan) */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white/10 p-4 rounded-2xl backdrop-blur-md border border-white/20">
-                    <div className="text-center py-2 relative">
-                      <p className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mb-1">Hari Ini</p>
-                      <p className="text-3xl md:text-4xl font-black">{statsPeriode.today}</p>
-                    </div>
-                    <div className="text-center py-2 border-l border-white/20 relative">
-                      <p className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mb-1">Kemarin</p>
-                      <p className="text-3xl md:text-4xl font-black">{statsPeriode.yesterday}</p>
-                    </div>
-                    <div className="text-center py-2 border-l border-white/20 relative">
-                      <p className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mb-1">7 Hari Terakhir</p>
-                      <p className="text-3xl md:text-4xl font-black">{statsPeriode.week}</p>
-                    </div>
-                    <div className="text-center py-2 border-l border-white/20 relative">
-                      <p className="text-xs md:text-sm text-white/80 font-bold uppercase tracking-wider mb-1">30 Hari Terakhir</p>
-                      <p className="text-3xl md:text-4xl font-black">{statsPeriode.month}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* CARD SUMMARY (TOTAL TERBAYAR / DLL) */}
+        {/* CARD SUMMARY */}
         <div className="grid md:grid-cols-4 gap-5 mb-8">
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-            <p className="text-sm text-gray-500 mb-3">Total Pesanan Tercatat</p>
+            <p className="text-sm text-gray-500 mb-3">Total Hasil Live</p>
             <h2 className="text-4xl font-bold text-gray-900">{data.length}</h2>
             <p className="text-sm text-gray-400 mt-2">
-              Akumulasi semua data yang masuk
+              Total seluruh pesanan live
             </p>
           </div>
 
@@ -556,15 +453,15 @@ export default function DynamicLiveReportPage() {
             <h2 className="text-2xl font-bold text-blue-700">
               {formatRupiah(totalTerbayar)}
             </h2>
-            <p className="text-sm text-blue-600 mt-2">Akumulasi seluruh pemasukan</p>
+            <p className="text-sm text-blue-600 mt-2">Akumulasi pembayaran</p>
           </div>
         </div>
 
-        {/* LAPORAN RIWAYAT */}
+        {/* LAPORAN */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-2xl font-bold text-gray-900">
-              Riwayat Pembayaran Harian
+              Riwayat Pembayaran
             </h2>
           </div>
 
@@ -574,74 +471,34 @@ export default function DynamicLiveReportPage() {
                 <p className="text-gray-500">Belum ada laporan pembayaran</p>
               </div>
             ) : (
-              laporanWaktu.map((item, index) => {
-                // Indikator Trend per baris batch
-                const prevItem = laporanWaktu[index + 1];
-                let trendBadge = null;
-
-                if (prevItem) {
-                  const diff = item.jumlahPesanan - prevItem.jumlahPesanan;
-                  if (diff > 0) {
-                    trendBadge = (
-                      <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-lg ml-3">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                        Naik {diff}
-                      </span>
-                    );
-                  } else if (diff < 0) {
-                    trendBadge = (
-                      <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-lg ml-3">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                        Turun {Math.abs(diff)}
-                      </span>
-                    );
-                  } else {
-                    trendBadge = (
-                      <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-lg ml-3">
-                        Stabil
-                      </span>
-                    );
-                  }
-                } else if (laporanWaktu.length > 1 && index === laporanWaktu.length - 1) {
-                  trendBadge = (
-                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-lg ml-3">
-                      Sesi Pertama
-                    </span>
-                  );
-                }
-
-                return (
-                  <div
-                    key={index}
-                    className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                      <div>
-                        <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-semibold px-3 py-2 rounded-full mb-4">
-                          ● TERBAYAR
-                        </div>
-                        <p className="text-sm text-gray-500 mb-3">{item.waktu}</p>
-                        <h2 className="text-3xl font-bold text-gray-900">
-                          {formatRupiah(Number(item.total))}
-                        </h2>
-                        <div className="mt-3 flex items-center">
-                          <p className="text-sm font-medium text-gray-600">
-                            {item.jumlahPesanan} Pesanan
-                          </p>
-                          {trendBadge}
-                        </div>
+              laporanWaktu.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div>
+                      <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-semibold px-3 py-2 rounded-full mb-4">
+                        ● TERBAYAR
                       </div>
-
-                      <button
-                        onClick={() => handleKlikLunasi(item.waktu)}
-                        className="bg-black hover:bg-gray-800 transition-all text-white px-7 py-4 rounded-2xl font-semibold shadow-sm"
-                      >
-                        Lunasi
-                      </button>
+                      <p className="text-sm text-gray-500 mb-3">{item.waktu}</p>
+                      <h2 className="text-3xl font-bold text-gray-900">
+                        {formatRupiah(Number(item.total))}
+                      </h2>
+                      <p className="mt-3 text-sm font-medium text-gray-600">
+                        {item.jumlahPesanan} Pesanan
+                      </p>
                     </div>
+
+                    <button
+                      onClick={() => handleKlikLunasi(item.waktu)}
+                      className="bg-black hover:bg-gray-800 transition-all text-white px-7 py-4 rounded-2xl font-semibold shadow-sm"
+                    >
+                      Lunasi
+                    </button>
                   </div>
-                )
-              })
+                </div>
+              ))
             )}
           </div>
         </div>
