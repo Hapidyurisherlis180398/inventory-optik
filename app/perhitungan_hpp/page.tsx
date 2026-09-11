@@ -132,7 +132,7 @@ export default function HitungHppPage() {
       let hppFrame = 0
       let hppLens = 0
       let hppOther = 0
-      let isReturMinus = false
+      let orderBadge = ''
 
       if (item.status_match === 'Ditemukan' && item.variation) {
         hppFrame = costFrame || 0
@@ -148,10 +148,16 @@ export default function HitungHppPage() {
         }
       }
 
-      if (item.settlement < 0) {
-        isReturMinus = true
+      // Penyesuaian label & pemotongan berdasarkan nilai settlement
+      if (item.settlement === 0) {
+        orderBadge = 'RETUR'
         hppFrame = 0             
-        hppLens = hppLens / 2    
+        hppLens = 0              // Lensa tidak dihitung (0)
+        hppOther = 10000         // Hanya biaya packing Rp 10.000
+      } else if (item.settlement < 0) {
+        orderBadge = 'PENGEMBALIAN BARANG'
+        hppFrame = 0             
+        hppLens = hppLens / 2    // Lensa dibagi 2, Biaya lain-lain tetap normal
       }
 
       const totalHpp = hppFrame + hppLens + hppOther
@@ -164,7 +170,7 @@ export default function HitungHppPage() {
         hppOther,
         totalHpp,
         profit,
-        isReturMinus
+        orderBadge
       }
     })
 
@@ -242,12 +248,10 @@ export default function HitungHppPage() {
   // FUNGSI EXPORT PDF
   // ==========================================
   const downloadPDF = () => {
-    // Landscape orientation untuk muat banyak kolom
     const doc = new jsPDF('landscape')
     
-    // Header Laporan
     doc.setFontSize(18)
-    doc.setTextColor(245, 102, 0) // Orange Theme
+    doc.setTextColor(245, 102, 0) 
     doc.text('Laporan Detail HPP & Profit Bersih', 14, 22)
     
     doc.setFontSize(10)
@@ -255,14 +259,13 @@ export default function HitungHppPage() {
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')} | Total Pesanan: ${processedData.length}`, 14, 30)
     doc.text(`SALDO CAIR KE TOKO: ${formatRupiah(globalSettlement)} | PROFIT BERSIH GLOBAL: ${formatRupiah(globalProfit)}`, 14, 36)
 
-    // Setup Data Tabel
     const tableColumn = ["No", "Order ID", "Variasi", "Net Cair", "HPP Frame", "HPP Lensa", "Biaya Lain", "Total HPP", "Profit Bersih"]
     const tableRows: any[] = []
 
     processedData.forEach((item, index) => {
       const rowData = [
         index + 1,
-        item.order_id + (item.isReturMinus ? ' (RETUR)' : ''),
+        item.order_id + (item.orderBadge ? ` (${item.orderBadge})` : ''),
         item.variation || 'Tidak Ditemukan',
         formatRupiah(item.settlement),
         formatRupiah(item.hppFrame),
@@ -280,15 +283,15 @@ export default function HitungHppPage() {
       startY: 42,
       theme: 'grid',
       styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [90, 18, 90], textColor: [255, 255, 255] }, // Purple Header
+      headStyles: { fillColor: [90, 18, 90], textColor: [255, 255, 255] }, 
       alternateRowStyles: { fillColor: [245, 245, 245] },
       columnStyles: {
-        3: { halign: 'right' }, // Net Cair
-        4: { halign: 'right' }, // Frame
-        5: { halign: 'right' }, // Lensa
-        6: { halign: 'right' }, // Biaya Lain
-        7: { halign: 'right', fontStyle: 'bold' }, // Total HPP
-        8: { halign: 'right', fontStyle: 'bold', textColor: [245, 102, 0] } // Profit Bersih
+        3: { halign: 'right' }, 
+        4: { halign: 'right' }, 
+        5: { halign: 'right' }, 
+        6: { halign: 'right' }, 
+        7: { halign: 'right', fontStyle: 'bold' }, 
+        8: { halign: 'right', fontStyle: 'bold', textColor: [245, 102, 0] } 
       }
     })
 
@@ -374,6 +377,7 @@ export default function HitungHppPage() {
                 <input type="number" min="0" value={costOther || ''} onChange={(e) => setCostOther(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 25000" />
               </div>
             </div>
+            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung ke dalam tabel. Jika Keterangan <strong className="text-red-400">PENGEMBALIAN BARANG</strong> (Cair Minus) Frame dianggap 0 & Lensa dibagi 2. Jika <strong className="text-red-400">RETUR</strong> (Cair 0) hanya dikenakan Biaya Packing Rp 10.000.</p>
           </div>
         )}
 
@@ -505,9 +509,9 @@ export default function HitungHppPage() {
                       <td className="p-4 text-sm text-gray-500 font-medium">{index + 1}</td>
                       <td className="p-4 text-sm text-gray-300 font-mono">
                         {item.order_id}
-                        {item.isReturMinus && (
-                          <span className="ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] bg-red-900/50 text-red-400 border border-red-800">
-                            RETUR
+                        {item.orderBadge && (
+                          <span className="ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] bg-red-900/50 text-red-400 border border-red-800 font-sans tracking-wider">
+                            {item.orderBadge}
                           </span>
                         )}
                       </td>
@@ -528,15 +532,17 @@ export default function HitungHppPage() {
                         {formatRupiah(item.settlement)}
                       </td>
                       
+                      {/* CELL HPP FRAME */}
                       <td className="p-4 text-sm text-gray-400 border-l border-gray-800 relative">
-                        {item.isReturMinus && item.status_match === 'Ditemukan' ? (
+                        {item.orderBadge && item.status_match === 'Ditemukan' ? (
                           <span className="text-gray-600 line-through mr-2 text-xs">{formatRupiah(costFrame)}</span>
                         ) : null}
                         {formatRupiah(item.hppFrame)}
                       </td>
                       
+                      {/* CELL HPP LENSA */}
                       <td className="p-4 text-sm text-gray-400">
-                        {item.isReturMinus && item.status_match === 'Ditemukan' ? (
+                        {item.orderBadge && item.status_match === 'Ditemukan' ? (
                           <span className="text-gray-600 line-through mr-2 text-xs">
                             {formatRupiah(
                               item.variation.toLowerCase().includes('minus') ? costLensMinus : 
@@ -546,7 +552,14 @@ export default function HitungHppPage() {
                         ) : null}
                         {formatRupiah(item.hppLens)}
                       </td>
-                      <td className="p-4 text-sm text-gray-400">{formatRupiah(item.hppOther)}</td>
+                      
+                      {/* CELL BIAYA LAIN */}
+                      <td className="p-4 text-sm text-gray-400">
+                        {item.orderBadge === 'RETUR' && item.status_match === 'Ditemukan' ? (
+                          <span className="text-gray-600 line-through mr-2 text-xs">{formatRupiah(costOther)}</span>
+                        ) : null}
+                        {formatRupiah(item.hppOther)}
+                      </td>
                       
                       <td className="p-4 text-sm text-[#FF8A8A] font-bold bg-[#9E2A00]/5 border-r border-gray-800">
                         {formatRupiah(item.totalHpp)}
