@@ -46,16 +46,16 @@ export default function DynamicLiveReportPage() {
       const pengirimanMap = new Map()
 
       if (orderIds.length > 0) {
-        // PERUBAHAN: Menambahkan payment_method dan creator_handle di query Supabase
+        // PERUBAHAN: Memanggil paid_time (bukan created_time)
         const { data: pengirimanData, error: errPengiriman } = await supabase
           .from('data_pengiriman')
-          .select('order_id, created_time, variation, payment_method, creator_handle')
+          .select('order_id, paid_time, variation, payment_method, creator_handle')
           .in('order_id', orderIds)
 
         if (!errPengiriman && pengirimanData) {
           pengirimanData.forEach((p) => {
             pengirimanMap.set(p.order_id, {
-              created_time: p.created_time,
+              paid_time: p.paid_time, // Menyimpan paid_time
               variation: p.variation,
               payment_method: p.payment_method,
               creator_handle: p.creator_handle,
@@ -68,9 +68,9 @@ export default function DynamicLiveReportPage() {
         const infoPengiriman = pengirimanMap.get(item.order_id)
         return {
           ...item,
-          waktu_orderan_dibuat: infoPengiriman?.created_time || null,
+          // PERUBAHAN: Mengambil dari paid_time
+          waktu_orderan_dibuat: infoPengiriman?.paid_time || null,
           variasi_produk: infoPengiriman?.variation || '-',
-          // PERUBAHAN: Memasukkan data baru ke dalam state item
           payment_method: infoPengiriman?.payment_method || '-',
           creator_handle: infoPengiriman?.creator_handle || '-',
         }
@@ -568,7 +568,6 @@ export default function DynamicLiveReportPage() {
                       <td className="p-5 text-gray-700">
                         {item.variasi_produk}
                       </td>
-                      {/* ISI DATA KOLOM PAYMENT METHOD & CREATOR HANDLE */}
                       <td className="p-5 text-gray-700">
                         {item.payment_method}
                       </td>
