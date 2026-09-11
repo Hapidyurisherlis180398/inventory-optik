@@ -46,9 +46,10 @@ export default function DynamicLiveReportPage() {
       const pengirimanMap = new Map()
 
       if (orderIds.length > 0) {
+        // PERUBAHAN: Menambahkan payment_method dan creator_handle di query Supabase
         const { data: pengirimanData, error: errPengiriman } = await supabase
           .from('data_pengiriman')
-          .select('order_id, created_time, variation')
+          .select('order_id, created_time, variation, payment_method, creator_handle')
           .in('order_id', orderIds)
 
         if (!errPengiriman && pengirimanData) {
@@ -56,6 +57,8 @@ export default function DynamicLiveReportPage() {
             pengirimanMap.set(p.order_id, {
               created_time: p.created_time,
               variation: p.variation,
+              payment_method: p.payment_method,
+              creator_handle: p.creator_handle,
             })
           })
         }
@@ -67,6 +70,9 @@ export default function DynamicLiveReportPage() {
           ...item,
           waktu_orderan_dibuat: infoPengiriman?.created_time || null,
           variasi_produk: infoPengiriman?.variation || '-',
+          // PERUBAHAN: Memasukkan data baru ke dalam state item
+          payment_method: infoPengiriman?.payment_method || '-',
+          creator_handle: infoPengiriman?.creator_handle || '-',
         }
       })
 
@@ -513,13 +519,15 @@ export default function DynamicLiveReportPage() {
           </div>
 
           <div className="overflow-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[1200px]">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">ID Pesanan</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Waktu Orderan Dibuat</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Variasi</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Payment Method</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Creator Handle</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Toko</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Total Pendapatan</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
@@ -530,13 +538,13 @@ export default function DynamicLiveReportPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="text-center p-12 text-gray-500">
+                    <td colSpan={10} className="text-center p-12 text-gray-500">
                       Loading...
                     </td>
                   </tr>
                 ) : filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center p-12 text-gray-500">
+                    <td colSpan={10} className="text-center p-12 text-gray-500">
                       {searchQuery ? 'Data pesanan tidak ditemukan' : 'Belum ada data'}
                     </td>
                   </tr>
@@ -552,12 +560,20 @@ export default function DynamicLiveReportPage() {
                       <td className="p-5 font-semibold text-gray-900">
                         {item.order_id}
                       </td>
-                      {/* PERUBAHAN: Data dicetak mentah persis seperti di database tanpa formatTanggal */}
                       <td className="p-5 text-gray-700 whitespace-nowrap">
-                        {item.waktu_orderan_dibuat ? item.waktu_orderan_dibuat : '-'}
+                        {item.waktu_orderan_dibuat 
+                          ? String(item.waktu_orderan_dibuat).replace('T', ' ').split('+')[0].replace('Z', '') 
+                          : '-'}
                       </td>
                       <td className="p-5 text-gray-700">
                         {item.variasi_produk}
+                      </td>
+                      {/* ISI DATA KOLOM PAYMENT METHOD & CREATOR HANDLE */}
+                      <td className="p-5 text-gray-700">
+                        {item.payment_method}
+                      </td>
+                      <td className="p-5 text-gray-700">
+                        {item.creator_handle}
                       </td>
                       <td className="p-5 text-gray-700">{item.toko}</td>
                       <td className="p-5 font-semibold text-green-700">
