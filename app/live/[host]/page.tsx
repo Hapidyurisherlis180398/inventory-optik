@@ -46,7 +46,6 @@ export default function DynamicLiveReportPage() {
       const pengirimanMap = new Map()
 
       if (orderIds.length > 0) {
-        // PERUBAHAN: Memanggil KEDUANYA (created_time & paid_time)
         const { data: pengirimanData, error: errPengiriman } = await supabase
           .from('data_pengiriman')
           .select('order_id, created_time, paid_time, variation, payment_method, creator_handle')
@@ -68,15 +67,12 @@ export default function DynamicLiveReportPage() {
       const mergedData = data.map((item) => {
         const infoPengiriman = pengirimanMap.get(item.order_id)
         
-        // PERUBAHAN LOGIKA COD: Cek payment method
         let waktuDibuat = null;
         if (infoPengiriman) {
           const payMethod = infoPengiriman.payment_method || '';
-          // Jika metode pembayaran 'Bayar di tempat', gunakan created_time
           if (payMethod.toLowerCase().includes('bayar di tempat')) {
             waktuDibuat = infoPengiriman.created_time;
           } else {
-            // Jika selain 'Bayar di tempat', gunakan paid_time
             waktuDibuat = infoPengiriman.paid_time;
           }
         }
@@ -533,19 +529,19 @@ export default function DynamicLiveReportPage() {
           </div>
 
           <div className="overflow-auto">
-            <table className="w-full min-w-[1200px]">
+            <table className="w-full min-w-[1400px]">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">ID Pesanan</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Waktu Orderan Dibuat</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Variasi</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Payment Method</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Creator Handle</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Toko</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Total Pendapatan</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Input Data</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">No</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID Pesanan</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Waktu Orderan Dibuat</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Variasi</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Payment Method</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Creator Handle</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Toko</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Total Pendapatan</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Input Data</th>
                 </tr>
               </thead>
 
@@ -566,45 +562,115 @@ export default function DynamicLiveReportPage() {
                   filteredData.map((item, index) => (
                     <tr
                       key={item.id}
-                      className="border-t border-gray-100 hover:bg-gray-50 transition-all"
+                      className="border-t border-gray-100 hover:bg-gray-50 transition-colors duration-200"
                     >
-                      <td className="p-5 text-gray-700 font-medium">
-                        {index + 1}
-                      </td>
-                      <td className="p-5 font-semibold text-gray-900">
-                        {item.order_id}
-                      </td>
-                      <td className="p-5 text-gray-700 whitespace-nowrap">
-                        {item.waktu_orderan_dibuat 
-                          ? String(item.waktu_orderan_dibuat).replace('T', ' ').split('+')[0].replace('Z', '') 
-                          : '-'}
-                      </td>
-                      <td className="p-5 text-gray-700">
-                        {item.variasi_produk}
-                      </td>
-                      <td className="p-5 text-gray-700">
-                        {item.payment_method}
-                      </td>
-                      <td className="p-5 text-gray-700">
-                        {item.creator_handle}
-                      </td>
-                      <td className="p-5 text-gray-700">{item.toko}</td>
-                      <td className="p-5 font-semibold text-green-700">
-                        {item.total_pendapatan}
-                      </td>
+                      {/* KOLOM NO - Dibuat pill abu-abu halus */}
                       <td className="p-5">
-                        {item.status && item.status.includes('TERBAYAR') ? (
-                          <span className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-2 rounded-full text-xs font-semibold">
-                            ● {item.status}
+                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 font-bold text-sm">
+                          {index + 1}
+                        </span>
+                      </td>
+
+                      {/* KOLOM ID PESANAN - Font Monospace dengan background block */}
+                      <td className="p-5">
+                        <div className="font-mono font-bold text-gray-900 bg-gray-100/60 px-3 py-1.5 rounded-lg inline-block border border-gray-200 shadow-sm">
+                          {item.order_id}
+                        </div>
+                      </td>
+
+                      {/* KOLOM WAKTU ORDERAN - Tambahan icon jam kecil agar elegan */}
+                      <td className="p-5">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm inline-flex">
+                          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          {item.waktu_orderan_dibuat 
+                            ? String(item.waktu_orderan_dibuat).replace('T', ' ').split('+')[0].replace('Z', '') 
+                            : '-'}
+                        </div>
+                      </td>
+
+                      {/* KOLOM VARIASI - Bentuk Badge / Pill warna Indigo */}
+                      <td className="p-5">
+                        {item.variasi_produk && item.variasi_produk !== '-' ? (
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold shadow-sm">
+                            {item.variasi_produk}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-xs font-bold">
-                            ● BELUM DIBAYAR
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* KOLOM PAYMENT METHOD - Beda warna antara COD (Orange) dan lainnya (Biru) */}
+                      <td className="p-5">
+                        {item.payment_method && item.payment_method !== '-' ? (
+                          item.payment_method.toLowerCase().includes('bayar di tempat') ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold shadow-sm">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                              {item.payment_method}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold shadow-sm">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                              {item.payment_method}
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* KOLOM CREATOR HANDLE - Tambahan Avatar Inisial & Bold */}
+                      <td className="p-5">
+                        {item.creator_handle && item.creator_handle !== '-' ? (
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                              {item.creator_handle.replace('@','').charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-bold text-gray-800 text-sm">
+                              {item.creator_handle.startsWith('@') ? item.creator_handle : `@${item.creator_handle}`}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* KOLOM TOKO - Icon Store kecil agar manis */}
+                      <td className="p-5">
+                        {item.toko && item.toko !== '-' ? (
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-gray-100 rounded-md text-gray-500 border border-gray-200">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            </div>
+                            <span className="text-gray-900 font-bold text-sm tracking-wide">{item.toko}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+
+                      {/* KOLOM TOTAL PENDAPATAN */}
+                      <td className="p-5 font-bold text-green-700 text-base">
+                        {item.total_pendapatan}
+                      </td>
+
+                      {/* KOLOM STATUS */}
+                      <td className="p-5">
+                        {item.status && item.status.includes('TERBAYAR') ? (
+                          <span className="inline-flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> {item.status}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 bg-red-100 border border-red-200 text-red-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span> BELUM DIBAYAR
                           </span>
                         )}
                       </td>
+
+                      {/* KOLOM INPUT DATA */}
                       <td className="p-5 font-semibold text-red-700">
-                        {item.created_at ? formatTanggal(item.created_at) : '-'}
+                        <div className="bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 inline-block text-sm">
+                          {item.created_at ? formatTanggal(item.created_at) : '-'}
+                        </div>
                       </td>
                     </tr>
                   ))
