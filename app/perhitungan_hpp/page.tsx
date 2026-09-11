@@ -152,8 +152,8 @@ export default function HitungHppPage() {
       if (item.settlement === 0) {
         orderBadge = 'RETUR'
         hppFrame = 0             
-        hppLens = 0              // Lensa tidak dihitung (0)
-        hppOther = 0        
+        hppLens = 0              
+        hppOther = 0             // Karena net cair 0, total HPP juga 0 (semua komponen = 0)
       } else if (item.settlement < 0) {
         orderBadge = 'PENGEMBALIAN BARANG'
         hppFrame = 0             
@@ -377,7 +377,7 @@ export default function HitungHppPage() {
                 <input type="number" min="0" value={costOther || ''} onChange={(e) => setCostOther(Number(e.target.value))} className="w-full bg-[#1A1A1A] border border-gray-700 rounded-xl p-3 text-white focus:border-[#F56600] focus:ring-1 focus:ring-[#F56600] outline-none transition-all font-mono" placeholder="Contoh: 25000" />
               </div>
             </div>
-            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung ke dalam tabel. Jika Keterangan <strong className="text-red-400">PENGEMBALIAN BARANG</strong> (Cair Minus) Frame dianggap 0 & Lensa dibagi 2. Jika <strong className="text-red-400">RETUR</strong> (Cair 0) hanya dikenakan Biaya Packing Rp 10.000.</p>
+            <p className="text-sm text-gray-500 mt-4 italic">*HPP akan otomatis dihitung ke dalam tabel. Jika Keterangan <strong className="text-red-400">PENGEMBALIAN BARANG</strong> (Cair Minus) Frame dianggap 0 & Lensa dibagi 2. Jika <strong className="text-red-400">RETUR</strong> (Cair 0) maka seluruh komponen HPP tidak dihitung (Rp 0).</p>
           </div>
         )}
 
@@ -532,7 +532,6 @@ export default function HitungHppPage() {
                         {formatRupiah(item.settlement)}
                       </td>
                       
-                      {/* CELL HPP FRAME */}
                       <td className="p-4 text-sm text-gray-400 border-l border-gray-800 relative">
                         {item.orderBadge && item.status_match === 'Ditemukan' ? (
                           <span className="text-gray-600 line-through mr-2 text-xs">{formatRupiah(costFrame)}</span>
@@ -540,7 +539,6 @@ export default function HitungHppPage() {
                         {formatRupiah(item.hppFrame)}
                       </td>
                       
-                      {/* CELL HPP LENSA */}
                       <td className="p-4 text-sm text-gray-400">
                         {item.orderBadge && item.status_match === 'Ditemukan' ? (
                           <span className="text-gray-600 line-through mr-2 text-xs">
@@ -552,8 +550,6 @@ export default function HitungHppPage() {
                         ) : null}
                         {formatRupiah(item.hppLens)}
                       </td>
-                      
-                      {/* CELL BIAYA LAIN */}
                       <td className="p-4 text-sm text-gray-400">
                         {item.orderBadge === 'RETUR' && item.status_match === 'Ditemukan' ? (
                           <span className="text-gray-600 line-through mr-2 text-xs">{formatRupiah(costOther)}</span>
