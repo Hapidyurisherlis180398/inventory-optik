@@ -1,19 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation' // <--- TAMBAHAN UNTUK BACA URL
-import { supabase } from '../../../lib/supabase' // Sesuaikan path supabase kamu
+import { useParams } from 'next/navigation' 
+import { supabase } from '../../../lib/supabase' 
 import * as XLSX from 'xlsx'
 
 export default function DynamicLiveReportPage() {
   const params = useParams()
-  // Mengambil nama dari URL (misal: "a_paruk", "a_usup", "agil")
   const host = params.host as string 
 
-  // OTOMATIS BIKIN NAMA TABEL SESUAI URL (contoh: live_reports_a_paruk)
   const tableName = `live_reports_${host}`
-
-  // OTOMATIS BIKIN NAMA UNTUK JUDUL H1 (contoh: "a_paruk" jadi "A PARUK")
   const displayName = host ? host.replace(/_/g, ' ').toUpperCase() : ''
 
   const [data, setData] = useState<any[]>([])
@@ -38,7 +34,6 @@ export default function DynamicLiveReportPage() {
   async function getData() {
     setLoading(true)
 
-    // MEMANGGIL TABEL SECARA DINAMIS
     const { data, error } = await supabase
       .from(tableName)
       .select('*')
@@ -47,9 +42,6 @@ export default function DynamicLiveReportPage() {
       })
 
     if (!error && data) {
-      // ==============================================================
-      // TAMBAHAN: MENGAMBIL DATA DARI data_pengiriman (WAKTU & VARIASI)
-      // ==============================================================
       const orderIds = data.map((item) => item.order_id).filter(Boolean)
       const pengirimanMap = new Map()
 
@@ -69,7 +61,6 @@ export default function DynamicLiveReportPage() {
         }
       }
 
-      // Gabungkan data asli dengan data dari data_pengiriman
       const mergedData = data.map((item) => {
         const infoPengiriman = pengirimanMap.get(item.order_id)
         return {
@@ -79,24 +70,20 @@ export default function DynamicLiveReportPage() {
         }
       })
 
-      setData(mergedData) // Set data yang sudah digabungkan
+      setData(mergedData) 
 
-      // TOTAL SEMUA TERBAYAR
       const totalBayarSemua = mergedData.reduce((sum, item) => {
         if (item.status && item.status.includes('TERBAYAR')) {
           const angka = Number(
             item.total_pendapatan?.toString().replace(/[^\d-]/g, '')
           )
-
           return sum + (angka || 0)
         }
-
         return sum
       }, 0)
 
       setTotalTerbayar(totalBayarSemua)
 
-      // REKAP BERDASARKAN WAKTU
       const group: any = {}
 
       mergedData.forEach((item) => {
@@ -132,7 +119,6 @@ export default function DynamicLiveReportPage() {
   }
 
   useEffect(() => {
-    // Pastikan host sudah terbaca dari URL sebelum fetch data
     if (host) {
       getData()
     }
@@ -147,20 +133,11 @@ export default function DynamicLiveReportPage() {
 
   function formatTanggal(rawString: string) {
     if (!rawString) return '-';
-
-    // 1. Ubah spasi menjadi 'T' agar sesuai standar format tanggal web (ISO)
     let validString = rawString.replace(' ', 'T');
-
-    // 2. Tambahkan huruf 'Z' di paling belakang agar dibaca sebagai UTC
     if (!validString.includes('Z') && !validString.includes('+')) {
       validString += 'Z';
     }
-
-    // Sekarang "2026-08-18 10:03:07.582388" sudah berubah 
-    // menjadi "2026-08-18T10:03:07.582388Z"
-
     const date = new Date(validString);
-
     return new Intl.DateTimeFormat('id-ID', {
       day: '2-digit',
       month: 'short',
@@ -171,7 +148,6 @@ export default function DynamicLiveReportPage() {
     }).format(date);
   }
 
-  // EXPORT BELUM TERBAYAR
   function exportBelumTerbayar() {
     const belumTerbayar = data.filter(
       (item) => !item.status || !item.status.includes('TERBAYAR')
@@ -196,14 +172,12 @@ export default function DynamicLiveReportPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Belum Dibayar')
 
     const tanggal = new Date().toLocaleDateString('id-ID').replace(/\//g, '-')
-    // NAMA FILE EXPORT OTOMATIS BERUBAH SESUAI ORANGNYA
     const formatNamaFile = host.replace(/_/g, '-').toUpperCase()
     const namaFile = `${formatNamaFile}-BELUM-DIBAYAR-${tanggal}.xlsx`
 
     XLSX.writeFile(workbook, namaFile)
   }
 
-  // --- UPLOAD EXCEL ---
   function handleSelectFileExcel(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
@@ -236,7 +210,6 @@ export default function DynamicLiveReportPage() {
 
       if (!orderId) continue
 
-      // CEK DUPLICATE DI TABEL DINAMIS
       const { data: existing } = await supabase
         .from(tableName)
         .select('id')
@@ -247,7 +220,6 @@ export default function DynamicLiveReportPage() {
         continue
       }
 
-      // INSERT KE TABEL DINAMIS
       await supabase.from(tableName).insert([
         {
           nomor: item['NO']?.toString() || '',
@@ -265,7 +237,6 @@ export default function DynamicLiveReportPage() {
     setLoading(false)
   }
 
-  // --- LUNASI ---
   function handleKlikLunasi(waktu: string) {
     setTempWaktu(waktu)
     setShowModalLunasi(true)
@@ -281,7 +252,6 @@ export default function DynamicLiveReportPage() {
     setShowModalLunasi(false)
     setPinLunasi('')
 
-    // SELECT DARI TABEL DINAMIS
     const { data: rows } = await supabase
       .from(tableName)
       .select('*')
@@ -292,20 +262,17 @@ export default function DynamicLiveReportPage() {
       return
     }
 
-    // DELETE DARI TABEL DINAMIS
     await supabase.from(tableName).delete().eq('status', tempWaktu)
 
     alert(`Batch ${displayName} berhasil dilunasi`)
     getData()
   }
 
-  // --- FUNGSI FILTER DATA UNTUK PENCARIAN ---
   const filteredData = data.filter((item) => {
     if (searchQuery === '') return true
     return item.order_id?.toLowerCase().includes(searchQuery.toLowerCase())
   })
 
-  // JIKA HOST BELUM TERBACA DARI URL, TAMPILKAN LOADING PUTIH
   if (!host) return <div className="min-h-screen bg-white" />
 
   return (
@@ -397,7 +364,6 @@ export default function DynamicLiveReportPage() {
                 LIVE REPORT DASHBOARD
               </p>
               
-              {/* JUDUL OTOMATIS BERUBAH BERDASARKAN URL */}
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
                 HASIL LIVE {displayName}
               </h1>
@@ -408,7 +374,6 @@ export default function DynamicLiveReportPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              {/* EXPORT */}
               <button
                 onClick={exportBelumTerbayar}
                 className="bg-red-600 hover:bg-red-700 transition-all text-white px-6 py-4 rounded-2xl font-semibold shadow-sm"
@@ -416,7 +381,6 @@ export default function DynamicLiveReportPage() {
                 Export Belum Dibayar
               </button>
 
-              {/* UPLOAD */}
               <label className="bg-black hover:bg-gray-800 transition-all text-white px-6 py-4 rounded-2xl cursor-pointer text-center font-semibold shadow-sm">
                 Upload Excel
                 <input
@@ -432,7 +396,6 @@ export default function DynamicLiveReportPage() {
 
         {/* CARD SUMMARY */}
         <div className="grid md:grid-cols-4 gap-5 mb-8">
-          {/* TOTAL LIVE */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-3">Total Hasil Live</p>
             <h2 className="text-4xl font-bold text-gray-900">{data.length}</h2>
@@ -441,7 +404,6 @@ export default function DynamicLiveReportPage() {
             </p>
           </div>
 
-          {/* SUDAH DIBAYAR */}
           <div className="bg-green-50 border border-green-100 rounded-3xl p-6 shadow-sm">
             <p className="text-sm text-green-700 mb-3">Sudah Dibayar</p>
             <h2 className="text-4xl font-bold text-green-700">
@@ -454,7 +416,6 @@ export default function DynamicLiveReportPage() {
             <p className="text-sm text-green-600 mt-2">Pesanan sudah lunas</p>
           </div>
 
-          {/* BELUM DIBAYAR */}
           <div className="bg-red-50 border border-red-100 rounded-3xl p-6 shadow-sm">
             <p className="text-sm text-red-700 mb-3">Belum Dibayar</p>
             <h2 className="text-4xl font-bold text-red-700">
@@ -467,7 +428,6 @@ export default function DynamicLiveReportPage() {
             <p className="text-sm text-red-600 mt-2">Menunggu pembayaran</p>
           </div>
 
-          {/* TOTAL TERBAYAR */}
           <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 shadow-sm">
             <p className="text-sm text-blue-700 mb-3">Total Uang Terbayar</p>
             <h2 className="text-2xl font-bold text-blue-700">
@@ -533,7 +493,6 @@ export default function DynamicLiveReportPage() {
               </p>
             </div>
             
-            {/* AREA INPUT PENCARIAN (SUDAH DIUBAH PLACEHOLDER-NYA) */}
             <div className="relative w-full md:w-72">
               <input
                 type="text"
@@ -559,7 +518,6 @@ export default function DynamicLiveReportPage() {
                 <tr>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">ID Pesanan</th>
-                  {/* DUA KOLOM BARU */}
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Waktu Orderan Dibuat</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Variasi</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Toko</th>
@@ -572,7 +530,6 @@ export default function DynamicLiveReportPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    {/* colSpan diubah jadi 8 agar mengisi semua baris hingga kolom yang baru ditambah */}
                     <td colSpan={8} className="text-center p-12 text-gray-500">
                       Loading...
                     </td>
@@ -595,11 +552,10 @@ export default function DynamicLiveReportPage() {
                       <td className="p-5 font-semibold text-gray-900">
                         {item.order_id}
                       </td>
-                      {/* ISI DATA KOLOM WAKTU ORDERAN DIBUAT */}
+                      {/* PERUBAHAN: Data dicetak mentah persis seperti di database tanpa formatTanggal */}
                       <td className="p-5 text-gray-700 whitespace-nowrap">
-                        {item.waktu_orderan_dibuat ? formatTanggal(item.waktu_orderan_dibuat) : '-'}
+                        {item.waktu_orderan_dibuat ? item.waktu_orderan_dibuat : '-'}
                       </td>
-                      {/* ISI DATA KOLOM VARIASI */}
                       <td className="p-5 text-gray-700">
                         {item.variasi_produk}
                       </td>
@@ -613,7 +569,6 @@ export default function DynamicLiveReportPage() {
                             ● {item.status}
                           </span>
                         ) : (
-                          // Mengubah warna teks BELUM DIBAYAR menjadi text-red-700
                           <span className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-xs font-bold">
                             ● BELUM DIBAYAR
                           </span>
