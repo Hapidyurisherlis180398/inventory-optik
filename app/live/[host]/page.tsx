@@ -47,10 +47,42 @@ export default function DynamicLiveReportPage() {
       })
 
     if (!error && data) {
-      setData(data)
+      // ==============================================================
+      // TAMBAHAN: MENGAMBIL DATA DARI data_pengiriman (WAKTU & VARIASI)
+      // ==============================================================
+      const orderIds = data.map((item) => item.order_id).filter(Boolean)
+      const pengirimanMap = new Map()
+
+      if (orderIds.length > 0) {
+        const { data: pengirimanData, error: errPengiriman } = await supabase
+          .from('data_pengiriman')
+          .select('order_id, created_time, variation')
+          .in('order_id', orderIds)
+
+        if (!errPengiriman && pengirimanData) {
+          pengirimanData.forEach((p) => {
+            pengirimanMap.set(p.order_id, {
+              created_time: p.created_time,
+              variation: p.variation,
+            })
+          })
+        }
+      }
+
+      // Gabungkan data asli dengan data dari data_pengiriman
+      const mergedData = data.map((item) => {
+        const infoPengiriman = pengirimanMap.get(item.order_id)
+        return {
+          ...item,
+          waktu_orderan_dibuat: infoPengiriman?.created_time || null,
+          variasi_produk: infoPengiriman?.variation || '-',
+        }
+      })
+
+      setData(mergedData) // Set data yang sudah digabungkan
 
       // TOTAL SEMUA TERBAYAR
-      const totalBayarSemua = data.reduce((sum, item) => {
+      const totalBayarSemua = mergedData.reduce((sum, item) => {
         if (item.status && item.status.includes('TERBAYAR')) {
           const angka = Number(
             item.total_pendapatan?.toString().replace(/[^\d-]/g, '')
@@ -67,7 +99,7 @@ export default function DynamicLiveReportPage() {
       // REKAP BERDASARKAN WAKTU
       const group: any = {}
 
-      data.forEach((item) => {
+      mergedData.forEach((item) => {
         if (item.status && item.status.includes('TERBAYAR')) {
           const waktu = item.status
 
@@ -527,23 +559,27 @@ export default function DynamicLiveReportPage() {
                 <tr>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">No</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">ID Pesanan</th>
+                  {/* DUA KOLOM BARU */}
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Waktu Orderan Dibuat</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Variasi</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Toko</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Total Pendapatan</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Waktu Live</th>
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Input Data</th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="text-center p-12 text-gray-500">
+                    {/* colSpan diubah jadi 8 agar mengisi semua baris hingga kolom yang baru ditambah */}
+                    <td colSpan={8} className="text-center p-12 text-gray-500">
                       Loading...
                     </td>
                   </tr>
                 ) : filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center p-12 text-gray-500">
+                    <td colSpan={8} className="text-center p-12 text-gray-500">
                       {searchQuery ? 'Data pesanan tidak ditemukan' : 'Belum ada data'}
                     </td>
                   </tr>
@@ -558,6 +594,14 @@ export default function DynamicLiveReportPage() {
                       </td>
                       <td className="p-5 font-semibold text-gray-900">
                         {item.order_id}
+                      </td>
+                      {/* ISI DATA KOLOM WAKTU ORDERAN DIBUAT */}
+                      <td className="p-5 text-gray-700 whitespace-nowrap">
+                        {item.waktu_orderan_dibuat ? formatTanggal(item.waktu_orderan_dibuat) : '-'}
+                      </td>
+                      {/* ISI DATA KOLOM VARIASI */}
+                      <td className="p-5 text-gray-700">
+                        {item.variasi_produk}
                       </td>
                       <td className="p-5 text-gray-700">{item.toko}</td>
                       <td className="p-5 font-semibold text-green-700">
