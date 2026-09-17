@@ -26,7 +26,7 @@ const DAFTAR_URL_CEK = [
 async function jalankanBotToko(namaToko, cookieFileName) {
   console.log(`[${namaToko}] Menyiapkan Mesin Automasi Crawler Chrome...`);
   
-  const browser = await chromium.launch({ headless: false }); 
+  const browser = await chromium.launch({ headless: true }); 
   const context = await browser.newContext();
 
   try {
