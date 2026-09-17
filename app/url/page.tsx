@@ -98,6 +98,18 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/perhitungan_hpp", 
     icon: '',
   },
+  {
+    title: 'Input Cookies Toko',
+    description: 'Input Cookies Toko ke database',
+    url: "https://inventory-optik-ten.vercel.app/cookies_toko", 
+    icon: '',
+  },
+  {
+    title: 'Orderan TikTok',
+    description: 'Orderan TikTok dari database',
+    url: "https://inventory-optik-ten.vercel.app/orderan_tiktok", 
+    icon: '',
+  },
 ];
 
 export default function HomePage() {
