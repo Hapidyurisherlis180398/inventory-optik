@@ -21,7 +21,7 @@ function formatCookies(cookiesArray) {
 }
 
 // ==============================================================================
-// FUNGSI UPDATE STATUS KE SUPABASE (SUDAH DISESUAIKAN KE WIB / ASIA/JAKARTA)
+// FUNGSI UPDATE STATUS KE SUPABASE (WIB / ASIA/JAKARTA)
 // ==============================================================================
 async function updateStatusDatabase(sellerId, status) {
     const now = new Date();
@@ -48,7 +48,7 @@ async function updateStatusDatabase(sellerId, status) {
 }
 
 // ==============================================================================
-// FUNGSI PEMANASAN (KEEP-ALIVE)
+// FUNGSI PEMANASAN (KEEP-ALIVE) MENGGUNAKAN SHOP INSIGHT
 // ==============================================================================
 async function lakukanPemanasan() {
     const waktuSekarang = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
@@ -76,18 +76,18 @@ async function lakukanPemanasan() {
             "origin": "https://seller-id.tokopedia.com"
         };
 
-        const urlList = `https://seller-id.tokopedia.com/api/fulfillment/order/list?aid=4068&locale=id-ID&oec_seller_id=${store.seller_id}&seller_id=${store.seller_id}`;
-        // Tembak API dengan beban paling ringan (cukup minta 1 pesanan untuk memancing server)
+        // URL Bersih untuk mengecek Info Toko (Sangat Ringan & Anti-Limit)
+        const urlInfo = `https://seller-id.tokopedia.com/api/v2/insights/seller/shop/info?locale=id-ID&oec_seller_id=${store.seller_id}&seller_id=${store.seller_id}&aid=4068`;
+        
+        // Payload persis seperti yang kamu temukan
         const payload = {
-            count: 1, 
-            offset: 0,
-            pagination_type: 0,
-            sort_info: "11",
-            search_condition: { condition_list: { search_tab: { value: ["101"] } } }
+            request: {
+                stats_types: [1, 2]
+            }
         };
 
         try {
-            const response = await fetch(urlList, {
+            const response = await fetch(urlInfo, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(payload)
@@ -95,24 +95,24 @@ async function lakukanPemanasan() {
 
             if (response.ok) {
                 const data = await response.json();
+                
+                // LOGIKA ZERO TRUST: Jika Code 0 = HIDUP, Selain itu mutlak MATI
                 if (data.code === 0) {
-                    console.log(`✅ [${store.nama_toko}] Pemanasan sukses! Sesi tetap hidup.`);
+                    console.log(`✅ [${store.nama_toko}] Pemanasan sukses! Cookies masih aktif.`);
                     await updateStatusDatabase(store.seller_id, "HIDUP");
-                } else if (data.code === 10000 || data.code === 401) {
-                    console.log(`❌ [${store.nama_toko}] COOKIE MATI / KADALUARSA! Perlu login ulang.`);
-                    await updateStatusDatabase(store.seller_id, "MATI");
                 } else {
-                    console.log(`⚠️ [${store.nama_toko}] Respons tidak dikenal (Kode: ${data.code})`);
+                    console.log(`❌ [${store.nama_toko}] COOKIE MATI / BERMASALAH (Kode API: ${data.code}). Perlu update cookies.`);
+                    await updateStatusDatabase(store.seller_id, "MATI");
                 }
             } else {
-                console.log(`❌ [${store.nama_toko}] Akses HTTP ditolak (Status: ${response.status})`);
+                console.log(`❌ [${store.nama_toko}] Akses HTTP ditolak (Status: ${response.status}). Sesi dianggap MATI.`);
                 await updateStatusDatabase(store.seller_id, "MATI");
             }
         } catch (error) {
             console.log(`❌ [${store.nama_toko}] Gagal terkoneksi: ${error.message}`);
         }
         
-        // Jeda 2 detik antar toko agar server Tokopedia tidak merasa di-spam
+        // Jeda 2 detik antar toko 
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
     
