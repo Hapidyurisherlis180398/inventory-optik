@@ -23,9 +23,10 @@ export default function CookiesTokoPage() {
   async function getData() {
     setLoading(true)
     
+    // PERUBAHAN: Menambahkan status_cookie dan terakhir_update pada query select
     const { data: tokoData, error } = await supabase
       .from('data_toko')
-      .select('id, nama_toko, seller_id, created_at, cookies')
+      .select('id, nama_toko, seller_id, created_at, cookies, status_cookie, terakhir_update')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -61,6 +62,20 @@ export default function CookiesTokoPage() {
     }
   }
 
+  // PERUBAHAN: Fungsi baru untuk menyalin cookies ke clipboard
+  async function handleCopyCookies(cookiesData: any) {
+    if (!cookiesData || cookiesData.length === 0) {
+      alert("⚠️ Cookies kosong, tidak ada yang disalin.")
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(cookiesData, null, 2))
+      alert("✅ Cookies berhasil disalin ke clipboard!")
+    } catch (err) {
+      alert("❌ Gagal menyalin cookies.")
+    }
+  }
+
   // ==========================================
   // 3. FUNGSI TAMBAH & HAPUS TOKO
   // ==========================================
@@ -85,28 +100,36 @@ export default function CookiesTokoPage() {
       // 2. Cek Duplikat Seller ID
       const { data: existing } = await supabase
         .from('data_toko')
-        .select('seller_id')
+        .select('id, seller_id')
         .eq('seller_id', formData.seller_id)
         .single()
 
       if (existing) {
-        alert("❌ Gagal: Seller ID ini sudah ada di database!")
-        setLoading(false)
-        return
+        // PERUBAHAN: Jika toko sudah ada, kita UPDATE cookies-nya, bukan ditolak
+        const { error: updateError } = await supabase
+          .from('data_toko')
+          .update({ 
+            nama_toko: formData.nama_toko, 
+            cookies: parsedCookies,
+            status_cookie: null // Reset status agar dicek ulang oleh script pemanasan
+          })
+          .eq('seller_id', formData.seller_id)
+
+        if (updateError) throw updateError
+        alert(`✅ Berhasil! Cookies untuk toko ${formData.nama_toko} telah diperbarui.`)
+      } else {
+        // 3. Insert ke Supabase jika toko belum ada
+        const { error: insertError } = await supabase
+          .from('data_toko')
+          .insert([{
+            nama_toko: formData.nama_toko,
+            seller_id: formData.seller_id,
+            cookies: parsedCookies
+          }])
+
+        if (insertError) throw insertError
+        alert(`✅ Berhasil! Toko ${formData.nama_toko} telah ditambahkan.`)
       }
-
-      // 3. Insert ke Supabase
-      const { error: insertError } = await supabase
-        .from('data_toko')
-        .insert([{
-          nama_toko: formData.nama_toko,
-          seller_id: formData.seller_id,
-          cookies: parsedCookies
-        }])
-
-      if (insertError) throw insertError
-
-      alert(`✅ Berhasil! Toko ${formData.nama_toko} telah ditambahkan.`)
       
       // Reset Form & Refresh Data
       setShowForm(false)
@@ -122,13 +145,18 @@ export default function CookiesTokoPage() {
   }
 
   async function handleHapusToko(id: string, namaToko: string) {
-    if (!window.confirm(`⚠️ Yakin ingin menghapus toko "${namaToko}"?\nSemua cookies toko ini akan hilang.`)) return
+    // PERUBAHAN: Konfirmasi diperjelas bahwa hanya cookies yang dihapus
+    if (!window.confirm(`⚠️ Yakin ingin menghapus COOKIES toko "${namaToko}"?\n(Nama Toko dan Seller ID akan tetap aman tersimpan)`)) return
 
     setLoading(true)
-    const { error } = await supabase.from('data_toko').delete().eq('id', id)
+    // PERUBAHAN: Menggunakan update() untuk mengosongkan cookies, BUKAN delete()
+    const { error } = await supabase
+      .from('data_toko')
+      .update({ cookies: [], status_cookie: 'MATI' })
+      .eq('id', id)
     
     if (error) {
-      alert(`Gagal menghapus: ${error.message}`)
+      alert(`Gagal menghapus cookies: ${error.message}`)
     } else {
       getData()
     }
@@ -163,7 +191,7 @@ export default function CookiesTokoPage() {
                   loading ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-black hover:bg-gray-800 text-white'
                 }`}
               >
-                {loading ? 'Memproses...' : '➕ Tambah Toko Baru'}
+                {loading ? 'Memproses...' : '➕ Tambah / Update Toko'}
               </button>
             </div>
           </div>
@@ -211,13 +239,14 @@ export default function CookiesTokoPage() {
           </div>
 
           <div className="overflow-auto max-h-[600px]">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[1000px]">
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
                   <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">No</th>
                   <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Nama Toko</th>
                   <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Seller ID</th>
                   <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Status Cookies</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Terakhir Update</th>
                   <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase">Tgl Input</th>
                   <th className="p-4 text-center text-xs font-bold text-gray-500 uppercase">Aksi</th>
                 </tr>
@@ -226,8 +255,8 @@ export default function CookiesTokoPage() {
               <tbody>
                 {data.length === 0 && !loading ? (
                   <tr>
-                    <td colSpan={6} className="text-center p-12 text-gray-500">
-                      Belum ada toko yang didaftarkan. Silakan klik "Tambah Toko Baru".
+                    <td colSpan={7} className="text-center p-12 text-gray-500">
+                      Belum ada toko yang didaftarkan. Silakan klik "Tambah / Update Toko".
                     </td>
                   </tr>
                 ) : (
@@ -236,21 +265,49 @@ export default function CookiesTokoPage() {
                       <td className="p-4 font-medium text-gray-700">{index + 1}</td>
                       <td className="p-4 font-bold text-gray-900">{item.nama_toko}</td>
                       <td className="p-4 font-mono text-gray-600 bg-gray-100 rounded px-2">{item.seller_id}</td>
+                      
+                      {/* PERUBAHAN: Render Status Cookies Dinamis */}
                       <td className="p-4">
-                        <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-bold">
-                          ✅ Tersimpan ({Array.isArray(item.cookies) ? item.cookies.length : 0} item)
-                        </span>
+                        {item.status_cookie === 'HIDUP' ? (
+                          <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-bold">
+                            ✅ HIDUP ({Array.isArray(item.cookies) ? item.cookies.length : 0})
+                          </span>
+                        ) : item.status_cookie === 'MATI' ? (
+                          <span className="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-bold">
+                            ❌ MATI ({Array.isArray(item.cookies) ? item.cookies.length : 0})
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 bg-gray-50 text-gray-700 border border-gray-200 rounded-full text-xs font-bold">
+                            ❓ Belum Dicek ({Array.isArray(item.cookies) ? item.cookies.length : 0})
+                          </span>
+                        )}
                       </td>
+                      
+                      {/* PERUBAHAN: Tambahan Kolom Terakhir Update */}
+                      <td className="p-4 text-gray-600 whitespace-nowrap">
+                        {formatTanggal(item.terakhir_update)}
+                      </td>
+
                       <td className="p-4 text-gray-600 whitespace-nowrap">
                         {formatTanggal(item.created_at)}
                       </td>
+
+                      {/* PERUBAHAN: Tambahan Tombol Copy Cookies */}
                       <td className="p-4 text-center">
-                        <button 
-                          onClick={() => handleHapusToko(item.id, item.nama_toko)}
-                          className="text-red-500 hover:text-red-700 font-semibold px-3 py-1 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                        >
-                          Hapus
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => handleCopyCookies(item.cookies)}
+                            className="text-blue-600 hover:text-blue-800 font-semibold px-3 py-1 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                          >
+                            Copy
+                          </button>
+                          <button 
+                            onClick={() => handleHapusToko(item.id, item.nama_toko)}
+                            className="text-red-500 hover:text-red-700 font-semibold px-3 py-1 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -264,8 +321,8 @@ export default function CookiesTokoPage() {
         {showForm && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl shadow-xl animate-fade-in">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Tambah Toko Baru</h2>
-              <p className="text-gray-500 mb-6 text-sm">Masukkan informasi toko dan paste file `cookies.json` dari Cookie-Editor.</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Tambah / Update Toko</h2>
+              <p className="text-gray-500 mb-6 text-sm">Masukkan informasi toko dan paste file `cookies.json` dari Cookie-Editor. Jika Seller ID sudah ada, cookies akan otomatis diperbarui.</p>
               
               <form onSubmit={handleSimpanToko} className="space-y-5">
                 <div>
