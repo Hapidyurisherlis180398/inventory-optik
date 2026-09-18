@@ -14,7 +14,7 @@ export default function CookiesTokoPage() {
   const [formData, setFormData] = useState({
     nama_toko: '',
     seller_id: '',
-    cookies: '' // Akan menampung teks paste JSON
+    cookies: '' 
   })
 
   // ==========================================
@@ -23,7 +23,6 @@ export default function CookiesTokoPage() {
   async function getData() {
     setLoading(true)
     
-    // PERUBAHAN: Menambahkan status_cookie dan terakhir_update pada query select
     const { data: tokoData, error } = await supabase
       .from('data_toko')
       .select('id, nama_toko, seller_id, created_at, cookies, status_cookie, terakhir_update')
@@ -46,10 +45,22 @@ export default function CookiesTokoPage() {
   // ==========================================
   // 2. FUNGSI UTILITAS FORMATTING
   // ==========================================
-  function formatTanggal(dateString: any) {
+  // PERUBAHAN: Menambahkan parameter cegahDobelWib agar browser tidak menambah +7 jam lagi
+  function formatTanggal(dateString: any, cegahDobelWib = false) {
     if (!dateString) return '-'
     try {
-      const date = new Date(dateString)
+      let finalDateString = dateString;
+      
+      // Jika waktu sudah dipaksa jadi WIB dari server Node.js, buang label UTC-nya
+      if (cegahDobelWib) {
+        if (dateString.includes('+')) {
+          finalDateString = dateString.split('+')[0]; // Membuang +00
+        } else if (dateString.endsWith('Z')) {
+          finalDateString = dateString.replace('Z', ''); // Membuang Z
+        }
+      }
+      
+      const date = new Date(finalDateString)
       return new Intl.DateTimeFormat('id-ID', {
         day: '2-digit',
         month: 'short',
@@ -62,7 +73,6 @@ export default function CookiesTokoPage() {
     }
   }
 
-  // PERUBAHAN: Fungsi baru untuk menyalin cookies ke clipboard
   async function handleCopyCookies(cookiesData: any) {
     if (!cookiesData || cookiesData.length === 0) {
       alert("⚠️ Cookies kosong, tidak ada yang disalin.")
@@ -84,7 +94,6 @@ export default function CookiesTokoPage() {
     setLoading(true)
 
     try {
-      // 1. Validasi Input JSON Cookies
       let parsedCookies;
       try {
         parsedCookies = JSON.parse(formData.cookies)
@@ -92,12 +101,11 @@ export default function CookiesTokoPage() {
           throw new Error("Format tidak valid.")
         }
       } catch (err) {
-        alert("❌ Gagal: Teks Cookies bukan format JSON Array yang valid. Pastikan Anda mem-paste langsung hasil export dari Cookie-Editor.")
+        alert("❌ Gagal: Teks Cookies bukan format JSON Array yang valid.")
         setLoading(false)
         return
       }
 
-      // 2. Cek Duplikat Seller ID
       const { data: existing } = await supabase
         .from('data_toko')
         .select('id, seller_id')
@@ -105,20 +113,20 @@ export default function CookiesTokoPage() {
         .single()
 
       if (existing) {
-        // PERUBAHAN: Jika toko sudah ada, kita UPDATE cookies-nya, bukan ditolak
+        // PERUBAHAN: Ikut mengupdate kolom 'created_at' saat cookies diperbarui
         const { error: updateError } = await supabase
           .from('data_toko')
           .update({ 
             nama_toko: formData.nama_toko, 
             cookies: parsedCookies,
-            status_cookie: null // Reset status agar dicek ulang oleh script pemanasan
+            status_cookie: null, 
+            created_at: new Date().toISOString() // <-- Tgl Input kini ikut berubah
           })
           .eq('seller_id', formData.seller_id)
 
         if (updateError) throw updateError
-        alert(`✅ Berhasil! Cookies untuk toko ${formData.nama_toko} telah diperbarui.`)
+        alert(`✅ Berhasil! Cookies untuk toko ${formData.nama_toko} telah diperbarui (Tgl Input juga disetel ulang).`)
       } else {
-        // 3. Insert ke Supabase jika toko belum ada
         const { error: insertError } = await supabase
           .from('data_toko')
           .insert([{
@@ -131,7 +139,6 @@ export default function CookiesTokoPage() {
         alert(`✅ Berhasil! Toko ${formData.nama_toko} telah ditambahkan.`)
       }
       
-      // Reset Form & Refresh Data
       setShowForm(false)
       setFormData({ nama_toko: '', seller_id: '', cookies: '' })
       getData()
@@ -145,11 +152,9 @@ export default function CookiesTokoPage() {
   }
 
   async function handleHapusToko(id: string, namaToko: string) {
-    // PERUBAHAN: Konfirmasi diperjelas bahwa hanya cookies yang dihapus
     if (!window.confirm(`⚠️ Yakin ingin menghapus COOKIES toko "${namaToko}"?\n(Nama Toko dan Seller ID akan tetap aman tersimpan)`)) return
 
     setLoading(true)
-    // PERUBAHAN: Menggunakan update() untuk mengosongkan cookies, BUKAN delete()
     const { error } = await supabase
       .from('data_toko')
       .update({ cookies: [], status_cookie: 'MATI' })
@@ -266,7 +271,6 @@ export default function CookiesTokoPage() {
                       <td className="p-4 font-bold text-gray-900">{item.nama_toko}</td>
                       <td className="p-4 font-mono text-gray-600 bg-gray-100 rounded px-2">{item.seller_id}</td>
                       
-                      {/* PERUBAHAN: Render Status Cookies Dinamis */}
                       <td className="p-4">
                         {item.status_cookie === 'HIDUP' ? (
                           <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-bold">
@@ -283,16 +287,16 @@ export default function CookiesTokoPage() {
                         )}
                       </td>
                       
-                      {/* PERUBAHAN: Tambahan Kolom Terakhir Update */}
+                      {/* PERUBAHAN: Menerapkan 'true' untuk mencekal penambahan +7 Jam otomatis browser */}
                       <td className="p-4 text-gray-600 whitespace-nowrap">
-                        {formatTanggal(item.terakhir_update)}
+                        {formatTanggal(item.terakhir_update, true)}
                       </td>
 
+                      {/* PERUBAHAN: Menerapkan 'false' karena created_at adalah waktu murni (UTC tulen) */}
                       <td className="p-4 text-gray-600 whitespace-nowrap">
-                        {formatTanggal(item.created_at)}
+                        {formatTanggal(item.created_at, false)}
                       </td>
 
-                      {/* PERUBAHAN: Tambahan Tombol Copy Cookies */}
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button 
