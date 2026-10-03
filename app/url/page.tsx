@@ -110,6 +110,12 @@ const menus = [
     url: "https://inventory-optik-ten.vercel.app/orderan_tiktok", 
     icon: '',
   },
+  {
+    title: 'Affiliate Shopee',
+    description: 'Kirim data affiliate shopee ke database',
+    url: "https://inventory-optik-ten.vercel.app/aff-shopee", 
+    icon: '',
+  },
 ];
 
 export default function HomePage() {
