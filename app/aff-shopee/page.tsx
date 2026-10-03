@@ -20,8 +20,6 @@ export default function InputDataAffShopee() {
     setIsLoading(true);
     setMessage({ type: "", text: "" });
 
-    // 1. Memproses input textarea menjadi Array link
-    // Memisahkan berdasarkan baris baru, membersihkan spasi, dan membuang baris kosong
     const linksArray = tiktokLinks
       .split("\n")
       .map((link) => link.trim())
@@ -33,23 +31,18 @@ export default function InputDataAffShopee() {
       return;
     }
 
-    // 2. Mengirim data ke Supabase
-    const { data, error } = await supabase
-      .from("shopee_affiliate_data")
-      .insert([
-        {
-          tiktok_links: linksArray,
-          shopee_link: shopeeLink,
-          description: description,
-        },
-      ]);
+    const { error } = await supabase.from("shopee_affiliate_data").insert([
+      {
+        tiktok_links: linksArray,
+        shopee_link: shopeeLink,
+        description: description,
+      },
+    ]);
 
     if (error) {
-      console.error("Error insert data:", error);
       setMessage({ type: "error", text: `Gagal menyimpan: ${error.message}` });
     } else {
-      setMessage({ type: "success", text: "Data berhasil disimpan ke Supabase!" });
-      // Reset form setelah berhasil
+      setMessage({ type: "success", text: "✨ Data berhasil diamankan ke database!" });
       setTiktokLinks("");
       setShopeeLink("");
       setDescription("");
@@ -59,50 +52,64 @@ export default function InputDataAffShopee() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 flex justify-center items-center">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">
-          Input Data Affiliate Shopee
-        </h1>
+    // Background gradient gelap ala modern web
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#1a1a24] to-black p-6 flex justify-center items-center font-sans">
+      
+      {/* Container dengan efek Glassmorphism */}
+      <div className="bg-white/5 backdrop-blur-xl p-8 sm:p-10 rounded-3xl shadow-2xl border border-white/10 w-full max-w-3xl">
+        
+        {/* Header Section */}
+        <div className="mb-10 text-center">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2">
+            Auto-Affiliate Hub
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Input data TikTok & Shopee untuk sistem automasi Anda
+          </p>
+        </div>
 
+        {/* Notifikasi Message */}
         {message.text && (
           <div
-            className={`p-4 mb-6 rounded-md ${
-              message.type === "error" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+            className={`p-4 mb-8 rounded-xl border backdrop-blur-md flex items-center gap-3 ${
+              message.type === "error"
+                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
             }`}
           >
-            {message.text}
+            <span className="text-xl">{message.type === "error" ? "⚠️" : "✅"}</span>
+            <p className="text-sm font-medium">{message.text}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Input Link TikTok */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Link Video TikTok (Bisa lebih dari 10)
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-300">
+              Link Video TikTok <span className="text-cyan-400">*</span>
             </label>
-            <p className="text-xs text-gray-500 mb-2">
-              Masukkan 1 link per baris (tekan Enter untuk memisahkan link).
+            <p className="text-xs text-gray-500">
+              Satu baris untuk satu link (Enter untuk baris baru)
             </p>
             <textarea
               required
-              rows={8}
-              className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="https://vt.tiktok.com/link1/&#10;https://vt.tiktok.com/link2/&#10;https://vt.tiktok.com/link3/"
+              rows={6}
+              className="w-full bg-black/30 border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all resize-y custom-scrollbar"
+              placeholder="https://vt.tiktok.com/ZSbmwaL9c/&#10;https://vt.tiktok.com/..."
               value={tiktokLinks}
               onChange={(e) => setTiktokLinks(e.target.value)}
             />
           </div>
 
           {/* Input Link Shopee */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Link Affiliate Shopee
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-300">
+              Link Affiliate Shopee <span className="text-cyan-400">*</span>
             </label>
             <input
               type="url"
               required
-              className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full bg-black/30 border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all"
               placeholder="https://shope.ee/..."
               value={shopeeLink}
               onChange={(e) => setShopeeLink(e.target.value)}
@@ -110,15 +117,15 @@ export default function InputDataAffShopee() {
           </div>
 
           {/* Input Deskripsi */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi Produk
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-300">
+              Deskripsi & Hashtag <span className="text-cyan-400">*</span>
             </label>
             <textarea
               required
               rows={4}
-              className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Tuliskan deskripsi produk, caption, atau hashtag di sini..."
+              className="w-full bg-black/30 border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all resize-y"
+              placeholder="Tulis caption promosi Anda di sini..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -128,9 +135,19 @@ export default function InputDataAffShopee() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400 transition-colors"
+            className="w-full mt-8 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-4 px-6 rounded-xl shadow-[0_0_20px_rgba(8,112,184,0.3)] hover:shadow-[0_0_25px_rgba(8,112,184,0.5)] focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1 transition-all duration-200"
           >
-            {isLoading ? "Menyimpan Data..." : "Simpan ke Database"}
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses Data...
+              </span>
+            ) : (
+              "🚀 Simpan Data ke Database"
+            )}
           </button>
         </form>
       </div>
