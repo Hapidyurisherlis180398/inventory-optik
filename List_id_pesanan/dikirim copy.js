@@ -69,7 +69,7 @@ function cariAlamatOtomatis(obj) {
 }
 
 // ==============================================================================
-// FUNGSI MEMPROSES DATA PESANAN (MENGEMBALIKAN DATA SUPABASE + TEKS LOG)
+// FUNGSI MEMPROSES DATA PESANAN (MENGEMBALIKAN STRING AGAR TERMINAL RAPI)
 // ==============================================================================
 async function prosesDataPesanan(orderData, headers, sellerId, urutanKe, namaPembeli) {
     const orderId = orderData.main_order_id;
@@ -123,27 +123,19 @@ async function prosesDataPesanan(orderData, headers, sellerId, urutanKe, namaPem
         const buyerNote = noteModule.has_buyer_note ? (noteModule.buyer_note || "-") : "-";
         const sellerNote = noteModule.seller_note_value?.note_text || noteModule.seller_note || "-";
 
-        // ==========================================
-        // PERHITUNGAN DATA KEUANGAN UNTUK SUPABASE
-        // ==========================================
         const perkiraanPenghasilan = dataKeuangan?.sum_earning_amount?.format_with_symbol || "Belum tersedia";
         const perkiraanBiaya = dataKeuangan?.sum_fees_amount?.format_with_symbol || "Belum tersedia";
         const penyelesaianPembayaran = dataKeuangan?.sum_settlement_amount?.format_with_symbol || "Belum tersedia";
-        
-        // Konversi ke format angka agar bisa masuk ke kolom tipe NUMERIC di Supabase
-        const rawPenghasilan = dataKeuangan?.sum_earning_amount?.amount ? Number(dataKeuangan.sum_earning_amount.amount) : null;
-        const rawBiaya = dataKeuangan?.sum_fees_amount?.amount ? Number(dataKeuangan.sum_fees_amount.amount) : null;
-        
-        let persenPpnTeks = "0%";
-        let persenPpnAngka = null;
-        
-        if (rawPenghasilan && rawPenghasilan > 0 && rawBiaya !== null) {
+        const rawPenghasilan = Number(dataKeuangan?.sum_earning_amount?.amount || 0);
+        const rawBiaya = Number(dataKeuangan?.sum_fees_amount?.amount || 0);
+
+        let persenPpn = "0%";
+        if (rawPenghasilan > 0) {
             const hitungPersen = (Math.abs(rawBiaya) / rawPenghasilan) * 100;
-            persenPpnTeks = hitungPersen.toFixed(2) + "%"; 
-            persenPpnAngka = Number(hitungPersen.toFixed(2)); // Angka untuk Supabase
+            persenPpn = hitungPersen.toFixed(2) + "%"; 
         }
 
-        // Susun string rapi untuk terminal
+        // Susun string rapi
         hasilLog += `    └─ 🚚 No. Resi   : ${trackingNo}\n`;
         hasilLog += `    └─ 🕒 ${labelWaktu}: ${waktuTampil}\n`;
         hasilLog += `    └─ 💳 Pembayaran : ${payMethod} (${statusPesanan})\n`;
@@ -153,7 +145,7 @@ async function prosesDataPesanan(orderData, headers, sellerId, urutanKe, namaPem
         hasilLog += `    └─ 📝 Chat. Penj.: ${sellerNote}\n`;
         hasilLog += `    └─ 💰 Penghasilan: ${perkiraanPenghasilan}\n`;
         hasilLog += `    └─ 📉 Biaya (Fee): ${perkiraanBiaya}\n`;
-        hasilLog += `    └─ 📊 PPN (Fee) %: ${persenPpnTeks}\n`;
+        hasilLog += `    └─ 📊 PPN (Fee) %: ${persenPpn}\n`;
         hasilLog += `    └─ 💵 Penyelesaian: ${penyelesaianPembayaran}\n`;
         
         for (let i = 0; i < produkList.length; i++) {
@@ -164,27 +156,14 @@ async function prosesDataPesanan(orderData, headers, sellerId, urutanKe, namaPem
         }
         hasilLog += "-".repeat(60);
         
-        // Kembalikan objek berisi Teks Log dan Data Khusus Supabase
-        return {
-            logText: hasilLog,
-            supabaseData: {
-                order_id: orderId,
-                penghasilan: rawPenghasilan,
-                biaya_fee: rawBiaya,
-                ppn_fee_persen: persenPpnAngka,
-                penyelesaian: dataKeuangan?.sum_settlement_amount?.format_with_symbol || null
-            }
-        };
+        return hasilLog;
     } catch (error) {
-        return {
-            logText: `🆔 [${urutanKe}] ${orderId}\n    └─ ❌ Error memproses data: ${error.message}\n` + "-".repeat(60),
-            supabaseData: null
-        };
+        return `🆔 [${urutanKe}] ${orderId}\n    └─ ❌ Error memproses data: ${error.message}\n` + "-".repeat(60);
     }
 }
 
 // ==============================================================================
-// FUNGSI UTAMA: PAGINATION + BATCH CONCURRENCY + SUPABASE UPSERT
+// FUNGSI UTAMA: PAGINATION + BATCH CONCURRENCY ULTRA FAST
 // ==============================================================================
 async function cekSemuaToko() {
     console.log("⏳ Menghubungkan ke Supabase dan mengambil data toko...");
@@ -226,7 +205,7 @@ async function cekSemuaToko() {
         
         let offsetData = 0;
         const batasPerHalaman = 20; 
-        const chunkSize = 20; 
+        const chunkSize = 20; // Hajar 20 pesanan sekaligus dalam 1 gelombang!
         let lanjutTarikHalaman = true;
         let totalPesananTokoIni = 0;
         let halamanKe = 1;
@@ -266,7 +245,7 @@ async function cekSemuaToko() {
                     for (let i = 0; i < orderList.length; i += chunkSize) {
                         const chunk = orderList.slice(i, i + chunkSize);
                         
-                        // 1. Eksekusi penarikan data keuangan secara paralel
+                        // Mengeksekusi seluruh isi halaman secara serentak
                         const promises = chunk.map((order, index) => {
                             const urutanKe = totalPesananTokoIni + i + index + 1;
                             const pembeli = order.buyer_info_module?.buyer_nickname || "NN";
@@ -275,30 +254,10 @@ async function cekSemuaToko() {
 
                         const hasilBatch = await Promise.all(promises);
                         
-                        // 2. Kumpulkan data spesifik untuk di-update ke Supabase
-                        const dataUntukSupabase = [];
-                        
-                        // 3. Cetak log ke terminal
-                        hasilBatch.forEach(hasil => {
-                            if (hasil.logText) console.log(hasil.logText);
-                            // Saring hanya data yang memiliki order_id valid dan nilai keuangan
-                            if (hasil.supabaseData && hasil.supabaseData.order_id && hasil.supabaseData.penghasilan !== null) {
-                                dataUntukSupabase.push(hasil.supabaseData);
-                            }
+                        // Mencetak hasil ke layar secara instan dan berurutan
+                        hasilBatch.forEach(hasilPrint => {
+                            if (hasilPrint) console.log(hasilPrint);
                         });
-
-                        // 4. Proses Inject / Update ke Supabase
-                        if (dataUntukSupabase.length > 0) {
-                            const { error: upsertError } = await supabase
-                                .from('data_pengiriman')
-                                .upsert(dataUntukSupabase, { onConflict: 'order_id' });
-                                
-                            if (upsertError) {
-                                console.log(`⚠️ Gagal memperbarui data keuangan di database: ${upsertError.message}`);
-                            } else {
-                                console.log(`✅ [Database] ${dataUntukSupabase.length} pesanan berhasil diperbarui dengan data keuangan terbaru.`);
-                            }
-                        }
                     }
 
                     totalPesananTokoIni += orderList.length;
@@ -308,6 +267,8 @@ async function cekSemuaToko() {
                     } else {
                         offsetData += batasPerHalaman;
                         halamanKe++;
+                        
+                        // Jeda ultra-singkat antar halaman (hanya 0.5 detik)
                         await jeda(500); 
                     }
 

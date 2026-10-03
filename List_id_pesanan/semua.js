@@ -208,7 +208,7 @@ async function cekSemuaToko() {
 
     for (const store of stores) {
         console.log(`================================================================`);
-        console.log(`🏪 MEMERIKSA TOKO (MENUNGGU PENGIRIMAN): ${store.nama_toko} (ID: ${store.seller_id})`);
+        console.log(`🏪 MENARIK SEMUA DATA TOKO: ${store.nama_toko} (ID: ${store.seller_id})`);
         console.log(`================================================================`);
 
         const formattedCookie = formatCookies(store.cookies);
@@ -222,13 +222,14 @@ async function cekSemuaToko() {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
             "content-type": "application/json",
             "origin": "https://seller-id.tokopedia.com",
-            "referer": "https://seller-id.tokopedia.com/order?order_status[]=1&selected_sort=11&tab=to_ship"
+            "referer": "https://seller-id.tokopedia.com/order?order_status[]=2&selected_sort=11&tab=to_ship"
         };
 
-        const urlList = `https://seller-id.tokopedia.com/api/fulfillment/order/list?aid=4068&locale=id-ID&oec_seller_id=${store.seller_id}&seller_id=${store.seller_id}`;
+        // URL BARU DENGAN PARAMETER TAMBAHAN DAN INJEKSI SELLER ID OTOMATIS
+        const urlList = `https://seller-id.tokopedia.com/api/fulfillment/order/list?locale=id-ID&language=id&oec_seller_id=${store.seller_id}&seller_id=${store.seller_id}&aid=4068&app_name=i18n_ecom_shop&fp=verify_muf0jey9_9ptx4aTZ_SEay_4zji_AAHz_IXlSt9PCP3Q7&device_platform=web&cookie_enabled=true&screen_width=1280&screen_height=1024&browser_language=id-ID&browser_platform=Win32&browser_name=Mozilla&browser_version=5.0%20%28Windows%20NT%2010.0%3B%20Win64%3B%20x64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F153.0.0.0%20Safari%2F537.36&browser_online=true&timezone_name=Asia%2FJakarta&X-Tts-Oec-Bsid=9a8c00004e204e2000000fe44e22000001a0d37bae480000002965df518a3951a3f92c7d0b4e8165a3a3a3a3a3a3a4932f20f7551685945f410b3714007edc6723be75ea40c91d74cce7c90cb637aacac52c55158b4d74f61887811100000000000000000000021484b0ea93070050010101008b8e5143ebc363056767e904435da2e7400ae8af7929fd98ba162f228caba9eca556f3f883d7baeb7f238685bb30a70f6bea6a7ab89a573b91f693f9be438cad7436eaec222d7e6e140ace3000`;
         
         let offsetData = 0;
-        const batasPerHalaman = 20;
+        const batasPerHalaman = 20; 
         let lanjutTarikHalaman = true;
         let totalPesananTokoIni = 0;
         let halamanKe = 1;
@@ -237,23 +238,16 @@ async function cekSemuaToko() {
         while (lanjutTarikHalaman) {
             console.log(`🔄 Menarik Halaman ${halamanKe} (Dimulai dari pesanan ke-${offsetData + 1})...`);
             
-            // PAYLOAD BARU UNTUK MENUNGGU PENGIRIMAN (Status 1)
+            // PAYLOAD BARU YANG SUDAH DISESUAIKAN UNTUK MENARIK SEMUA PESANAN
             const payload = {
-                count: batasPerHalaman,
-                offset: offsetData,
-                pagination_type: 0,
-                sort_info: "11",
                 search_condition: {
-                    condition_list: {
-                        order_status: {
-                            value: ["1"] // <-- UBAH KE STATUS 1 (Menunggu Diproses/Pengiriman)
-                        },
-                        search_tab: {
-                            value: ["101"]
-                        }
-                    }
+                    condition_list: {}
                 },
-                search_cursor: ""
+                offset: offsetData,
+                count: batasPerHalaman,
+                sort_info: "6",
+                search_cursor: "",
+                pagination_type: 0
             };
 
             try {
@@ -271,8 +265,8 @@ async function cekSemuaToko() {
                     const orderList = data.data?.main_orders || [];
                     
                     if (orderList.length === 0) {
-                        if (halamanKe === 1) console.log("Tidak ada pesanan baru.\n");
-                        lanjutTarikHalaman = false; // Hentikan loop jika array kosong
+                        if (halamanKe === 1) console.log("Tidak ada pesanan sama sekali.\n");
+                        lanjutTarikHalaman = false; 
                         break; 
                     }
 
@@ -299,10 +293,8 @@ async function cekSemuaToko() {
 
                     // PENENTUAN APAKAH ADA HALAMAN BERIKUTNYA
                     if (orderList.length < batasPerHalaman) {
-                        // Jika hasil yang didapat kurang dari 20, berarti ini halaman terakhir
                         lanjutTarikHalaman = false;
                     } else {
-                        // Jika pas 20, kemungkinan ada halaman selanjutnya. Tambah offset.
                         offsetData += batasPerHalaman;
                         halamanKe++;
                         
@@ -311,8 +303,8 @@ async function cekSemuaToko() {
                     }
 
                 } else {
-                    console.log(`❌ Error API Tokopedia (Kode: ${data.code}): ${data.message}`);
-                    lanjutTarikHalaman = false; // Hentikan loop jika error (misal cookies expired)
+                    console.log(`❌ Error API Tokopedia (Kode: ${data.code}): ${data.message || JSON.stringify(data)}`);
+                    lanjutTarikHalaman = false; 
                 }
             } catch (error) {
                 console.log(`❌ Koneksi gagal saat menarik Halaman ${halamanKe}: ${error.message}`);
