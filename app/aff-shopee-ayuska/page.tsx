@@ -61,7 +61,7 @@ export default function InputDataAffShopee() {
         {/* Header Section */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2">
-            Auto-Affiliate Hub
+            Auto-Affiliate A Yuska
           </h1>
           <p className="text-gray-400 text-sm">
             Input data TikTok & Shopee untuk sistem automasi Anda
