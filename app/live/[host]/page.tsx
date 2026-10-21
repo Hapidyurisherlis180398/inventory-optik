@@ -27,6 +27,12 @@ export default function DynamicLiveReportPage() {
   const [showModalLunasi, setShowModalLunasi] = useState(false)
   const [pinLunasi, setPinLunasi] = useState('')
   const [tempWaktu, setTempWaktu] = useState<string>('')
+  
+  // --- STATE UNTUK MODAL KETERANGAN ---
+  const [showModalKeterangan, setShowModalKeterangan] = useState(false)
+  const [pinKeterangan, setPinKeterangan] = useState('')
+  const [keteranganText, setKeteranganText] = useState('')
+  const [selectedItemKeterangan, setSelectedItemKeterangan] = useState<any>(null)
 
   // --- STATE UNTUK PENCARIAN ID PESANAN ---
   const [searchQuery, setSearchQuery] = useState('')
@@ -46,7 +52,6 @@ export default function DynamicLiveReportPage() {
       const pengirimanMap = new Map()
 
       if (orderIds.length > 0) {
-        // PERUBAHAN: Memanggil KEDUANYA (created_time & paid_time)
         const { data: pengirimanData, error: errPengiriman } = await supabase
           .from('data_pengiriman')
           .select('order_id, created_time, paid_time, variation, payment_method, creator_handle')
@@ -68,15 +73,12 @@ export default function DynamicLiveReportPage() {
       const mergedData = data.map((item) => {
         const infoPengiriman = pengirimanMap.get(item.order_id)
         
-        // PERUBAHAN LOGIKA COD: Cek payment method
         let waktuDibuat = null;
         if (infoPengiriman) {
           const payMethod = infoPengiriman.payment_method || '';
-          // Jika metode pembayaran 'Bayar di tempat', gunakan created_time
           if (payMethod.toLowerCase().includes('bayar di tempat')) {
             waktuDibuat = infoPengiriman.created_time;
           } else {
-            // Jika selain 'Bayar di tempat', gunakan paid_time
             waktuDibuat = infoPengiriman.paid_time;
           }
         }
@@ -109,7 +111,6 @@ export default function DynamicLiveReportPage() {
       mergedData.forEach((item) => {
         if (item.status && item.status.includes('TERBAYAR')) {
           const waktu = item.status
-
           const angka = Number(
             item.total_pendapatan?.toString().replace(/[^\d-]/g, '')
           )
@@ -288,6 +289,42 @@ export default function DynamicLiveReportPage() {
     getData()
   }
 
+  // --- FUNGSI UNTUK MENAMPILKAN & MENYIMPAN KETERANGAN ---
+  function handleBukaModalKeterangan(item: any) {
+    setSelectedItemKeterangan(item)
+    setKeteranganText(item.keterangan || '') // asumsikan nama kolom di supabase adalah "keterangan"
+    setPinKeterangan('')
+    setShowModalKeterangan(true)
+  }
+
+  async function prosesSimpanKeterangan() {
+    if (pinKeterangan !== '!@#$%') {
+      alert('Password salah')
+      setPinKeterangan('')
+      return
+    }
+
+    if (!selectedItemKeterangan) return
+
+    setLoading(true)
+    const { error } = await supabase
+      .from(tableName)
+      .update({ keterangan: keteranganText })
+      .eq('order_id', selectedItemKeterangan.order_id)
+
+    if (error) {
+      alert('Gagal menyimpan keterangan')
+      console.error(error)
+    } else {
+      setShowModalKeterangan(false)
+      setPinKeterangan('')
+      setKeteranganText('')
+      setSelectedItemKeterangan(null)
+      getData() // refresh data tabel
+    }
+    setLoading(false)
+  }
+
   const filteredData = data.filter((item) => {
     if (searchQuery === '') return true
     return item.order_id?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -369,6 +406,64 @@ export default function DynamicLiveReportPage() {
                 className="bg-black hover:bg-gray-800 transition-all text-white px-6 py-3 rounded-xl font-semibold shadow-sm"
               >
                 Lunasi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KETERANGAN DATA */}
+      {showModalKeterangan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-xl border border-gray-100">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Input Keterangan Data
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              ID Pesanan: {selectedItemKeterangan?.order_id}
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
+              <textarea
+                placeholder="Tulis keterangan manual..."
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black min-h-[100px]"
+                value={keteranganText}
+                onChange={(e) => setKeteranganText(e.target.value)}
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                placeholder="•••••"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+                value={pinKeterangan}
+                onChange={(e) => setPinKeterangan(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') prosesSimpanKeterangan()
+                }}
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowModalKeterangan(false)
+                  setPinKeterangan('')
+                  setKeteranganText('')
+                  setSelectedItemKeterangan(null)
+                }}
+                className="px-5 py-3 rounded-xl text-gray-600 font-semibold hover:bg-gray-100 transition-all"
+              >
+                Batal
+              </button>
+              <button
+                onClick={prosesSimpanKeterangan}
+                className="bg-black hover:bg-gray-800 transition-all text-white px-6 py-3 rounded-xl font-semibold shadow-sm"
+              >
+                Simpan
               </button>
             </div>
           </div>
@@ -546,19 +641,23 @@ export default function DynamicLiveReportPage() {
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Total Pendapatan</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Input Data</th>
+                  {/* TAMBAHAN KOLOM KETERANGAN DI PINGGIR INPUT DATA */}
+                  <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Keterangan Data</th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className="text-center p-12 text-gray-500">
+                    {/* colSpan dirubah dari 10 menjadi 11 karena ada penambahan 1 kolom */}
+                    <td colSpan={11} className="text-center p-12 text-gray-500">
                       Loading...
                     </td>
                   </tr>
                 ) : filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="text-center p-12 text-gray-500">
+                    {/* colSpan dirubah dari 10 menjadi 11 */}
+                    <td colSpan={11} className="text-center p-12 text-gray-500">
                       {searchQuery ? 'Data pesanan tidak ditemukan' : 'Belum ada data'}
                     </td>
                   </tr>
@@ -606,6 +705,22 @@ export default function DynamicLiveReportPage() {
                       <td className="p-5 font-semibold text-red-700">
                         {item.created_at ? formatTanggal(item.created_at) : '-'}
                       </td>
+                      
+                      {/* TAMBAHAN CELL KETERANGAN */}
+                      <td className="p-5">
+                        <div className="flex flex-col items-start gap-2 max-w-[200px]">
+                          <span className="text-sm text-gray-600 line-clamp-3">
+                            {item.keterangan ? item.keterangan : <span className="text-gray-400 italic">Kosong</span>}
+                          </span>
+                          <button
+                            onClick={() => handleBukaModalKeterangan(item)}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+                          >
+                            {item.keterangan ? 'Edit Keterangan' : '+ Keterangan'}
+                          </button>
+                        </div>
+                      </td>
+                      
                     </tr>
                   ))
                 )}
