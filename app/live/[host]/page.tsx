@@ -42,8 +42,8 @@ export default function DynamicLiveReportPage() {
   // --- STATE UNTUK PENCARIAN ID PESANAN ---
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Ambil Password dari Environment Variable agar tidak hardcode di file ini
-  const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN
+  // --- PASSWORD DITANAM LANGSUNG DI SINI ---
+  const ADMIN_PIN = 'data_lama'
 
   useEffect(() => {
     if (host) {
@@ -227,7 +227,7 @@ export default function DynamicLiveReportPage() {
   }
 
   async function prosesLunasiBatch() {
-    // Note: Anda juga bisa menggunakan ADMIN_PIN di sini jika ingin password seragam
+    // Tombol lunasi masih menggunakan password '123' seperti awal
     if (pinLunasi !== '123') {
       alert('Password salah')
       setPinLunasi('')
@@ -276,7 +276,6 @@ export default function DynamicLiveReportPage() {
     if (selectedOrders.length === 0) return
 
     const updatedData = { ...localKeterangan }
-    // Memasukkan keterangan yang sama ke semua ID yang terpilih
     selectedOrders.forEach(id => {
       updatedData[id] = keteranganText
     })
@@ -287,7 +286,7 @@ export default function DynamicLiveReportPage() {
     setShowModalKeterangan(false)
     setPinKeterangan('')
     setKeteranganText('')
-    setSelectedOrders([]) // Hapus seleksi setelah selesai disimpan
+    setSelectedOrders([]) 
   }
 
   if (!host) return <div className="min-h-screen bg-white" />
@@ -376,7 +375,6 @@ export default function DynamicLiveReportPage() {
                   setShowModalKeterangan(false)
                   setPinKeterangan('')
                   setKeteranganText('')
-                  // Jangan kosongkan selectedOrders di sini agar user bisa membatalkan tanpa kehilangan centangan
                 }}
                 className="px-5 py-3 rounded-xl text-gray-600 font-semibold hover:bg-gray-100 transition-all"
               >
@@ -414,7 +412,6 @@ export default function DynamicLiveReportPage() {
 
         {/* CARD SUMMARY */}
         <div className="grid md:grid-cols-4 gap-5 mb-8">
-          {/* Card isi dihilangkan untuk menghemat space di contoh, tapi tetap aman ada di kodemu */}
           <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
             <p className="text-sm text-gray-500 mb-3">Total Hasil Live</p>
             <h2 className="text-4xl font-bold text-gray-900">{data.length}</h2>
@@ -433,6 +430,52 @@ export default function DynamicLiveReportPage() {
           </div>
         </div>
 
+        {/* LAPORAN WAKTU PEMBAYARAN */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Riwayat Pembayaran
+            </h2>
+          </div>
+
+          <div className="grid gap-4">
+            {laporanWaktu.length === 0 ? (
+              <div className="bg-white border border-gray-200 rounded-3xl p-10 text-center shadow-sm">
+                <p className="text-gray-500">Belum ada laporan pembayaran</p>
+              </div>
+            ) : (
+              laporanWaktu.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div>
+                      <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-semibold px-3 py-2 rounded-full mb-4">
+                        ● TERBAYAR
+                      </div>
+                      <p className="text-sm text-gray-500 mb-3">{item.waktu}</p>
+                      <h2 className="text-3xl font-bold text-gray-900">
+                        {formatRupiah(Number(item.total))}
+                      </h2>
+                      <p className="mt-3 text-sm font-medium text-gray-600">
+                        {item.jumlahPesanan} Pesanan
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handleKlikLunasi(item.waktu)}
+                      className="bg-black hover:bg-gray-800 transition-all text-white px-7 py-4 rounded-2xl font-semibold shadow-sm"
+                    >
+                      Lunasi
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* TABLE */}
         <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
           <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -442,7 +485,7 @@ export default function DynamicLiveReportPage() {
             </div>
             
             <div className="flex items-center gap-4 flex-wrap">
-              {/* TOMBOL AKSI MASSAL (MUNCUL JIKA ADA YANG DIPILIH) */}
+              {/* TOMBOL AKSI MASSAL */}
               {selectedOrders.length > 0 && (
                 <button
                   onClick={() => {
@@ -475,7 +518,6 @@ export default function DynamicLiveReportPage() {
             <table className="w-full min-w-[1200px]">
               <thead className="bg-gray-50">
                 <tr>
-                  {/* TAMBAHAN HEADER CHECKBOX UNTUK SELECT ALL */}
                   <th className="p-5 text-center w-12">
                     <input
                       type="checkbox"
@@ -510,7 +552,6 @@ export default function DynamicLiveReportPage() {
                     
                     return (
                       <tr key={item.id} className={`border-t border-gray-100 transition-all ${isSelected ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
-                        {/* TAMBAHAN CHECKBOX UNTUK SELECT SATUAN */}
                         <td className="p-5 text-center">
                           <input
                             type="checkbox"
@@ -547,7 +588,6 @@ export default function DynamicLiveReportPage() {
                             </span>
                             <button
                               onClick={() => {
-                                // Memilih hanya item ini dan membuka modal
                                 setSelectedOrders([item.order_id])
                                 setKeteranganText(keteranganItem || '')
                                 setPinKeterangan('')
