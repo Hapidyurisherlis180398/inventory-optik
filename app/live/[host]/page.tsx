@@ -18,6 +18,9 @@ export default function DynamicLiveReportPage() {
   const [laporanWaktu, setLaporanWaktu] = useState<any[]>([])
   const [totalTerbayar, setTotalTerbayar] = useState(0)
 
+  // --- STATE UNTUK PENYIMPANAN KETERANGAN LOCAL (LOCAL STORAGE) ---
+  const [localKeterangan, setLocalKeterangan] = useState<Record<string, string>>({})
+
   // --- STATE UNTUK MODAL UPLOAD ---
   const [showModalUpload, setShowModalUpload] = useState(false)
   const [pinUpload, setPinUpload] = useState('')
@@ -36,6 +39,20 @@ export default function DynamicLiveReportPage() {
 
   // --- STATE UNTUK PENCARIAN ID PESANAN ---
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Efek untuk memuat keterangan dari Local Storage saat pertama kali render
+  useEffect(() => {
+    if (host) {
+      const savedData = localStorage.getItem(`keterangan_${host}`)
+      if (savedData) {
+        try {
+          setLocalKeterangan(JSON.parse(savedData))
+        } catch (error) {
+          console.error("Gagal memuat data keterangan lokal", error)
+        }
+      }
+    }
+  }, [host])
 
   async function getData() {
     setLoading(true)
@@ -289,15 +306,16 @@ export default function DynamicLiveReportPage() {
     getData()
   }
 
-  // --- FUNGSI UNTUK MENAMPILKAN & MENYIMPAN KETERANGAN ---
+  // --- FUNGSI UNTUK MENAMPILKAN & MENYIMPAN KETERANGAN LOKAL ---
   function handleBukaModalKeterangan(item: any) {
     setSelectedItemKeterangan(item)
-    setKeteranganText(item.keterangan || '') // asumsikan nama kolom di supabase adalah "keterangan"
+    // Ambil teks dari state lokal jika sudah ada sebelumnya
+    setKeteranganText(localKeterangan[item.order_id] || '') 
     setPinKeterangan('')
     setShowModalKeterangan(true)
   }
 
-  async function prosesSimpanKeterangan() {
+  function prosesSimpanKeterangan() {
     if (pinKeterangan !== '!@#$%') {
       alert('Password salah')
       setPinKeterangan('')
@@ -306,23 +324,22 @@ export default function DynamicLiveReportPage() {
 
     if (!selectedItemKeterangan) return
 
-    setLoading(true)
-    const { error } = await supabase
-      .from(tableName)
-      .update({ keterangan: keteranganText })
-      .eq('order_id', selectedItemKeterangan.order_id)
-
-    if (error) {
-      alert('Gagal menyimpan keterangan')
-      console.error(error)
-    } else {
-      setShowModalKeterangan(false)
-      setPinKeterangan('')
-      setKeteranganText('')
-      setSelectedItemKeterangan(null)
-      getData() // refresh data tabel
+    // Update Data ke State
+    const updatedData = {
+      ...localKeterangan,
+      [selectedItemKeterangan.order_id]: keteranganText
     }
-    setLoading(false)
+    
+    setLocalKeterangan(updatedData)
+    
+    // Simpan ke Local Storage browser agar bertahan ketika di-reload
+    localStorage.setItem(`keterangan_${host}`, JSON.stringify(updatedData))
+
+    // Tutup Modal
+    setShowModalKeterangan(false)
+    setPinKeterangan('')
+    setKeteranganText('')
+    setSelectedItemKeterangan(null)
   }
 
   const filteredData = data.filter((item) => {
@@ -345,7 +362,7 @@ export default function DynamicLiveReportPage() {
             <input
               type="password"
               placeholder="•••••"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-black text-gray-900 bg-white"
               value={pinUpload}
               onChange={(e) => setPinUpload(e.target.value)}
               onKeyDown={(e) => {
@@ -384,7 +401,7 @@ export default function DynamicLiveReportPage() {
             <input
               type="password"
               placeholder="•••••"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-black text-gray-900 bg-white"
               value={pinLunasi}
               onChange={(e) => setPinLunasi(e.target.value)}
               onKeyDown={(e) => {
@@ -425,9 +442,10 @@ export default function DynamicLiveReportPage() {
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
+              {/* PERBAIKAN WARNA TEKS DENGAN text-gray-900 dan bg-white */}
               <textarea
                 placeholder="Tulis keterangan manual..."
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black min-h-[100px]"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black min-h-[100px] text-gray-900 bg-white"
                 value={keteranganText}
                 onChange={(e) => setKeteranganText(e.target.value)}
               />
@@ -435,10 +453,11 @@ export default function DynamicLiveReportPage() {
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              {/* PERBAIKAN WARNA TEKS DENGAN text-gray-900 dan bg-white */}
               <input
                 type="password"
                 placeholder="•••••"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black text-gray-900 bg-white"
                 value={pinKeterangan}
                 onChange={(e) => setPinKeterangan(e.target.value)}
                 onKeyDown={(e) => {
@@ -614,7 +633,7 @@ export default function DynamicLiveReportPage() {
                 placeholder="Search Id Pesanan"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400"
               />
               {searchQuery && (
                 <button 
@@ -641,7 +660,6 @@ export default function DynamicLiveReportPage() {
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Total Pendapatan</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Input Data</th>
-                  {/* TAMBAHAN KOLOM KETERANGAN DI PINGGIR INPUT DATA */}
                   <th className="p-5 text-left text-xs font-bold text-gray-500 uppercase">Keterangan Data</th>
                 </tr>
               </thead>
@@ -649,80 +667,83 @@ export default function DynamicLiveReportPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    {/* colSpan dirubah dari 10 menjadi 11 karena ada penambahan 1 kolom */}
                     <td colSpan={11} className="text-center p-12 text-gray-500">
                       Loading...
                     </td>
                   </tr>
                 ) : filteredData.length === 0 ? (
                   <tr>
-                    {/* colSpan dirubah dari 10 menjadi 11 */}
                     <td colSpan={11} className="text-center p-12 text-gray-500">
                       {searchQuery ? 'Data pesanan tidak ditemukan' : 'Belum ada data'}
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((item, index) => (
-                    <tr
-                      key={item.id}
-                      className="border-t border-gray-100 hover:bg-gray-50 transition-all"
-                    >
-                      <td className="p-5 text-gray-700 font-medium">
-                        {index + 1}
-                      </td>
-                      <td className="p-5 font-semibold text-gray-900">
-                        {item.order_id}
-                      </td>
-                      <td className="p-5 text-gray-700 whitespace-nowrap">
-                        {item.waktu_orderan_dibuat 
-                          ? String(item.waktu_orderan_dibuat).replace('T', ' ').split('+')[0].replace('Z', '') 
-                          : '-'}
-                      </td>
-                      <td className="p-5 text-gray-700">
-                        {item.variasi_produk}
-                      </td>
-                      <td className="p-5 text-gray-700">
-                        {item.payment_method}
-                      </td>
-                      <td className="p-5 text-gray-700">
-                        {item.creator_handle}
-                      </td>
-                      <td className="p-5 text-gray-700">{item.toko}</td>
-                      <td className="p-5 font-semibold text-green-700">
-                        {item.total_pendapatan}
-                      </td>
-                      <td className="p-5">
-                        {item.status && item.status.includes('TERBAYAR') ? (
-                          <span className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-2 rounded-full text-xs font-semibold">
-                            ● {item.status}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-xs font-bold">
-                            ● BELUM DIBAYAR
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-5 font-semibold text-red-700">
-                        {item.created_at ? formatTanggal(item.created_at) : '-'}
-                      </td>
-                      
-                      {/* TAMBAHAN CELL KETERANGAN */}
-                      <td className="p-5">
-                        <div className="flex flex-col items-start gap-2 max-w-[200px]">
-                          <span className="text-sm text-gray-600 line-clamp-3">
-                            {item.keterangan ? item.keterangan : <span className="text-gray-400 italic">Kosong</span>}
-                          </span>
-                          <button
-                            onClick={() => handleBukaModalKeterangan(item)}
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                          >
-                            {item.keterangan ? 'Edit Keterangan' : '+ Keterangan'}
-                          </button>
-                        </div>
-                      </td>
-                      
-                    </tr>
-                  ))
+                  filteredData.map((item, index) => {
+                    // Ambil teks keterangan dari state lokal berdasarkan order_id
+                    const keteranganItem = localKeterangan[item.order_id];
+                    
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-t border-gray-100 hover:bg-gray-50 transition-all"
+                      >
+                        <td className="p-5 text-gray-700 font-medium">
+                          {index + 1}
+                        </td>
+                        <td className="p-5 font-semibold text-gray-900">
+                          {item.order_id}
+                        </td>
+                        <td className="p-5 text-gray-700 whitespace-nowrap">
+                          {item.waktu_orderan_dibuat 
+                            ? String(item.waktu_orderan_dibuat).replace('T', ' ').split('+')[0].replace('Z', '') 
+                            : '-'}
+                        </td>
+                        <td className="p-5 text-gray-700">
+                          {item.variasi_produk}
+                        </td>
+                        <td className="p-5 text-gray-700">
+                          {item.payment_method}
+                        </td>
+                        <td className="p-5 text-gray-700">
+                          {item.creator_handle}
+                        </td>
+                        <td className="p-5 text-gray-700">{item.toko}</td>
+                        <td className="p-5 font-semibold text-green-700">
+                          {item.total_pendapatan}
+                        </td>
+                        <td className="p-5">
+                          {item.status && item.status.includes('TERBAYAR') ? (
+                            <span className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-2 rounded-full text-xs font-semibold">
+                              ● {item.status}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-full text-xs font-bold">
+                              ● BELUM DIBAYAR
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-5 font-semibold text-red-700">
+                          {item.created_at ? formatTanggal(item.created_at) : '-'}
+                        </td>
+                        
+                        {/* CELL KETERANGAN DARI STATE LOKAL */}
+                        <td className="p-5">
+                          <div className="flex flex-col items-start gap-2 max-w-[200px]">
+                            <span className="text-sm text-gray-600 line-clamp-3">
+                              {keteranganItem ? keteranganItem : <span className="text-gray-400 italic">Kosong</span>}
+                            </span>
+                            <button
+                              onClick={() => handleBukaModalKeterangan(item)}
+                              className="bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium text-xs px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+                            >
+                              {keteranganItem ? 'Edit Keterangan' : '+ Keterangan'}
+                            </button>
+                          </div>
+                        </td>
+                        
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
